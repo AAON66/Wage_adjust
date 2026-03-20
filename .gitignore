@@ -1,0 +1,12 @@
+﻿.venv/
+.tmp/
+uploads/
+*.db
+pytest-cache-files-*/
+__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/vite.config.d.ts
+frontend/vite.config.js
