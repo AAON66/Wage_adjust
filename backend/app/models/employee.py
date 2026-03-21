@@ -27,3 +27,12 @@ class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     subordinates = relationship("Employee", back_populates="manager")
     submissions = relationship("EmployeeSubmission", back_populates="employee")
     certifications = relationship("Certification", back_populates="employee")
+    bound_user = relationship('User', back_populates='employee', uselist=False)
+
+    @property
+    def bound_user_id(self) -> str | None:
+        return self.bound_user.id if self.bound_user is not None else None
+
+    @property
+    def bound_user_email(self) -> str | None:
+        return self.bound_user.email if self.bound_user is not None else None

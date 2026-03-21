@@ -23,6 +23,11 @@ export async function bulkCreateUsers(items: AdminUserCreatePayload[]): Promise<
   return response.data;
 }
 
+export async function updateManagedUserEmployeeBinding(userId: string, employeeId: string | null): Promise<UserProfile> {
+  const response = await api.patch<UserProfile>(`/users/${userId}/binding`, { employee_id: employeeId });
+  return response.data;
+}
+
 export async function updateManagedUserPassword(userId: string, newPassword: string): Promise<{ updated_user_id: string; message: string }> {
   const response = await api.patch<{ updated_user_id: string; message: string }>(`/users/${userId}/password`, { new_password: newPassword });
   return response.data;

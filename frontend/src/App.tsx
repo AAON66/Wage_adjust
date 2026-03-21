@@ -10,6 +10,7 @@ import { ApprovalsPage } from './pages/Approvals';
 import { CreateCyclePage } from './pages/CreateCycle';
 import { DashboardPage } from './pages/Dashboard';
 import { EmployeesPage } from './pages/Employees';
+import { EmployeeAdminPage } from './pages/EmployeeAdmin';
 import { EvaluationDetailPage } from './pages/EvaluationDetail';
 import { ImportCenterPage } from './pages/ImportCenter';
 import { LoginPage } from './pages/Login';
@@ -311,6 +312,7 @@ export default function App() {
             <Route element={<ApprovalsPage />} path="/approvals" />
             <Route element={<DashboardPage />} path="/dashboard" />
             <Route element={<UserAdminPage />} path="/user-admin" />
+            <Route element={<EmployeeAdminPage />} path="/employee-admin" />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'hrbp', 'manager', 'employee']} />}>
@@ -331,3 +333,5 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+

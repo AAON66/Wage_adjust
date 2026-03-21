@@ -89,7 +89,7 @@ def seed_recommendation(context: ApiDatabaseContext) -> tuple[str, str]:
             ai_level='Level 4',
             confidence_score=0.87,
             explanation='Ready for approval.',
-            status='reviewed',
+            status='pending_hr',
         )
         db.add(evaluation)
         db.commit()
@@ -192,6 +192,7 @@ def test_approval_api_flow() -> None:
         )
         assert admin_queue.status_code == 200
         assert admin_queue.json()['total'] == 2
+
 
 
 

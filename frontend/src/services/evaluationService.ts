@@ -23,9 +23,17 @@ export async function fetchEvaluationBySubmission(submissionId: string): Promise
 
 export async function submitManualReview(
   evaluationId: string,
-  payload: { ai_level: string; explanation: string; dimension_scores: Array<{ dimension_code: string; raw_score: number; rationale: string }> },
+  payload: { ai_level?: string; overall_score?: number; explanation: string; dimension_scores: Array<{ dimension_code: string; raw_score: number; rationale: string }> },
 ): Promise<EvaluationRecord> {
   const response = await api.patch<EvaluationRecord>(`/evaluations/${evaluationId}/manual-review`, payload);
+  return response.data;
+}
+
+export async function submitHrReview(
+  evaluationId: string,
+  payload: { decision: 'approved' | 'returned'; comment?: string; final_score?: number },
+): Promise<EvaluationRecord> {
+  const response = await api.patch<EvaluationRecord>(`/evaluations/${evaluationId}/hr-review`, payload);
   return response.data;
 }
 

@@ -9,6 +9,7 @@ from backend.app.api.v1.dashboard import router as dashboard_router
 from backend.app.api.v1.employees import router as employees_router
 from backend.app.api.v1.evaluations import router as evaluations_router
 from backend.app.api.v1.files import router as files_router
+from backend.app.api.v1.handbooks import router as handbooks_router
 from backend.app.api.v1.imports import router as imports_router
 from backend.app.api.v1.public import router as public_router
 from backend.app.api.v1.salary import router as salary_router
@@ -29,4 +30,5 @@ api_router.include_router(salary_router)
 api_router.include_router(approvals_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(imports_router)
+api_router.include_router(handbooks_router)
 api_router.include_router(public_router)

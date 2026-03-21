@@ -98,6 +98,31 @@ class DeepSeekPromptLibrary:
             },
         ]
 
+    def build_handbook_messages(self, parsed: ParsedDocument, *, file_name: str, file_type: str) -> list[dict[str, str]]:
+        return [
+            {
+                'role': 'system',
+                'content': (
+                    'You parse internal employee handbook documents. '
+                    'Return JSON with keys: title, summary, key_points, tags. '
+                    'key_points must be an array of concise Chinese bullet statements and tags must be an array of short labels.'
+                ),
+            },
+            {
+                'role': 'user',
+                'content': json.dumps(
+                    {
+                        'file_name': file_name,
+                        'file_type': file_type,
+                        'title': parsed.title,
+                        'metadata': parsed.metadata,
+                        'content': parsed.text[:8000],
+                    },
+                    ensure_ascii=False,
+                ),
+            },
+        ]
+
 
 class DeepSeekService:
     def __init__(
@@ -132,6 +157,13 @@ class DeepSeekService:
         return self._invoke_json(
             task_name='salary_explanation',
             messages=self.prompts.build_salary_messages(evaluation_context, salary_context),
+            fallback_payload=fallback_payload,
+        )
+
+    def parse_handbook(self, parsed: ParsedDocument, *, file_name: str, file_type: str, fallback_payload: dict[str, Any]) -> DeepSeekCallResult:
+        return self._invoke_json(
+            task_name='handbook_parsing',
+            messages=self.prompts.build_handbook_messages(parsed, file_name=file_name, file_type=file_type),
             fallback_payload=fallback_payload,
         )
 

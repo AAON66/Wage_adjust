@@ -15,6 +15,9 @@ class UserRead(BaseModel):
     email: EmailStr
     role: str
     must_change_password: bool = False
+    employee_id: str | None = None
+    employee_name: str | None = None
+    employee_no: str | None = None
     created_at: datetime
 
 
@@ -22,6 +25,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     role: str = Field(default='employee', min_length=2, max_length=50)
+
+
+class UserEmployeeBindingUpdate(BaseModel):
+    employee_id: str | None = None
 
 
 class UserLogin(BaseModel):

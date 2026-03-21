@@ -21,6 +21,7 @@ const ROLE_HOME_PATHS: Record<string, string> = {
 };
 
 const SETTINGS_MODULE = { title: '账号设置', description: '修改个人密码；如为初始密码登录，需先在此完成改密。', href: '/settings' };
+const EMPLOYEE_ARCHIVE_MODULE = { title: '员工档案', description: '绑定平台账号与员工档案，并维护员工手册解析库。', href: '/employee-admin' };
 
 const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
   admin: [
@@ -31,6 +32,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '组织看板', description: '查看分布、热力和 ROI 快照。', href: '/dashboard' },
     { title: '导入中心', description: '下载模板、上传 CSV、查看任务结果。', href: '/import-center' },
     { title: '平台账号', description: '可管理员工、主管和 HRBP 账号；不能修改同级管理员。', href: '/user-admin' },
+    EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
   hrbp: [
@@ -40,6 +42,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '组织看板', description: '查看组织分布和高潜画像。', href: '/dashboard' },
     { title: '导入中心', description: '管理员工与材料导入任务。', href: '/import-center' },
     { title: '平台账号', description: '仅可管理员工账号，不能修改主管、HRBP 或管理员。', href: '/user-admin' },
+    EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
   manager: [
@@ -47,6 +50,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '审批中心', description: '处理分配给你的审批任务。', href: '/approvals' },
     { title: '组织看板', description: '查看团队在整体评估中的分布表现。', href: '/dashboard' },
     { title: '平台账号', description: '仅可管理员工账号，不能修改主管、HRBP 或管理员。', href: '/user-admin' },
+    EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
   employee: [

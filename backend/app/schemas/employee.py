@@ -1,7 +1,6 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,6 +23,8 @@ class EmployeeRead(EmployeeBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    bound_user_id: str | None = None
+    bound_user_email: str | None = None
     created_at: datetime
     updated_at: datetime
 

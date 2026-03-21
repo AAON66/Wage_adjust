@@ -13,8 +13,16 @@ import { ReviewPanel } from '../components/review/ReviewPanel';
 import { useAuth } from '../hooks/useAuth';
 import { submitApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
-import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, submitManualReview } from '../services/evaluationService';
-import { fetchSubmissionEvidence, fetchSubmissionFiles, parseFile, uploadSubmissionFiles } from '../services/fileService';
+import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, submitHrReview, submitManualReview } from '../services/evaluationService';
+import {
+  deleteSubmissionFile,
+  fetchSubmissionEvidence,
+  fetchSubmissionFiles,
+  importGitHubSubmissionFile,
+  parseFile,
+  replaceSubmissionFile,
+  uploadSubmissionFiles,
+} from '../services/fileService';
 import { fetchEmployee } from '../services/employeeService';
 import { fetchSalaryRecommendationByEvaluation, recommendSalary } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
@@ -76,6 +84,13 @@ function mapEvidence(item: EvidenceRecord): EvidenceRecord {
   return { ...item, tags };
 }
 
+function averageDimensionScore(dimensions: DimensionScoreDraft[]): number {
+  if (!dimensions.length) {
+    return 0;
+  }
+  return Number((dimensions.reduce((sum, dimension) => sum + dimension.score, 0) / dimensions.length).toFixed(2));
+}
+
 function inferStatus(submission: SubmissionRecord | null, files: UploadedFileRecord[], evaluation: EvaluationRecord | null, recommendation: SalaryRecommendationRecord | null): string {
   if (recommendation?.status === 'locked' || recommendation?.status === 'approved') {
     return 'approved';
@@ -86,7 +101,7 @@ function inferStatus(submission: SubmissionRecord | null, files: UploadedFileRec
   if (evaluation?.status === 'confirmed') {
     return 'calibrated';
   }
-  if (evaluation?.status === 'reviewed') {
+  if (evaluation?.status === 'pending_hr' || evaluation?.status === 'returned') {
     return 'reviewing';
   }
   if (evaluation) {
@@ -115,10 +130,13 @@ export function EvaluationDetailPage() {
   const [salaryRecommendation, setSalaryRecommendation] = useState<SalaryRecommendationRecord | null>(null);
   const [dimensions, setDimensions] = useState<DimensionScoreDraft[]>(() => createInitialDimensions());
   const [reviewLevel, setReviewLevel] = useState('Level 3');
-  const [reviewComment, setReviewComment] = useState('已开启人工复核，请记录分歧点、判断依据和需要升级处理的说明。');
+  const [reviewComment, setReviewComment] = useState('请填写主管评分依据；如进入 HR 审核，请填写同意或打回原因。');
   const [isUploading, setIsUploading] = useState(false);
+  const [isGithubImporting, setIsGithubImporting] = useState(false);
+  const [workingFileId, setWorkingFileId] = useState<string | null>(null);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
@@ -126,6 +144,40 @@ export function EvaluationDetailPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const canSubmitApproval = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
+  const canHrReview = user?.role === 'admin' || user?.role === 'hrbp';
+
+  async function refreshSubmissionData(targetSubmissionId: string) {
+    const [filesResponse, evidenceResponse] = await Promise.all([
+      fetchSubmissionFiles(targetSubmissionId),
+      fetchSubmissionEvidence(targetSubmissionId),
+    ]);
+    setFiles(filesResponse.items);
+    setEvidenceItems(evidenceResponse.items.map(mapEvidence));
+
+    try {
+      const evaluationResponse = await fetchEvaluationBySubmission(targetSubmissionId);
+      setEvaluation(evaluationResponse);
+      setDimensions(mapEvaluationToDrafts(evaluationResponse));
+      setReviewLevel(evaluationResponse.ai_level);
+      setReviewComment(evaluationResponse.manager_comment ?? evaluationResponse.hr_comment ?? evaluationResponse.explanation);
+      try {
+        const recommendationResponse = await fetchSalaryRecommendationByEvaluation(evaluationResponse.id);
+        setSalaryRecommendation(recommendationResponse);
+      } catch {
+        setSalaryRecommendation(null);
+      }
+    } catch {
+      setEvaluation(null);
+      setSalaryRecommendation(null);
+      setDimensions(createInitialDimensions());
+    }
+  }
+
+  async function loadCycleSubmission(targetEmployeeId: string, cycleId: string) {
+    const submissionResponse = await ensureSubmission(targetEmployeeId, cycleId);
+    setSubmission(submissionResponse);
+    await refreshSubmissionData(submissionResponse.id);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -174,48 +226,7 @@ export function EvaluationDetailPage() {
         return;
       }
       try {
-        const submissionResponse = await ensureSubmission(employeeId, selectedCycleId);
-        if (cancelled) {
-          return;
-        }
-        setSubmission(submissionResponse);
-
-        const [filesResponse, evidenceResponse] = await Promise.all([
-          fetchSubmissionFiles(submissionResponse.id),
-          fetchSubmissionEvidence(submissionResponse.id),
-        ]);
-        if (cancelled) {
-          return;
-        }
-        setFiles(filesResponse.items);
-        setEvidenceItems(evidenceResponse.items.map(mapEvidence));
-
-        try {
-          const evaluationResponse = await fetchEvaluationBySubmission(submissionResponse.id);
-          if (cancelled) {
-            return;
-          }
-          setEvaluation(evaluationResponse);
-          setDimensions(mapEvaluationToDrafts(evaluationResponse));
-          setReviewLevel(evaluationResponse.ai_level);
-          setReviewComment(evaluationResponse.explanation);
-          try {
-            const recommendationResponse = await fetchSalaryRecommendationByEvaluation(evaluationResponse.id);
-            if (!cancelled) {
-              setSalaryRecommendation(recommendationResponse);
-            }
-          } catch {
-            if (!cancelled) {
-              setSalaryRecommendation(null);
-            }
-          }
-        } catch {
-          if (!cancelled) {
-            setEvaluation(null);
-            setSalaryRecommendation(null);
-            setDimensions(createInitialDimensions());
-          }
-        }
+        await loadCycleSubmission(employeeId, selectedCycleId);
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(resolveError(error));
@@ -243,40 +254,23 @@ export function EvaluationDetailPage() {
     [dimensions, evaluation],
   );
 
-  async function refreshSubmissionData(targetSubmissionId: string) {
-    const [filesResponse, evidenceResponse] = await Promise.all([
-      fetchSubmissionFiles(targetSubmissionId),
-      fetchSubmissionEvidence(targetSubmissionId),
-    ]);
-    setFiles(filesResponse.items);
-    setEvidenceItems(evidenceResponse.items.map(mapEvidence));
-    try {
-      const evaluationResponse = await fetchEvaluationBySubmission(targetSubmissionId);
-      setEvaluation(evaluationResponse);
-      setDimensions(mapEvaluationToDrafts(evaluationResponse));
-      setReviewLevel(evaluationResponse.ai_level);
-      setReviewComment(evaluationResponse.explanation);
-      try {
-        const recommendationResponse = await fetchSalaryRecommendationByEvaluation(evaluationResponse.id);
-        setSalaryRecommendation(recommendationResponse);
-      } catch {
-        setSalaryRecommendation(null);
-      }
-    } catch {
-      setEvaluation(null);
-      setSalaryRecommendation(null);
-      setDimensions(createInitialDimensions());
+  async function reloadCurrentCycleData() {
+    if (!employeeId || !selectedCycleId) {
+      return;
     }
+    await loadCycleSubmission(employeeId, selectedCycleId);
   }
 
-  async function handleFilesSelected(selectedFiles: FileList | null) {
+  async function handleFilesSelected(selectedFiles: globalThis.FileList | null) {
     if (!selectedFiles?.length || !submission) {
       return;
     }
     setIsUploading(true);
+    setErrorMessage(null);
     try {
-      await uploadSubmissionFiles(submission.id, Array.from(selectedFiles));
-      await refreshSubmissionData(submission.id);
+      const uploadResponse = await uploadSubmissionFiles(submission.id, Array.from(selectedFiles));
+      await Promise.all(uploadResponse.items.map((file) => parseFile(file.id)));
+      await reloadCurrentCycleData();
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -284,20 +278,60 @@ export function EvaluationDetailPage() {
     }
   }
 
-  async function handleRetryParse(fileId: string) {
+  async function handleGitHubImport(url: string) {
     if (!submission) {
       return;
     }
+    setIsGithubImporting(true);
+    setErrorMessage(null);
     try {
-      await parseFile(fileId);
-      await refreshSubmissionData(submission.id);
+      await importGitHubSubmissionFile(submission.id, url);
+      await reloadCurrentCycleData();
     } catch (error) {
       setErrorMessage(resolveError(error));
+    } finally {
+      setIsGithubImporting(false);
     }
   }
 
-  function handleDeleteFile(fileId: string) {
-    setFiles((current) => current.filter((file) => file.id !== fileId));
+  async function handleRetryParse(fileId: string) {
+    setWorkingFileId(fileId);
+    setErrorMessage(null);
+    try {
+      await parseFile(fileId);
+      await reloadCurrentCycleData();
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setWorkingFileId(null);
+    }
+  }
+
+  async function handleReplaceFile(fileId: string, nextFile: File) {
+    setWorkingFileId(fileId);
+    setErrorMessage(null);
+    try {
+      const updated = await replaceSubmissionFile(fileId, nextFile);
+      await parseFile(updated.id);
+      await reloadCurrentCycleData();
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setWorkingFileId(null);
+    }
+  }
+
+  async function handleDeleteFile(fileId: string) {
+    setWorkingFileId(fileId);
+    setErrorMessage(null);
+    try {
+      await deleteSubmissionFile(fileId);
+      await reloadCurrentCycleData();
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setWorkingFileId(null);
+    }
   }
 
   async function handleGenerateEvaluation() {
@@ -312,7 +346,7 @@ export function EvaluationDetailPage() {
       setDimensions(mapEvaluationToDrafts(nextEvaluation));
       setReviewLevel(nextEvaluation.ai_level);
       setReviewComment(nextEvaluation.explanation);
-      await refreshSubmissionData(submission.id);
+      await reloadCurrentCycleData();
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -328,6 +362,7 @@ export function EvaluationDetailPage() {
     try {
       const reviewed = await submitManualReview(evaluation.id, {
         ai_level: reviewLevel,
+        overall_score: averageDimensionScore(dimensions),
         explanation: reviewComment,
         dimension_scores: dimensions.map((dimension) => ({
           dimension_code: dimension.code,
@@ -337,6 +372,7 @@ export function EvaluationDetailPage() {
       });
       setEvaluation(reviewed);
       setDimensions(mapEvaluationToDrafts(reviewed));
+      setReviewComment(reviewed.manager_comment ?? reviewed.explanation);
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -350,12 +386,31 @@ export function EvaluationDetailPage() {
     }
     setIsConfirming(true);
     try {
-      await confirmEvaluation(evaluation.id);
-      await refreshSubmissionData(submission.id);
+      if (evaluation.status === 'pending_hr') {
+        await submitHrReview(evaluation.id, { decision: 'approved', comment: reviewComment });
+      } else {
+        await confirmEvaluation(evaluation.id);
+      }
+      await reloadCurrentCycleData();
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
       setIsConfirming(false);
+    }
+  }
+
+  async function handleReturnEvaluation() {
+    if (!evaluation) {
+      return;
+    }
+    setIsReturning(true);
+    try {
+      await submitHrReview(evaluation.id, { decision: 'returned', comment: reviewComment });
+      await reloadCurrentCycleData();
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setIsReturning(false);
     }
   }
 
@@ -402,7 +457,7 @@ export function EvaluationDetailPage() {
   return (
     <AppShell
       title="员工评估详情"
-      description="围绕单个员工查看材料、证据、AI 评估、人工复核和调薪建议。"
+      description="围绕单个员工查看材料、证据、AI 评分、主管评分、HR 审核和调薪建议。"
       actions={
         <>
           <Link className="chip-button" to="/employees">返回列表</Link>
@@ -462,12 +517,12 @@ export function EvaluationDetailPage() {
               </div>
               <div className="mt-5 grid gap-3">
                 <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingEvaluation || !submission} onClick={handleGenerateEvaluation} type="button">
-                  <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '评估生成中...' : '生成 AI 评估'}</h3>
-                  <p className="mt-2 text-sm leading-6 text-steel">为当前 submission 创建或刷新 AI 评估结果。</p>
+                  <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '评估生成中...' : '生成 AI 评分'}</h3>
+                  <p className="mt-2 text-sm leading-6 text-steel">先根据员工总结和证据材料生成 AI 评分结果，随后进入主管评分阶段。</p>
                 </button>
-                <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation} onClick={handleGenerateSalary} type="button">
+                <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation || evaluation.status !== 'confirmed'} onClick={handleGenerateSalary} type="button">
                   <h3 className="font-medium text-ink">{isGeneratingSalary ? '调薪建议生成中...' : '生成调薪建议'}</h3>
-                  <p className="mt-2 text-sm leading-6 text-steel">基于当前评估结果运行调薪建议引擎。</p>
+                  <p className="mt-2 text-sm leading-6 text-steel">只有最终评分确认后，才允许生成调薪建议。</p>
                 </button>
                 <div className="surface-subtle px-4 py-4">
                   <h3 className="font-medium text-ink">提交上下文</h3>
@@ -506,10 +561,21 @@ export function EvaluationDetailPage() {
           <section className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
             <div className="flex flex-col gap-5">
               <div className="surface px-6 py-6 lg:px-7">
-                <FileUploadPanel isUploading={isUploading} onFilesSelected={handleFilesSelected} />
+                <FileUploadPanel
+                  isGithubImporting={isGithubImporting}
+                  isUploading={isUploading}
+                  onFilesSelected={handleFilesSelected}
+                  onGitHubImport={handleGitHubImport}
+                />
               </div>
               <div className="surface px-6 py-6 lg:px-7">
-                <FileList files={files} onDelete={handleDeleteFile} onRetryParse={handleRetryParse} />
+                <FileList
+                  files={files}
+                  onDelete={handleDeleteFile}
+                  onReplace={handleReplaceFile}
+                  onRetryParse={handleRetryParse}
+                  workingFileId={workingFileId}
+                />
               </div>
             </div>
             <section className="surface px-6 py-6 lg:px-7">
@@ -524,6 +590,7 @@ export function EvaluationDetailPage() {
                 {evidenceItems.map((item) => (
                   <EvidenceCard evidence={item} key={item.id} />
                 ))}
+                {!evidenceItems.length ? <p className="text-sm text-steel">当前还没有证据卡片。上传材料或导入 GitHub 文件后，系统会自动整理摘要。</p> : null}
               </div>
             </section>
           </section>
@@ -532,11 +599,18 @@ export function EvaluationDetailPage() {
             <div className="flex flex-col gap-5">
               <div className="surface px-6 py-6 lg:px-7">
                 <ReviewPanel
+                  status={evaluation?.status ?? 'draft'}
                   aiLevel={evaluation?.ai_level ?? '未生成'}
+                  aiScore={evaluation?.ai_overall_score ?? null}
+                  managerScore={evaluation?.manager_score ?? null}
+                  scoreGap={evaluation?.score_gap ?? null}
+                  canHrReview={canHrReview}
                   dimensions={dimensions}
                   isConfirming={isConfirming}
+                  isReturning={isReturning}
                   isSubmitting={isReviewSubmitting}
                   onConfirmEvaluation={handleConfirmEvaluation}
+                  onReturnEvaluation={handleReturnEvaluation}
                   onReviewCommentChange={setReviewComment}
                   onReviewLevelChange={setReviewLevel}
                   onSubmitReview={handleSubmitReview}
@@ -591,5 +665,3 @@ export function EvaluationDetailPage() {
     </AppShell>
   );
 }
-
-

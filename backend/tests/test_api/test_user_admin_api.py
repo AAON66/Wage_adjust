@@ -17,7 +17,8 @@ class ApiDatabaseContext:
         temp_root = Path('.tmp').resolve()
         temp_root.mkdir(parents=True, exist_ok=True)
         database_path = (temp_root / f'user-admin-{uuid4().hex}.db').as_posix()
-        self.settings = Settings(allow_self_registration=True, database_url=f'sqlite+pysqlite:///{database_path}')
+        uploads_path = (temp_root / f'user-admin-uploads-{uuid4().hex}').as_posix()
+        self.settings = Settings(allow_self_registration=True, database_url=f'sqlite+pysqlite:///{database_path}', storage_base_dir=uploads_path)
         load_model_modules()
         self.engine = create_db_engine(self.settings)
         init_database(self.engine)
@@ -31,11 +32,13 @@ class ApiDatabaseContext:
             db.close()
 
 
+
 def build_client() -> tuple[TestClient, ApiDatabaseContext]:
     context = ApiDatabaseContext()
     app = create_app(context.settings)
     app.dependency_overrides[get_db] = context.override_get_db
     return TestClient(app), context
+
 
 
 def register_user(client: TestClient, *, email: str, role: str, password: str = 'Password123') -> str:
@@ -45,6 +48,26 @@ def register_user(client: TestClient, *, email: str, role: str, password: str = 
     )
     assert response.status_code == 201
     return response.json()['tokens']['access_token']
+
+
+
+def create_employee(client: TestClient, headers: dict[str, str], *, employee_no: str, name: str) -> str:
+    response = client.post(
+        '/api/v1/employees',
+        json={
+            'employee_no': employee_no,
+            'name': name,
+            'department': '产品技术中心',
+            'job_family': '平台研发',
+            'job_level': 'P5',
+            'manager_id': None,
+            'status': 'active',
+        },
+        headers=headers,
+    )
+    assert response.status_code == 201
+    return response.json()['id']
+
 
 
 def test_admin_can_manage_lower_roles_but_not_admin_peers() -> None:
@@ -93,6 +116,7 @@ def test_admin_can_manage_lower_roles_but_not_admin_peers() -> None:
 
         delete_response = client.delete(f'/api/v1/users/{hrbp_user_id}', headers=headers)
         assert delete_response.status_code == 200
+
 
 
 def test_manager_and_hrbp_can_only_manage_employees() -> None:
@@ -160,6 +184,73 @@ def test_manager_and_hrbp_can_only_manage_employees() -> None:
         assert manager_cannot_delete_hrbp.json()['message'] == 'You cannot manage accounts with the same or higher role level.'
 
 
+
+def test_binding_employee_profile_updates_auth_me() -> None:
+    client, _ = build_client()
+    with client:
+        admin_token = register_user(client, email='admin@example.com', role='admin')
+        admin_headers = {'Authorization': f'Bearer {admin_token}'}
+
+        employee_account = client.post('/api/v1/users', json={'email': 'employee@example.com', 'password': 'Password123', 'role': 'employee'}, headers=admin_headers)
+        assert employee_account.status_code == 201
+        employee_user_id = employee_account.json()['id']
+
+        employee_record_id = create_employee(client, admin_headers, employee_no='EMP-9001', name='陈曦')
+
+        bind_response = client.patch(
+            f'/api/v1/users/{employee_user_id}/binding',
+            json={'employee_id': employee_record_id},
+            headers=admin_headers,
+        )
+        assert bind_response.status_code == 200
+        assert bind_response.json()['employee_id'] == employee_record_id
+        assert bind_response.json()['employee_name'] == '陈曦'
+        assert bind_response.json()['employee_no'] == 'EMP-9001'
+
+        employee_login = client.post('/api/v1/auth/login', json={'email': 'employee@example.com', 'password': 'Password123'})
+        employee_token = employee_login.json()['access_token']
+        me_response = client.get('/api/v1/auth/me', headers={'Authorization': f'Bearer {employee_token}'})
+        assert me_response.status_code == 200
+        assert me_response.json()['employee_id'] == employee_record_id
+        assert me_response.json()['employee_name'] == '陈曦'
+
+        unbind_response = client.patch(
+            f'/api/v1/users/{employee_user_id}/binding',
+            json={'employee_id': None},
+            headers=admin_headers,
+        )
+        assert unbind_response.status_code == 200
+        assert unbind_response.json()['employee_id'] is None
+
+
+
+def test_binding_respects_unique_employee_profile_constraint() -> None:
+    client, _ = build_client()
+    with client:
+        admin_token = register_user(client, email='admin@example.com', role='admin')
+        admin_headers = {'Authorization': f'Bearer {admin_token}'}
+
+        first_user = client.post('/api/v1/users', json={'email': 'employee1@example.com', 'password': 'Password123', 'role': 'employee'}, headers=admin_headers)
+        second_user = client.post('/api/v1/users', json={'email': 'employee2@example.com', 'password': 'Password123', 'role': 'employee'}, headers=admin_headers)
+        employee_record_id = create_employee(client, admin_headers, employee_no='EMP-9002', name='李雨桐')
+
+        first_bind = client.patch(
+            f"/api/v1/users/{first_user.json()['id']}/binding",
+            json={'employee_id': employee_record_id},
+            headers=admin_headers,
+        )
+        assert first_bind.status_code == 200
+
+        second_bind = client.patch(
+            f"/api/v1/users/{second_user.json()['id']}/binding",
+            json={'employee_id': employee_record_id},
+            headers=admin_headers,
+        )
+        assert second_bind.status_code == 400
+        assert second_bind.json()['message'] == 'This employee profile is already bound to another account.'
+
+
+
 def test_employee_cannot_access_user_management() -> None:
     client, _ = build_client()
     with client:
@@ -168,6 +259,7 @@ def test_employee_cannot_access_user_management() -> None:
 
         response = client.get('/api/v1/users', headers=headers)
         assert response.status_code == 403
+
 
 
 def test_self_safeguards_still_apply() -> None:

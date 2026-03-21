@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -8,7 +8,9 @@ from backend.app.dependencies import get_app_settings, get_current_user, get_db
 from backend.app.schemas.file import (
     EvidenceListResponse,
     EvidenceRead,
+    FileDeleteResponse,
     FilePreviewResponse,
+    GitHubImportRequest,
     ParseResultResponse,
     UploadedFileListResponse,
     UploadedFileRead,
@@ -37,6 +39,28 @@ def upload_submission_files(
     return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in items], total=len(items))
 
 
+@router.post('/submissions/{submission_id}/github-import', response_model=UploadedFileRead, status_code=status.HTTP_201_CREATED)
+def import_github_submission_file(
+    submission_id: str,
+    payload: GitHubImportRequest,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+    _: object = Depends(get_current_user),
+) -> UploadedFileRead:
+    file_service = FileService(db, settings)
+    parse_service = ParseService(db, settings)
+    try:
+        file_record = file_service.import_github_file(submission_id, str(payload.url))
+        parsed_file, _ = parse_service.parse_file(file_record)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Failed to import GitHub file.') from exc
+    return UploadedFileRead.model_validate(parsed_file)
+
+
 @router.get('/submissions/{submission_id}/files', response_model=UploadedFileListResponse)
 def list_submission_files(
     submission_id: str,
@@ -47,6 +71,41 @@ def list_submission_files(
     service = FileService(db, settings)
     items = service.list_files(submission_id)
     return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in items], total=len(items))
+
+
+@router.put('/files/{file_id}', response_model=UploadedFileRead)
+def replace_uploaded_file(
+    file_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+    _: object = Depends(get_current_user),
+) -> UploadedFileRead:
+    service = FileService(db, settings)
+    try:
+        updated = service.replace_file(file_id, file)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return UploadedFileRead.model_validate(updated)
+
+
+@router.delete('/files/{file_id}', response_model=FileDeleteResponse)
+def delete_uploaded_file(
+    file_id: str,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+    _: object = Depends(get_current_user),
+) -> FileDeleteResponse:
+    service = FileService(db, settings)
+    try:
+        deleted_file_id = service.delete_file(file_id)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return FileDeleteResponse(deleted_file_id=deleted_file_id)
 
 
 @router.post('/files/{file_id}/parse', response_model=ParseResultResponse)

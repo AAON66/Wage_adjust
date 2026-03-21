@@ -17,10 +17,12 @@ const PARSE_STATUS_LABELS: Record<UploadedFileRecord['parse_status'], string> = 
 interface FileListProps {
   files: UploadedFileRecord[];
   onDelete: (fileId: string) => void;
+  onReplace: (fileId: string, nextFile: File) => void;
   onRetryParse: (fileId: string) => void;
+  workingFileId?: string | null;
 }
 
-export function FileList({ files, onDelete, onRetryParse }: FileListProps) {
+export function FileList({ files, onDelete, onReplace, onRetryParse, workingFileId = null }: FileListProps) {
   if (files.length === 0) {
     return (
       <section className="surface-subtle px-6 py-6">
@@ -45,30 +47,48 @@ export function FileList({ files, onDelete, onRetryParse }: FileListProps) {
         <span className="text-sm text-steel">{files.length} 个文件</span>
       </div>
       <div className="mt-5 grid gap-4">
-        {files.map((file) => (
-          <article key={file.id} className="list-row p-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h4 className="font-semibold text-ink">{file.file_name}</h4>
-                <p className="mt-1 text-sm text-steel">{file.file_type.toUpperCase()} {file.size_label ? `· ${file.size_label}` : ''}</p>
+        {files.map((file) => {
+          const replaceInputId = `replace-${file.id}`;
+          const isWorking = workingFileId === file.id;
+          const parseActionLabel = file.parse_status === 'pending' ? '开始解析' : '重新解析';
+
+          return (
+            <article key={file.id} className="list-row p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <h4 className="font-semibold text-ink">{file.file_name}</h4>
+                  <p className="mt-1 text-sm text-steel">{file.file_type.toUpperCase()} {file.size_label ? `· ${file.size_label}` : ''}</p>
+                </div>
+                <span className={`status-pill ${PARSE_STATUS_STYLES[file.parse_status]}`}>
+                  {PARSE_STATUS_LABELS[file.parse_status]}
+                </span>
               </div>
-              <span className={`status-pill ${PARSE_STATUS_STYLES[file.parse_status]}`}>
-                {PARSE_STATUS_LABELS[file.parse_status]}
-              </span>
-            </div>
-            <div className="mt-4 flex flex-wrap gap-3 text-sm">
-              <button className="action-secondary px-4 py-2 text-xs" disabled type="button">
-                预览
-              </button>
-              <button className="action-secondary px-4 py-2 text-xs" onClick={() => onRetryParse(file.id)} type="button">
-                重新解析
-              </button>
-              <button className="action-danger px-4 py-2 text-xs" onClick={() => onDelete(file.id)} type="button">
-                移除
-              </button>
-            </div>
-          </article>
-        ))}
+              <div className="mt-4 flex flex-wrap gap-3 text-sm">
+                <label className="action-secondary cursor-pointer px-4 py-2 text-xs" htmlFor={replaceInputId}>
+                  {isWorking ? '处理中...' : '替换文件'}
+                </label>
+                <input
+                  className="sr-only"
+                  id={replaceInputId}
+                  onChange={(event) => {
+                    const nextFile = event.target.files?.[0];
+                    if (nextFile) {
+                      onReplace(file.id, nextFile);
+                    }
+                    event.currentTarget.value = '';
+                  }}
+                  type="file"
+                />
+                <button className="action-secondary px-4 py-2 text-xs" disabled={isWorking} onClick={() => onRetryParse(file.id)} type="button">
+                  {isWorking ? '处理中...' : parseActionLabel}
+                </button>
+                <button className="action-danger px-4 py-2 text-xs" disabled={isWorking} onClick={() => onDelete(file.id)} type="button">
+                  {isWorking ? '处理中...' : '移除'}
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

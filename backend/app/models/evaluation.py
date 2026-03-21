@@ -12,9 +12,15 @@ class AIEvaluation(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
 
     submission_id: Mapped[str] = mapped_column(ForeignKey("employee_submissions.id"), nullable=False, unique=True, index=True)
     overall_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    ai_overall_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    manager_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    score_gap: Mapped[float | None] = mapped_column(Float, nullable=True)
     ai_level: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     explanation: Mapped[str] = mapped_column(Text, nullable=False)
+    manager_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    hr_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    hr_decision: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
 
     submission = relationship("EmployeeSubmission", back_populates="ai_evaluation")

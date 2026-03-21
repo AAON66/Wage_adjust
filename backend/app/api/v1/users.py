@@ -13,6 +13,7 @@ from backend.app.schemas.user import (
     BulkUserDeleteResponse,
     BulkUserFailure,
     UserAdminCreate,
+    UserEmployeeBindingUpdate,
     UserListResponse,
     UserRead,
 )
@@ -70,6 +71,23 @@ def bulk_create_users(
         failed=[BulkUserFailure(identifier=item.identifier, message=item.message) for item in failed],
         total_requested=len(payload.items),
     )
+
+
+@router.patch('/{user_id}/binding', response_model=UserRead)
+def update_user_employee_binding(
+    user_id: str,
+    payload: UserEmployeeBindingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> UserRead:
+    service = UserAdminService(db)
+    try:
+        user = service.bind_employee(user_id, employee_id=payload.employee_id, operator=current_user)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if message in {'User not found.', 'Employee not found.'} else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return UserRead.model_validate(user)
 
 
 @router.patch('/{user_id}/password', response_model=dict[str, str])

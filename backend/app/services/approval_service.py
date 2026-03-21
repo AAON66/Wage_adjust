@@ -163,7 +163,7 @@ class ApprovalService:
         return list(self.db.scalars(query))
 
     def list_calibration_queue(self, *, include_completed: bool = False) -> list[AIEvaluation]:
-        statuses = ['needs_review', 'reviewed'] if not include_completed else ['needs_review', 'reviewed', 'confirmed']
+        statuses = ['pending_hr', 'returned'] if not include_completed else ['pending_hr', 'returned', 'confirmed']
         query = (
             select(AIEvaluation)
             .options(
@@ -174,4 +174,5 @@ class ApprovalService:
             .order_by(AIEvaluation.updated_at.desc())
         )
         return list(self.db.scalars(query))
+
 

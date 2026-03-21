@@ -1,6 +1,8 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 from fastapi import UploadFile
 from sqlalchemy import select
@@ -37,12 +39,35 @@ class FileService:
     def get_file(self, file_id: str) -> UploadedFile | None:
         return self.db.get(UploadedFile, file_id)
 
-    def validate_upload(self, upload: UploadFile, content: bytes) -> None:
-        extension = Path(upload.filename or '').suffix.lower()
+    def _validate_file_name_and_content(self, file_name: str, content: bytes) -> None:
+        extension = Path(file_name).suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
             raise ValueError('Unsupported file type.')
         if len(content) > self.settings.max_upload_size_mb * 1024 * 1024:
             raise ValueError('File exceeds maximum allowed size.')
+
+    def validate_upload(self, upload: UploadFile, content: bytes) -> None:
+        self._validate_file_name_and_content(upload.filename or 'upload.bin', content)
+
+    def _create_file_record(self, *, submission_id: str, file_name: str, content: bytes) -> UploadedFile:
+        storage_key = self.storage.save_bytes(
+            submission_id=submission_id,
+            file_name=file_name,
+            content=content,
+        )
+        file_record = UploadedFile(
+            submission_id=submission_id,
+            file_name=file_name,
+            file_type=Path(file_name).suffix.lower().lstrip('.') or 'bin',
+            storage_key=storage_key,
+            parse_status='pending',
+        )
+        self.db.add(file_record)
+        return file_record
+
+    def _mark_submission_uploaded(self, submission: EmployeeSubmission) -> None:
+        submission.status = 'submitted'
+        self.db.add(submission)
 
     def upload_files(self, submission_id: str, uploads: list[UploadFile]) -> list[UploadedFile]:
         submission = self.get_submission(submission_id)
@@ -53,33 +78,110 @@ class FileService:
         for upload in uploads:
             content = upload.file.read()
             self.validate_upload(upload, content)
-            storage_key = self.storage.save_bytes(
+            file_record = self._create_file_record(
                 submission_id=submission_id,
                 file_name=upload.filename or 'upload.bin',
                 content=content,
             )
-            file_record = UploadedFile(
-                submission_id=submission_id,
-                file_name=upload.filename or 'upload.bin',
-                file_type=Path(upload.filename or 'upload.bin').suffix.lower().lstrip('.') or 'bin',
-                storage_key=storage_key,
-                parse_status='pending',
-            )
-            self.db.add(file_record)
             saved_files.append(file_record)
 
-        submission.status = 'submitted'
-        self.db.add(submission)
+        self._mark_submission_uploaded(submission)
         self.db.commit()
         for item in saved_files:
             self.db.refresh(item)
         return saved_files
+
+    def _normalize_github_raw_url(self, url: str) -> tuple[str, str]:
+        parsed = urlparse(url)
+        host = parsed.netloc.lower()
+        parts = [part for part in parsed.path.split('/') if part]
+
+        if host in {'raw.githubusercontent.com'}:
+            if len(parts) < 4:
+                raise ValueError('Unsupported GitHub file URL.')
+            return url, parts[-1]
+
+        if host in {'github.com', 'www.github.com'}:
+            if len(parts) >= 5 and parts[2] == 'blob':
+                owner, repo, _, branch = parts[:4]
+                file_parts = parts[4:]
+                file_path = '/'.join(file_parts)
+                raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{file_path}'
+                return raw_url, file_parts[-1]
+
+        raise ValueError('Only GitHub file links are supported.')
+
+    def _download_remote_file(self, raw_url: str) -> bytes:
+        request = Request(raw_url, headers={'User-Agent': 'wage-adjust-platform'})
+        with urlopen(request, timeout=15) as response:
+            return response.read()
+
+    def import_github_file(self, submission_id: str, url: str) -> UploadedFile:
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError('Submission not found.')
+
+        raw_url, file_name = self._normalize_github_raw_url(url)
+        content = self._download_remote_file(raw_url)
+        self._validate_file_name_and_content(file_name, content)
+        file_record = self._create_file_record(submission_id=submission_id, file_name=file_name, content=content)
+        self._mark_submission_uploaded(submission)
+        self.db.commit()
+        self.db.refresh(file_record)
+        return file_record
 
     def delete_submission_evidence_for_file(self, submission_id: str, file_id: str) -> None:
         items = self.list_evidence(submission_id)
         for item in items:
             if item.metadata_json.get('file_id') == file_id:
                 self.db.delete(item)
+
+    def replace_file(self, file_id: str, upload: UploadFile) -> UploadedFile:
+        file_record = self.get_file(file_id)
+        if file_record is None:
+            raise ValueError('File not found.')
+
+        content = upload.file.read()
+        self.validate_upload(upload, content)
+        self.storage.delete(file_record.storage_key)
+        self.delete_submission_evidence_for_file(file_record.submission_id, file_record.id)
+        submission = self.get_submission(file_record.submission_id)
+        if submission is None:
+            raise ValueError('Submission not found.')
+
+        new_storage_key = self.storage.save_bytes(
+            submission_id=file_record.submission_id,
+            file_name=upload.filename or file_record.file_name,
+            content=content,
+        )
+        file_record.file_name = upload.filename or file_record.file_name
+        file_record.file_type = Path(upload.filename or file_record.file_name).suffix.lower().lstrip('.') or 'bin'
+        file_record.storage_key = new_storage_key
+        file_record.parse_status = 'pending'
+        self._mark_submission_uploaded(submission)
+        self.db.add(file_record)
+        self.db.commit()
+        self.db.refresh(file_record)
+        return file_record
+
+    def delete_file(self, file_id: str) -> str:
+        file_record = self.get_file(file_id)
+        if file_record is None:
+            raise ValueError('File not found.')
+
+        submission = self.get_submission(file_record.submission_id)
+        self.storage.delete(file_record.storage_key)
+        self.delete_submission_evidence_for_file(file_record.submission_id, file_record.id)
+        self.db.delete(file_record)
+
+        if submission is not None:
+            remaining_files = [item for item in submission.uploaded_files if item.id != file_id]
+            if not remaining_files:
+                submission.status = 'collecting'
+                self.db.add(submission)
+
+        self.db.commit()
+        return file_id
 
     def mark_file_status(self, file_record: UploadedFile, status: str) -> UploadedFile:
         file_record.parse_status = status

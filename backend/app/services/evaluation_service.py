@@ -1,4 +1,6 @@
-from __future__ import annotations
+﻿from __future__ import annotations
+
+from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
@@ -7,6 +9,8 @@ from backend.app.engines.evaluation_engine import EvaluationEngine
 from backend.app.models.dimension_score import DimensionScore
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.submission import EmployeeSubmission
+
+MANAGER_ALIGNMENT_THRESHOLD = 10.0
 
 
 class EvaluationService:
@@ -47,10 +51,16 @@ class EvaluationService:
         result = self.engine.evaluate(list(submission.evidence_items))
         evaluation = existing or AIEvaluation(submission_id=submission_id)
         evaluation.overall_score = result.overall_score
+        evaluation.ai_overall_score = result.overall_score
+        evaluation.manager_score = None
+        evaluation.score_gap = None
         evaluation.ai_level = result.ai_level
         evaluation.confidence_score = result.confidence_score
-        evaluation.explanation = result.explanation
-        evaluation.status = 'needs_review' if result.needs_manual_review else 'generated'
+        evaluation.explanation = f'{result.explanation} 当前等待主管评分。'
+        evaluation.manager_comment = None
+        evaluation.hr_comment = None
+        evaluation.hr_decision = None
+        evaluation.status = 'generated'
         self.db.add(evaluation)
         self.db.commit()
         self.db.refresh(evaluation)
@@ -89,12 +99,6 @@ class EvaluationService:
         if evaluation is None:
             return None
 
-        if ai_level is not None:
-            evaluation.ai_level = ai_level
-        if overall_score is not None:
-            evaluation.overall_score = overall_score
-        if explanation is not None:
-            evaluation.explanation = explanation
         if dimension_updates:
             score_map = {item.dimension_code: item for item in evaluation.dimension_scores}
             for update in dimension_updates:
@@ -105,8 +109,77 @@ class EvaluationService:
                 dimension.weighted_score = round(float(update['raw_score']) * dimension.weight, 2)
                 dimension.rationale = str(update['rationale'])
                 self.db.add(dimension)
-            evaluation.overall_score = round(sum(item.weighted_score for item in evaluation.dimension_scores), 2)
-        evaluation.status = 'reviewed'
+            self.db.flush()
+
+        derived_manager_score = overall_score
+        if derived_manager_score is None and dimension_updates:
+            relevant_scores = [float(update['raw_score']) for update in dimension_updates]
+            derived_manager_score = round(sum(relevant_scores) / len(relevant_scores), 2) if relevant_scores else None
+        if derived_manager_score is None:
+            raise ValueError('Manager score is required for review.')
+
+        evaluation.manager_score = round(float(derived_manager_score), 2)
+        evaluation.score_gap = round(abs(evaluation.ai_overall_score - evaluation.manager_score), 2)
+        evaluation.manager_comment = explanation
+
+        if evaluation.score_gap <= MANAGER_ALIGNMENT_THRESHOLD:
+            final_score = round((evaluation.ai_overall_score + evaluation.manager_score) / 2, 2)
+            evaluation.overall_score = final_score
+            evaluation.ai_level = ai_level or self.engine.map_level(final_score)
+            evaluation.status = 'confirmed'
+            evaluation.hr_decision = 'not_required'
+            evaluation.explanation = explanation or (
+                f'AI 评分 {evaluation.ai_overall_score:.2f}，主管评分 {evaluation.manager_score:.2f}，差值 {evaluation.score_gap:.2f}，'
+                f'已按平均分 {final_score:.2f} 确认最终评分。'
+            )
+        else:
+            evaluation.overall_score = round((evaluation.ai_overall_score + evaluation.manager_score) / 2, 2)
+            evaluation.status = 'pending_hr'
+            evaluation.hr_decision = 'pending'
+            evaluation.explanation = explanation or (
+                f'AI 评分 {evaluation.ai_overall_score:.2f}，主管评分 {evaluation.manager_score:.2f}，差值 {evaluation.score_gap:.2f}，'
+                '已转交 HR 审核。'
+            )
+
+        self.db.add(evaluation)
+        self.db.commit()
+        return self.get_evaluation(evaluation.id)
+
+    def hr_review(
+        self,
+        evaluation_id: str,
+        *,
+        decision: str,
+        comment: str | None,
+        final_score: float | None,
+    ) -> AIEvaluation | None:
+        evaluation = self.get_evaluation(evaluation_id)
+        if evaluation is None:
+            return None
+        if evaluation.status not in {'pending_hr', 'returned'}:
+            raise ValueError('Evaluation is not waiting for HR review.')
+        if evaluation.manager_score is None:
+            raise ValueError('Manager score is required before HR review.')
+
+        normalized_decision = decision.strip().lower()
+        if normalized_decision not in {'approved', 'returned'}:
+            raise ValueError('HR decision must be approved or returned.')
+
+        evaluation.hr_comment = comment
+        evaluation.hr_decision = normalized_decision
+
+        if normalized_decision == 'approved':
+            next_score = round(float(final_score), 2) if final_score is not None else round((evaluation.ai_overall_score + evaluation.manager_score) / 2, 2)
+            evaluation.overall_score = next_score
+            evaluation.ai_level = self.engine.map_level(next_score)
+            evaluation.status = 'confirmed'
+            evaluation.explanation = comment or (
+                f'HR 已审核通过。AI 评分 {evaluation.ai_overall_score:.2f}，主管评分 {evaluation.manager_score:.2f}，最终评分 {next_score:.2f}。'
+            )
+        else:
+            evaluation.status = 'returned'
+            evaluation.explanation = comment or 'HR 已打回本次评分，请主管重新评估。'
+
         self.db.add(evaluation)
         self.db.commit()
         return self.get_evaluation(evaluation.id)
@@ -115,6 +188,12 @@ class EvaluationService:
         evaluation = self.get_evaluation(evaluation_id)
         if evaluation is None:
             return None
+        if evaluation.status == 'pending_hr' and evaluation.manager_score is not None:
+            final_score = round((evaluation.ai_overall_score + evaluation.manager_score) / 2, 2)
+            evaluation.overall_score = final_score
+            evaluation.ai_level = self.engine.map_level(final_score)
+            evaluation.hr_decision = 'approved'
+            evaluation.hr_comment = evaluation.hr_comment or 'HR 通过快速确认接口同意该评分。'
         evaluation.status = 'confirmed'
         self.db.add(evaluation)
         self.db.commit()

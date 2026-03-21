@@ -185,3 +185,4 @@ class SalaryService:
         return items, effective_budget, total.quantize(Decimal('0.01')), self.engine.is_over_budget(total_increase=total, budget_amount=effective_budget)
 
 
+

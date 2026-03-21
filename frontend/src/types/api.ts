@@ -9,6 +9,9 @@ export interface UserProfile {
   email: string;
   role: string;
   must_change_password: boolean;
+  employee_id: string | null;
+  employee_name: string | null;
+  employee_no: string | null;
   created_at: string;
 }
 
@@ -46,6 +49,8 @@ export interface EmployeeRecord {
   job_level: string;
   manager_id: string | null;
   status: string;
+  bound_user_id: string | null;
+  bound_user_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -127,6 +132,10 @@ export interface UploadedFileListResponse {
   total: number;
 }
 
+export interface FileDeleteResponse {
+  deleted_file_id: string;
+}
+
 export interface EvidenceRecord {
   id: string;
   submission_id: string;
@@ -158,9 +167,15 @@ export interface EvaluationRecord {
   id: string;
   submission_id: string;
   overall_score: number;
+  ai_overall_score: number;
+  manager_score: number | null;
+  score_gap: number | null;
   ai_level: string;
   confidence_score: number;
   explanation: string;
+  manager_comment: string | null;
+  hr_comment: string | null;
+  hr_decision: string | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -319,6 +334,27 @@ export interface AdminUserCreatePayload {
   role: string;
 }
 
+export interface EmployeeHandbookRecord {
+  id: string;
+  title: string;
+  file_name: string;
+  file_type: string;
+  storage_key: string;
+  parse_status: string;
+  summary: string | null;
+  key_points_json: string[];
+  tags_json: string[];
+  uploaded_by_user_id: string | null;
+  uploaded_by_email: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmployeeHandbookListResponse {
+  items: EmployeeHandbookRecord[];
+  total: number;
+}
+
 export interface BulkFailureRecord {
   identifier: string;
   message: string;
@@ -335,3 +371,5 @@ export interface BulkUserDeleteResponse {
   failed: BulkFailureRecord[];
   total_requested: number;
 }
+
+

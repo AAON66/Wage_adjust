@@ -35,6 +35,7 @@ class ApiDatabaseContext:
             db.close()
 
 
+
 def build_client() -> tuple[TestClient, ApiDatabaseContext]:
     context = ApiDatabaseContext()
     app = create_app(context.settings)
@@ -42,13 +43,15 @@ def build_client() -> tuple[TestClient, ApiDatabaseContext]:
     return TestClient(app), context
 
 
-def register_and_login_admin(client: TestClient) -> str:
+
+def register_user(client: TestClient, *, email: str, role: str) -> str:
     register_response = client.post(
         '/api/v1/auth/register',
-        json={'email': 'admin@example.com', 'password': 'Password123', 'role': 'admin'},
+        json={'email': email, 'password': 'Password123', 'role': role},
     )
     assert register_response.status_code == 201
     return register_response.json()['tokens']['access_token']
+
 
 
 def seed_submission_with_evidence(context: ApiDatabaseContext) -> str:
@@ -83,41 +86,81 @@ def seed_submission_with_evidence(context: ApiDatabaseContext) -> str:
         db.close()
 
 
-def test_evaluation_api_flow() -> None:
+
+def test_evaluation_api_small_gap_auto_confirms() -> None:
     client, context = build_client()
     with client:
-        token = register_and_login_admin(client)
-        headers = {'Authorization': f'Bearer {token}'}
+        admin_token = register_user(client, email='admin@example.com', role='admin')
+        headers = {'Authorization': f'Bearer {admin_token}'}
         submission_id = seed_submission_with_evidence(context)
 
         generate_response = client.post('/api/v1/evaluations/generate', json={'submission_id': submission_id}, headers=headers)
         assert generate_response.status_code == 201
         evaluation_id = generate_response.json()['id']
-        assert len(generate_response.json()['dimension_scores']) == 5
-
-        get_response = client.get(f'/api/v1/evaluations/{evaluation_id}', headers=headers)
-        assert get_response.status_code == 200
-        assert get_response.json()['submission_id'] == submission_id
+        ai_score = generate_response.json()['ai_overall_score']
 
         review_response = client.patch(
             f'/api/v1/evaluations/{evaluation_id}/manual-review',
             json={
-                'ai_level': 'Level 4',
-                'explanation': 'Manual review upgraded impact.',
+                'overall_score': round(ai_score + 4, 2),
+                'explanation': '主管评分与 AI 接近，可直接取平均。',
                 'dimension_scores': [
-                    {'dimension_code': 'IMPACT', 'raw_score': 93, 'rationale': 'Validated with stronger business context.'}
+                    {'dimension_code': 'IMPACT', 'raw_score': 90, 'rationale': '主管确认业务影响力较高。'}
                 ],
             },
             headers=headers,
         )
         assert review_response.status_code == 200
-        assert review_response.json()['status'] == 'reviewed'
-        assert review_response.json()['ai_level'] == 'Level 4'
+        assert review_response.json()['status'] == 'confirmed'
+        assert review_response.json()['manager_score'] == round(ai_score + 4, 2)
+        assert review_response.json()['score_gap'] <= 10
 
-        confirm_response = client.post(f'/api/v1/evaluations/{evaluation_id}/confirm', headers=headers)
-        assert confirm_response.status_code == 200
-        assert confirm_response.json()['status'] == 'confirmed'
 
-        regenerate_response = client.post('/api/v1/evaluations/regenerate', json={'submission_id': submission_id}, headers=headers)
-        assert regenerate_response.status_code == 200
-        assert regenerate_response.json()['submission_id'] == submission_id
+
+def test_evaluation_api_large_gap_goes_to_hr_and_can_be_returned_or_approved() -> None:
+    client, context = build_client()
+    with client:
+        manager_token = register_user(client, email='manager@example.com', role='manager')
+        hrbp_token = register_user(client, email='hrbp@example.com', role='hrbp')
+        manager_headers = {'Authorization': f'Bearer {manager_token}'}
+        hr_headers = {'Authorization': f'Bearer {hrbp_token}'}
+        submission_id = seed_submission_with_evidence(context)
+
+        generate_response = client.post('/api/v1/evaluations/generate', json={'submission_id': submission_id}, headers=manager_headers)
+        assert generate_response.status_code == 201
+        evaluation_id = generate_response.json()['id']
+        ai_score = generate_response.json()['ai_overall_score']
+
+        review_response = client.patch(
+            f'/api/v1/evaluations/{evaluation_id}/manual-review',
+            json={
+                'overall_score': round(ai_score + 18, 2),
+                'explanation': '主管认为本次表现明显高于 AI 结果。',
+                'dimension_scores': [
+                    {'dimension_code': 'IMPACT', 'raw_score': 96, 'rationale': '主管补充了更多业务背景。'}
+                ],
+            },
+            headers=manager_headers,
+        )
+        assert review_response.status_code == 200
+        assert review_response.json()['status'] == 'pending_hr'
+        assert review_response.json()['needs_manual_review'] is True
+
+        return_response = client.patch(
+            f'/api/v1/evaluations/{evaluation_id}/hr-review',
+            json={'decision': 'returned', 'comment': '请主管补充更多客观证据后重新评分。'},
+            headers=hr_headers,
+        )
+        assert return_response.status_code == 200
+        assert return_response.json()['status'] == 'returned'
+        assert return_response.json()['hr_decision'] == 'returned'
+
+        approve_response = client.patch(
+            f'/api/v1/evaluations/{evaluation_id}/hr-review',
+            json={'decision': 'approved', 'comment': 'HR 审核通过，采用折中后的最终评分。', 'final_score': round(ai_score + 9, 2)},
+            headers=hr_headers,
+        )
+        assert approve_response.status_code == 200
+        assert approve_response.json()['status'] == 'confirmed'
+        assert approve_response.json()['hr_decision'] == 'approved'
+        assert approve_response.json()['overall_score'] == round(ai_score + 9, 2)

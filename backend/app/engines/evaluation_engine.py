@@ -111,6 +111,9 @@ class EvaluationEngine:
             dimensions=dimensions,
         )
 
+    def map_level(self, overall_score: float) -> str:
+        return self._map_level(overall_score)
+
     def _count_keyword_hits(self, evidence_items: list[EvidenceItem], keywords: tuple[str, ...]) -> int:
         total = 0
         for item in evidence_items:
@@ -124,3 +127,5 @@ class EvaluationEngine:
             if overall_score >= threshold:
                 return label
         return 'Level 1'
+
+

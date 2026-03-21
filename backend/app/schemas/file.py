@@ -1,9 +1,9 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, HttpUrl
 
 
 class UploadedFileRead(BaseModel):
@@ -21,6 +21,14 @@ class UploadedFileRead(BaseModel):
 class UploadedFileListResponse(BaseModel):
     items: list[UploadedFileRead]
     total: int
+
+
+class GitHubImportRequest(BaseModel):
+    url: HttpUrl
+
+
+class FileDeleteResponse(BaseModel):
+    deleted_file_id: str
 
 
 class EvidenceRead(BaseModel):

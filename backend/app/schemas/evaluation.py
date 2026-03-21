@@ -1,6 +1,7 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -23,9 +24,15 @@ class EvaluationRead(BaseModel):
     id: str
     submission_id: str
     overall_score: float
+    ai_overall_score: float
+    manager_score: float | None = None
+    score_gap: float | None = None
     ai_level: str
     confidence_score: float
     explanation: str
+    manager_comment: str | None = None
+    hr_comment: str | None = None
+    hr_decision: str | None = None
     status: str
     created_at: datetime
     updated_at: datetime
@@ -48,6 +55,12 @@ class DimensionScoreManualUpdate(BaseModel):
     dimension_code: str
     raw_score: float = Field(ge=0, le=100)
     rationale: str = Field(min_length=1)
+
+
+class EvaluationHrReviewRequest(BaseModel):
+    decision: Literal['approved', 'returned']
+    comment: str | None = None
+    final_score: float | None = Field(default=None, ge=0, le=100)
 
 
 class EvaluationConfirmResponse(BaseModel):

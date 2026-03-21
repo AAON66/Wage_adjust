@@ -58,7 +58,7 @@ def seed_workflow_entities(session_factory) -> dict[str, str]:
             ai_level='Level 4',
             confidence_score=0.83,
             explanation='Calibration candidate.',
-            status='needs_review',
+            status='pending_hr',
         )
         db.add(evaluation)
         db.commit()
@@ -141,4 +141,5 @@ def test_submit_decide_and_list_workflow() -> None:
         assert queue[0].id == ids['evaluation_id']
     finally:
         db.close()
+
 

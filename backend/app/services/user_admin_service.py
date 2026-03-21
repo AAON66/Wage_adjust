@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from backend.app.core.security import get_password_hash
 from backend.app.models.approval import ApprovalRecord
 from backend.app.models.audit_log import AuditLog
+from backend.app.models.employee import Employee
 from backend.app.models.user import User
 from backend.app.schemas.user import ROLE_OPTIONS, UserAdminCreate
 
@@ -78,7 +79,6 @@ class UserAdminService:
         keyword: str | None = None,
     ) -> tuple[list[User], int]:
         operator_priority = self._role_priority(operator.role)
-        filters = [or_(User.id == operator.id, func.length(User.role) > 0)]
         visible_roles = [name for name, priority in ROLE_PRIORITY.items() if priority < operator_priority]
         filters = [or_(User.id == operator.id, User.role.in_(visible_roles))]
 
@@ -142,6 +142,45 @@ class UserAdminService:
 
         return created, failed
 
+    def bind_employee(self, user_id: str, *, employee_id: str | None, operator: User) -> User:
+        user = self.db.get(User, user_id)
+        if user is None:
+            raise ValueError('User not found.')
+        self._ensure_manageable(operator, user)
+
+        if employee_id is None:
+            user.employee_id = None
+            self.db.add(user)
+            self._log_action(
+                operator_id=operator.id,
+                action='admin.user.unbind_employee',
+                target_id=user.id,
+                detail={'email': user.email},
+            )
+            self.db.commit()
+            self.db.refresh(user)
+            return user
+
+        employee = self.db.get(Employee, employee_id)
+        if employee is None:
+            raise ValueError('Employee not found.')
+
+        existing_binding = self.db.scalar(select(User).where(User.employee_id == employee_id, User.id != user.id))
+        if existing_binding is not None:
+            raise ValueError('This employee profile is already bound to another account.')
+
+        user.employee_id = employee_id
+        self.db.add(user)
+        self._log_action(
+            operator_id=operator.id,
+            action='admin.user.bind_employee',
+            target_id=user.id,
+            detail={'email': user.email, 'employee_id': employee.id, 'employee_no': employee.employee_no, 'employee_name': employee.name},
+        )
+        self.db.commit()
+        self.db.refresh(user)
+        return user
+
     def update_user_password(self, user_id: str, *, new_password: str, operator: User) -> str:
         user = self.db.get(User, user_id)
         if user is None:
@@ -200,3 +239,4 @@ class UserAdminService:
                 failed.append(BulkFailure(identifier=user_id, message=str(exc)))
 
         return deleted_user_ids, failed
+
