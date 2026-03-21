@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
+    allow_self_registration: bool = False
 
     storage_endpoint: str = "http://localhost:9000"
     storage_access_key: str = "your_access_key"
@@ -42,7 +43,13 @@ class Settings(BaseSettings):
     deepseek_requests_per_minute: int = 20
 
     backend_cors_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:3000", "http://localhost:5173"]
+        default_factory=lambda: [
+            "http://localhost:3000",
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:5174",
+            "http://127.0.0.1:5174",
+        ]
     )
     redis_url: str = "redis://localhost:6379/0"
 

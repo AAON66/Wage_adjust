@@ -17,7 +17,7 @@ class ApiDatabaseContext:
         temp_root = Path('.tmp').resolve()
         temp_root.mkdir(parents=True, exist_ok=True)
         database_path = (temp_root / f'api-{uuid4().hex}.db').as_posix()
-        self.settings = Settings(database_url=f'sqlite+pysqlite:///{database_path}')
+        self.settings = Settings(allow_self_registration=True, database_url=f'sqlite+pysqlite:///{database_path}')
         load_model_modules()
         self.engine = create_db_engine(self.settings)
         init_database(self.engine)
@@ -33,7 +33,7 @@ class ApiDatabaseContext:
 
 def build_client() -> TestClient:
     context = ApiDatabaseContext()
-    app = create_app()
+    app = create_app(context.settings)
     app.dependency_overrides[get_db] = context.override_get_db
     return TestClient(app)
 
@@ -95,15 +95,28 @@ def test_employee_and_cycle_api_flow() -> None:
 
         update_cycle_response = client.patch(
             f'/api/v1/cycles/{cycle_id}',
-            json={'name': '2026 Annual Review Updated'},
+            json={'name': '2026 Annual Review Updated', 'status': 'collecting'},
             headers=headers,
         )
         assert update_cycle_response.status_code == 200
         assert update_cycle_response.json()['name'] == '2026 Annual Review Updated'
+        assert update_cycle_response.json()['status'] == 'collecting'
 
         publish_cycle_response = client.post(f'/api/v1/cycles/{cycle_id}/publish', headers=headers)
         assert publish_cycle_response.status_code == 200
         assert publish_cycle_response.json()['status'] == 'published'
+
+        archive_cycle_response = client.post(f'/api/v1/cycles/{cycle_id}/archive', headers=headers)
+        assert archive_cycle_response.status_code == 200
+        assert archive_cycle_response.json()['status'] == 'archived'
+
+        archived_update_response = client.patch(
+            f'/api/v1/cycles/{cycle_id}',
+            json={'name': 'Should Fail'},
+            headers=headers,
+        )
+        assert archived_update_response.status_code == 400
+        assert archived_update_response.json()['message'] == 'Archived cycles cannot be edited.'
 
 
 def test_employee_list_requires_authentication() -> None:

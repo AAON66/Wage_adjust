@@ -52,7 +52,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start_backend.ps1
 Health check:
 
 ```powershell
-Invoke-WebRequest http://127.0.0.1:8000/health -UseBasicParsing
+Invoke-WebRequest http://127.0.0.1:8011/health -UseBasicParsing
 ```
 
 ### Frontend
@@ -63,7 +63,9 @@ powershell -ExecutionPolicy Bypass -File .\scripts\start_frontend.ps1
 
 Default frontend URL:
 
-- `http://127.0.0.1:5173`
+- `http://127.0.0.1:5174`
+
+If PowerShell blocks local scripts, keep using `-ExecutionPolicy Bypass` as shown above.
 
 ## Test and Build
 

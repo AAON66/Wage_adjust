@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 from uuid import uuid4
@@ -21,7 +21,7 @@ class ApiDatabaseContext:
         temp_root = Path('.tmp').resolve()
         temp_root.mkdir(parents=True, exist_ok=True)
         database_path = (temp_root / f'salary-api-{uuid4().hex}.db').as_posix()
-        self.settings = Settings(database_url=f'sqlite+pysqlite:///{database_path}')
+        self.settings = Settings(allow_self_registration=True, database_url=f'sqlite+pysqlite:///{database_path}')
         load_model_modules()
         self.engine = create_db_engine(self.settings)
         init_database(self.engine)
@@ -101,6 +101,10 @@ def test_salary_api_flow() -> None:
         recommendation_id = recommend_response.json()['id']
         assert recommend_response.json()['status'] == 'recommended'
 
+        get_by_evaluation_response = client.get(f'/api/v1/salary/by-evaluation/{evaluation_id}', headers=headers)
+        assert get_by_evaluation_response.status_code == 200
+        assert get_by_evaluation_response.json()['id'] == recommendation_id
+
         get_response = client.get(f'/api/v1/salary/{recommendation_id}', headers=headers)
         assert get_response.status_code == 200
         assert get_response.json()['evaluation_id'] == evaluation_id
@@ -121,3 +125,4 @@ def test_salary_api_flow() -> None:
         lock_response = client.post(f'/api/v1/salary/{recommendation_id}/lock', headers=headers)
         assert lock_response.status_code == 200
         assert lock_response.json()['status'] == 'locked'
+

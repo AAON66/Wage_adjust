@@ -1,16 +1,17 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
+import { AppShell } from '../components/layout/AppShell';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
 import { fetchEmployees } from '../services/employeeService';
 import type { EmployeeListResponse } from '../types/api';
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
-    return (error.response?.data as { message?: string } | undefined)?.message ?? 'Failed to load employees.';
+    return (error.response?.data as { message?: string } | undefined)?.message ?? '加载员工列表失败。';
   }
-  return 'Failed to load employees.';
+  return '加载员工列表失败。';
 }
 
 export function EmployeesPage() {
@@ -68,63 +69,53 @@ export function EmployeesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-sand px-6 py-10 text-ink">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-[28px] bg-white p-6 shadow-panel">
-          <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-ember">Employees</p>
-            <h1 className="mt-2 text-3xl font-bold">Employee Evaluation List</h1>
-            <p className="mt-2 text-sm text-slate-500">This page reads directly from the backend `/api/v1/employees` API.</p>
-          </div>
-          <div className="flex gap-3">
-            <Link className="rounded-full border border-ink/15 px-5 py-3 text-sm font-semibold text-ink" to="/workspace">
-              Back to workspace
-            </Link>
-            <Link className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white" to="/cycles/create">
-              Create cycle
-            </Link>
-          </div>
-        </header>
+    <AppShell
+      title="员工评估列表"
+      description="按部门、岗位族和状态筛选员工，进入详情后继续处理材料、评估和调薪流程。"
+      actions={
+        <>
+          <Link className="chip-button" to="/workspace">返回工作台</Link>
+          <Link className="rounded-full bg-[#2d5cff] px-5 py-2.5 text-sm font-medium text-white shadow-float" to="/cycles/create">创建周期</Link>
+        </>
+      }
+    >
+      <section className="surface animate-fade-up px-6 py-6 lg:px-7">
+        <div className="grid gap-3 md:grid-cols-3">
+          <input className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} placeholder="按部门筛选" value={department} />
+          <input className="toolbar-input" onChange={(event) => updateFilter('job_family', event.target.value)} placeholder="按岗位族筛选" value={jobFamily} />
+          <input className="toolbar-input" onChange={(event) => updateFilter('status', event.target.value)} placeholder="按状态筛选" value={status} />
+        </div>
+      </section>
 
-        <section className="grid gap-4 rounded-[28px] bg-white p-6 shadow-panel md:grid-cols-3">
-          <input className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateFilter('department', event.target.value)} placeholder="Filter by department" value={department} />
-          <input className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateFilter('job_family', event.target.value)} placeholder="Filter by job family" value={jobFamily} />
-          <input className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateFilter('status', event.target.value)} placeholder="Filter by status" value={status} />
-        </section>
+      {isLoading ? <p className="px-2 text-sm text-steel">正在加载员工列表...</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
 
-        {isLoading ? <p className="text-sm text-slate-500">Loading employees...</p> : null}
-        {errorMessage ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMessage}</p> : null}
-
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {(data?.items ?? []).map((employee) => (
-            <Link key={employee.id} className="rounded-[28px] bg-white p-6 shadow-panel transition hover:-translate-y-0.5 hover:shadow-xl" to={`/employees/${employee.id}`}>
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">{employee.name}</h2>
-                  <p className="mt-1 text-sm text-slate-500">{employee.employee_no}</p>
-                </div>
-                <StatusIndicator status={employee.status} />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {(data?.items ?? []).map((employee, index) => (
+          <Link className="list-row animate-fade-up" key={employee.id} style={{ animationDelay: `${index * 40}ms` }} to={`/employees/${employee.id}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold tracking-[-0.03em] text-ink">{employee.name}</h2>
+                <p className="mt-1 text-sm text-steel">{employee.employee_no}</p>
               </div>
-              <dl className="mt-4 space-y-2 text-sm text-slate-600">
-                <div className="flex justify-between gap-4"><dt>Department</dt><dd>{employee.department}</dd></div>
-                <div className="flex justify-between gap-4"><dt>Job family</dt><dd>{employee.job_family}</dd></div>
-                <div className="flex justify-between gap-4"><dt>Job level</dt><dd>{employee.job_level}</dd></div>
-              </dl>
-              <div className="mt-5 flex items-center justify-between text-sm">
-                <span className="text-slate-500">Open detail and evaluation status</span>
-                <span className="font-semibold text-ember">Open</span>
-              </div>
-            </Link>
-          ))}
-        </section>
+              <StatusIndicator status={employee.status} />
+            </div>
+            <dl className="mt-5 space-y-3 text-sm text-steel">
+              <div className="flex justify-between gap-4"><dt>部门</dt><dd className="text-ink">{employee.department}</dd></div>
+              <div className="flex justify-between gap-4"><dt>岗位族</dt><dd className="text-ink">{employee.job_family}</dd></div>
+              <div className="flex justify-between gap-4"><dt>岗位级别</dt><dd className="text-ink">{employee.job_level}</dd></div>
+            </dl>
+            <div className="mt-5 border-t border-[#e9eff8] pt-4 text-sm text-[#2d5cff]">进入详情并继续处理</div>
+          </Link>
+        ))}
+      </section>
 
-        {!isLoading && !errorMessage && data?.items.length === 0 ? (
-          <section className="rounded-[28px] bg-white p-8 text-center shadow-panel">
-            <h2 className="text-xl font-semibold">No employee records yet</h2>
-            <p className="mt-2 text-sm text-slate-500">Create employees through the backend API and they will appear here.</p>
-          </section>
-        ) : null}
-      </div>
-    </main>
+      {!isLoading && !errorMessage && data?.items.length === 0 ? (
+        <section className="surface px-6 py-8 text-center">
+          <h2 className="text-xl font-semibold text-ink">当前还没有员工记录</h2>
+          <p className="mt-2 text-sm text-steel">创建员工数据后，这里会自动展示对应记录。</p>
+        </section>
+      ) : null}
+    </AppShell>
   );
 }

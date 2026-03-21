@@ -4,6 +4,7 @@ import { useState } from 'react';
 
 import { LoginForm } from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
+import { getRoleHomePath } from '../utils/roleAccess';
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -23,8 +24,18 @@ export function LoginPage() {
     setIsSubmitting(true);
     setErrorMessage(null);
     try {
-      await login(payload);
-      const redirectTarget = (location.state as { from?: string } | null)?.from ?? '/workspace';
+      const profile = await login(payload);
+      if (profile.must_change_password) {
+        navigate('/settings', {
+          replace: true,
+          state: {
+            forcePasswordChange: true,
+            from: getRoleHomePath(profile.role),
+          },
+        });
+        return;
+      }
+      const redirectTarget = (location.state as { from?: string } | null)?.from ?? getRoleHomePath(profile.role);
       navigate(redirectTarget, { replace: true });
     } catch (error) {
       setErrorMessage(resolveError(error));
@@ -34,25 +45,41 @@ export function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#fff7ed,transparent_35%),linear-gradient(135deg,#f5efe6_0%,#fff_48%,#fde68a_100%)] px-6 py-12 text-ink">
-      <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[32px] bg-ink p-8 text-white shadow-panel">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-amber-300">Sign In</p>
-          <h1 className="mt-5 text-4xl font-bold leading-tight">接入公司综合调薪平台</h1>
-          <p className="mt-4 max-w-lg text-sm leading-7 text-white/75">
-            当前前端认证链路已连接后端 auth API。登录后将进入受保护的工作台区域，后续会继续接入员工评估、周期配置与审批页面。
-          </p>
+    <main className="app-shell flex min-h-screen items-center px-4 py-4 text-ink lg:px-5">
+      <div className="mx-auto grid w-full max-w-[1320px] gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="surface animate-fade-up overflow-hidden px-6 py-8 lg:px-8">
+          <p className="eyebrow">账号登录</p>
+          <h1 className="mt-3 text-[40px] font-semibold leading-[1.06] tracking-[-0.05em] text-ink lg:text-[54px]">欢迎使用智能调薪平台</h1>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-steel">登录后就能回到你熟悉的工作页面。员工查看个人进展，主管、HRBP 和管理员处理各自负责的事项。</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+            {[
+              ['员工', '查看个人材料、提交状态与证据摘要'],
+              ['主管', '查看团队评估并处理审批任务'],
+              ['HRBP', '推进复核、预算与审批协同'],
+              ['管理员', '配置周期、导入数据与监管全局'],
+            ].map(([title, desc]) => (
+              <div className="surface-subtle px-4 py-4" key={title}>
+                <p className="font-medium text-ink">{title}</p>
+                <p className="mt-2 text-sm leading-6 text-steel">{desc}</p>
+              </div>
+            ))}
+          </div>
         </section>
-        <section className="rounded-[32px] bg-white p-8 shadow-panel">
-          <h2 className="text-2xl font-semibold text-ink">欢迎回来</h2>
-          <p className="mt-2 text-sm text-slate-500">使用已注册账号登录系统。</p>
+
+        <section className="surface animate-fade-up px-6 py-8 lg:px-8" style={{ animationDelay: '80ms' }}>
+          <p className="eyebrow">访问入口</p>
+          <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.04em] text-ink">登录平台</h2>
+          <p className="mt-2 text-sm text-steel">请使用公司内部已开通账号登录。</p>
           <div className="mt-6">
             <LoginForm errorMessage={errorMessage} isSubmitting={isSubmitting} onSubmit={handleLogin} />
           </div>
-          <p className="mt-6 text-sm text-slate-500">
-            还没有账号？
-            <Link className="ml-2 font-semibold text-ember" to="/register">
-              去注册
+          <div className="mt-6 rounded-[22px] bg-[#f6f9ff] px-4 py-4 text-sm leading-6 text-steel">
+            账号由系统管理员统一开通。如遇到初始密码登录，系统会要求先修改密码后再进入工作区。
+          </div>
+          <p className="mt-6 text-sm text-steel">
+            返回平台首页
+            <Link className="ml-2 font-medium text-[#2d5cff]" to="/">
+              查看系统说明
             </Link>
           </p>
         </section>

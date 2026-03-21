@@ -1,4 +1,4 @@
-import { useId } from 'react';
+﻿import { useId } from 'react';
 
 interface FileUploadPanelProps {
   isUploading: boolean;
@@ -9,17 +9,17 @@ export function FileUploadPanel({ isUploading, onFilesSelected }: FileUploadPane
   const inputId = useId();
 
   return (
-    <section className="rounded-[28px] border border-dashed border-slate-300 bg-slate-50 p-6">
+    <section className="surface-subtle px-6 py-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-ember">File Upload</p>
-          <h3 className="mt-2 text-2xl font-bold text-ink">Drop in employee materials</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            This UI is ready for PPT, PDF, image, code, markdown, and spreadsheet uploads. Backend upload APIs will plug into the same panel next.
+          <p className="eyebrow">材料上传</p>
+          <h3 className="section-title">上传员工材料</h3>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-steel">
+            当前支持 PPT、PDF、图片、代码、Markdown 和表格材料上传，上传后会进入解析和证据抽取链路。
           </p>
         </div>
-        <label className={`inline-flex cursor-pointer items-center rounded-full px-5 py-3 text-sm font-semibold ${isUploading ? 'bg-slate-300 text-slate-600' : 'bg-ink text-white'}`} htmlFor={inputId}>
-          {isUploading ? 'Uploading...' : 'Select files'}
+        <label className={isUploading ? 'action-secondary cursor-pointer' : 'action-primary cursor-pointer'} htmlFor={inputId}>
+          {isUploading ? '上传中...' : '选择文件'}
         </label>
       </div>
       <input
@@ -30,9 +30,9 @@ export function FileUploadPanel({ isUploading, onFilesSelected }: FileUploadPane
         onChange={(event) => onFilesSelected(event.target.files)}
         type="file"
       />
-      <div className="mt-5 flex flex-wrap gap-2 text-xs text-slate-500">
-        {['PPT', 'PDF', 'PNG', 'JPG', 'ZIP', 'Markdown', 'Excel', 'Code'].map((item) => (
-          <span key={item} className="rounded-full bg-white px-3 py-1 shadow-sm">
+      <div className="mt-5 flex flex-wrap gap-2 text-xs text-steel">
+        {['PPT', 'PDF', 'PNG', 'JPG', 'ZIP', 'Markdown', 'Excel', '代码'].map((item) => (
+          <span key={item} className="chip-button px-3 py-1 text-xs">
             {item}
           </span>
         ))}

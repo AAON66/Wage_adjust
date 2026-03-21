@@ -16,7 +16,10 @@ def create_cycle(
     db: Session = Depends(get_db),
     _: object = Depends(require_roles("admin", "hrbp")),
 ) -> CycleRead:
-    cycle = CycleService(db).create_cycle(payload)
+    try:
+        cycle = CycleService(db).create_cycle(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return CycleRead.model_validate(cycle)
 
 
@@ -36,7 +39,11 @@ def update_cycle(
     db: Session = Depends(get_db),
     _: object = Depends(require_roles("admin", "hrbp")),
 ) -> CycleRead:
-    cycle = CycleService(db).update_cycle(cycle_id, payload)
+    service = CycleService(db)
+    try:
+        cycle = service.update_cycle(cycle_id, payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if cycle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cycle not found.")
     return CycleRead.model_validate(cycle)
@@ -48,7 +55,27 @@ def publish_cycle(
     db: Session = Depends(get_db),
     _: object = Depends(require_roles("admin", "hrbp")),
 ) -> CycleRead:
-    cycle = CycleService(db).update_cycle_status(cycle_id, "published")
+    service = CycleService(db)
+    try:
+        cycle = service.update_cycle_status(cycle_id, "published")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if cycle is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cycle not found.")
+    return CycleRead.model_validate(cycle)
+
+
+@router.post("/{cycle_id}/archive", response_model=CycleRead)
+def archive_cycle(
+    cycle_id: str,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin", "hrbp")),
+) -> CycleRead:
+    service = CycleService(db)
+    try:
+        cycle = service.update_cycle_status(cycle_id, "archived")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     if cycle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cycle not found.")
     return CycleRead.model_validate(cycle)

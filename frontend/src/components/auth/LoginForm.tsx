@@ -9,8 +9,8 @@ type LoginFormProps = {
 };
 
 export function LoginForm({ isSubmitting, errorMessage, onSubmit }: LoginFormProps) {
-  const [email, setEmail] = useState('owner@example.com');
-  const [password, setPassword] = useState('Password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -22,8 +22,9 @@ export function LoginForm({ isSubmitting, errorMessage, onSubmit }: LoginFormPro
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         邮箱
         <input
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-ember"
+          className="toolbar-input"
           onChange={(event) => setEmail(event.target.value)}
+          placeholder="请输入邮箱"
           type="email"
           value={email}
         />
@@ -31,18 +32,15 @@ export function LoginForm({ isSubmitting, errorMessage, onSubmit }: LoginFormPro
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         密码
         <input
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-ember"
+          className="toolbar-input"
           onChange={(event) => setPassword(event.target.value)}
+          placeholder="请输入密码"
           type="password"
           value={password}
         />
       </label>
       {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-      <button
-        className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={isSubmitting}
-        type="submit"
-      >
+      <button className="action-primary w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? '登录中...' : '登录系统'}
       </button>
     </form>

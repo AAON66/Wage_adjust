@@ -14,10 +14,12 @@ from backend.app.api.v1.public import router as public_router
 from backend.app.api.v1.salary import router as salary_router
 from backend.app.api.v1.submissions import router as submissions_router
 from backend.app.api.v1.system import router as system_router
+from backend.app.api.v1.users import router as users_router
 
 api_router = APIRouter()
 api_router.include_router(system_router)
 api_router.include_router(auth_router)
+api_router.include_router(users_router)
 api_router.include_router(employees_router)
 api_router.include_router(cycles_router)
 api_router.include_router(submissions_router)

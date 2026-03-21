@@ -7,6 +7,13 @@ const PARSE_STATUS_STYLES: Record<UploadedFileRecord['parse_status'], string> = 
   failed: 'bg-rose-100 text-rose-700',
 };
 
+const PARSE_STATUS_LABELS: Record<UploadedFileRecord['parse_status'], string> = {
+  pending: '待解析',
+  parsing: '解析中',
+  parsed: '已解析',
+  failed: '解析失败',
+};
+
 interface FileListProps {
   files: UploadedFileRecord[];
   onDelete: (fileId: string) => void;
@@ -16,40 +23,48 @@ interface FileListProps {
 export function FileList({ files, onDelete, onRetryParse }: FileListProps) {
   if (files.length === 0) {
     return (
-      <section className="rounded-[28px] bg-white p-6 shadow-panel">
-        <h3 className="text-xl font-semibold text-ink">File list</h3>
-        <p className="mt-3 text-sm text-slate-500">No materials have been staged yet.</p>
+      <section className="surface-subtle px-6 py-6">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">材料列表</p>
+            <h3 className="section-title">上传文件</h3>
+          </div>
+        </div>
+        <p className="mt-4 text-sm text-steel">当前还没有上传任何材料。</p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-[28px] bg-white p-6 shadow-panel">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-xl font-semibold text-ink">File list</h3>
-        <span className="text-sm text-slate-500">{files.length} items</span>
+    <section className="surface-subtle px-6 py-6">
+      <div className="section-head">
+        <div>
+          <p className="eyebrow">材料列表</p>
+          <h3 className="section-title">上传文件</h3>
+        </div>
+        <span className="text-sm text-steel">{files.length} 个文件</span>
       </div>
       <div className="mt-5 grid gap-4">
         {files.map((file) => (
-          <article key={file.id} className="rounded-[24px] border border-slate-200 p-4">
+          <article key={file.id} className="list-row p-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h4 className="font-semibold text-ink">{file.file_name}</h4>
-                <p className="mt-1 text-sm text-slate-500">{file.file_type.toUpperCase()} {file.size_label ? `· ${file.size_label}` : ''}</p>
+                <p className="mt-1 text-sm text-steel">{file.file_type.toUpperCase()} {file.size_label ? `· ${file.size_label}` : ''}</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${PARSE_STATUS_STYLES[file.parse_status]}`}>
-                {file.parse_status}
+              <span className={`status-pill ${PARSE_STATUS_STYLES[file.parse_status]}`}>
+                {PARSE_STATUS_LABELS[file.parse_status]}
               </span>
             </div>
             <div className="mt-4 flex flex-wrap gap-3 text-sm">
-              <button className="rounded-full border border-slate-200 px-4 py-2 font-medium text-slate-600" disabled type="button">
-                Preview
+              <button className="action-secondary px-4 py-2 text-xs" disabled type="button">
+                预览
               </button>
-              <button className="rounded-full border border-ink/15 px-4 py-2 font-medium text-ink" onClick={() => onRetryParse(file.id)} type="button">
-                Retry parse
+              <button className="action-secondary px-4 py-2 text-xs" onClick={() => onRetryParse(file.id)} type="button">
+                重新解析
               </button>
-              <button className="rounded-full border border-rose-200 px-4 py-2 font-medium text-rose-600" onClick={() => onDelete(file.id)} type="button">
-                Remove
+              <button className="action-danger px-4 py-2 text-xs" onClick={() => onDelete(file.id)} type="button">
+                移除
               </button>
             </div>
           </article>

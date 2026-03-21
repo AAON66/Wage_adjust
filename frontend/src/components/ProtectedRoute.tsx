@@ -1,9 +1,14 @@
 ﻿import { Navigate, Outlet, useLocation } from 'react-router-dom';
 
 import { useAuth } from '../hooks/useAuth';
+import { getRoleHomePath } from '../utils/roleAccess';
 
-export function ProtectedRoute() {
-  const { isAuthenticated, isBootstrapping } = useAuth();
+interface ProtectedRouteProps {
+  allowedRoles?: string[];
+}
+
+export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+  const { isAuthenticated, isBootstrapping, user } = useAuth();
   const location = useLocation();
 
   if (isBootstrapping) {
@@ -16,6 +21,14 @@ export function ProtectedRoute() {
 
   if (!isAuthenticated) {
     return <Navigate replace state={{ from: location.pathname }} to="/login" />;
+  }
+
+  if (user?.must_change_password && location.pathname !== '/settings') {
+    return <Navigate replace state={{ forcePasswordChange: true, from: location.pathname }} to="/settings" />;
+  }
+
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+    return <Navigate replace to={getRoleHomePath(user.role)} />;
   }
 
   return <Outlet />;

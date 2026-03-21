@@ -22,7 +22,7 @@ class ApiDatabaseContext:
         temp_root = Path('.tmp').resolve()
         temp_root.mkdir(parents=True, exist_ok=True)
         database_path = (temp_root / f'dashboard-api-{uuid4().hex}.db').as_posix()
-        self.settings = Settings(database_url=f'sqlite+pysqlite:///{database_path}')
+        self.settings = Settings(allow_self_registration=True, database_url=f'sqlite+pysqlite:///{database_path}')
         load_model_modules()
         self.engine = create_db_engine(self.settings)
         init_database(self.engine)
@@ -90,6 +90,7 @@ def test_dashboard_snapshot_and_child_endpoints() -> None:
         snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
         assert snapshot_response.status_code == 200
         body = snapshot_response.json()
+        assert body['overview']['items'][0]['label'] == '覆盖员工数'
         assert body['overview']['items'][0]['value'] == '1'
         assert body['ai_level_distribution']['total'] == 1
         assert body['heatmap']['total'] == 1
@@ -97,7 +98,7 @@ def test_dashboard_snapshot_and_child_endpoints() -> None:
 
         overview_response = client.get(f'/api/v1/dashboard/overview?cycle_id={cycle_id}', headers=headers)
         assert overview_response.status_code == 200
-        assert overview_response.json()['items'][1]['label'] == 'Budget used'
+        assert overview_response.json()['items'][1]['label'] == '已用预算'
 
         distribution_response = client.get(f'/api/v1/dashboard/ai-level-distribution?cycle_id={cycle_id}', headers=headers)
         assert distribution_response.status_code == 200
@@ -110,3 +111,4 @@ def test_dashboard_snapshot_and_child_endpoints() -> None:
         roi_response = client.get(f'/api/v1/dashboard/roi-distribution?cycle_id={cycle_id}', headers=headers)
         assert roi_response.status_code == 200
         assert roi_response.json()['total'] == 1
+

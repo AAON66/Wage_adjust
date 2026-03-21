@@ -83,24 +83,24 @@ class DashboardService:
 
         return [
             {
-                'label': 'Employees in cycle' if cycle_id else 'Employees in scope',
+                'label': '覆盖员工数' if cycle_id else '纳入范围员工数',
                 'value': str(len(employee_ids)),
-                'note': 'Distinct employees covered by current submission scope.',
+                'note': '当前提交范围内去重后的员工总数。',
             },
             {
-                'label': 'Budget used',
+                'label': '已用预算',
                 'value': self._format_percent(budget_percent),
-                'note': f'{budget_used.quantize(Decimal("0.01"))} of {budget_total.quantize(Decimal("0.01"))} salary increase budget.',
+                'note': f'已使用 {budget_used.quantize(Decimal("0.01"))} / 总预算 {budget_total.quantize(Decimal("0.01"))} 的调薪额度。',
             },
             {
-                'label': 'High potential',
+                'label': '高潜人才',
                 'value': str(high_potential),
-                'note': 'Evaluations at Level 4+, or overall score 85 and above.',
+                'note': 'AI 四级及以上，或综合得分达到 85 分及以上的员工数。',
             },
             {
-                'label': 'Review backlog',
+                'label': '待复核项',
                 'value': str(review_backlog),
-                'note': 'Evaluations still waiting for review confirmation or calibration.',
+                'note': '仍待人工复核确认或校准处理的评估数量。',
             },
         ]
 

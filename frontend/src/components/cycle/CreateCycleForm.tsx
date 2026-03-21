@@ -1,20 +1,36 @@
-﻿import { useState, type FormEvent } from 'react';
+﻿import { useEffect, useState, type FormEvent } from 'react';
 
 import type { CycleCreatePayload } from '../../types/api';
 
 type CreateCycleFormProps = {
+  initialValues?: CycleCreatePayload;
+  isEditing?: boolean;
   isSubmitting: boolean;
   errorMessage: string | null;
   onSubmit: (payload: CycleCreatePayload) => Promise<void>;
+  onCancelEdit?: () => void;
 };
 
-export function CreateCycleForm({ isSubmitting, errorMessage, onSubmit }: CreateCycleFormProps) {
-  const [form, setForm] = useState<CycleCreatePayload>({
-    name: '2026 Annual Review',
-    review_period: '2026',
-    budget_amount: '250000.00',
-    status: 'draft',
-  });
+const DEFAULT_FORM: CycleCreatePayload = {
+  name: '2026 年度评估',
+  review_period: '2026',
+  budget_amount: '250000.00',
+  status: 'draft',
+};
+
+export function CreateCycleForm({
+  initialValues,
+  isEditing = false,
+  isSubmitting,
+  errorMessage,
+  onSubmit,
+  onCancelEdit,
+}: CreateCycleFormProps) {
+  const [form, setForm] = useState<CycleCreatePayload>(initialValues ?? DEFAULT_FORM);
+
+  useEffect(() => {
+    setForm(initialValues ?? DEFAULT_FORM);
+  }, [initialValues]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,27 +45,33 @@ export function CreateCycleForm({ isSubmitting, errorMessage, onSubmit }: Create
     <form className="flex flex-col gap-4" onSubmit={(event) => void handleSubmit(event)}>
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         周期名称
-        <input className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateField('name', event.target.value)} value={form.name} />
+        <input className="toolbar-input" onChange={(event) => updateField('name', event.target.value)} value={form.name} />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         评估周期
-        <input className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateField('review_period', event.target.value)} value={form.review_period} />
+        <input className="toolbar-input" onChange={(event) => updateField('review_period', event.target.value)} value={form.review_period} />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         预算金额
-        <input className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateField('budget_amount', event.target.value)} value={form.budget_amount} />
+        <input className="toolbar-input" onChange={(event) => updateField('budget_amount', event.target.value)} value={form.budget_amount} />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         状态
-        <select className="rounded-2xl border border-slate-200 px-4 py-3" onChange={(event) => updateField('status', event.target.value)} value={form.status}>
-          <option value="draft">draft</option>
-          <option value="collecting">collecting</option>
+        <select className="toolbar-input" onChange={(event) => updateField('status', event.target.value)} value={form.status}>
+          <option value="draft">草稿</option>
+          <option value="collecting">收集中</option>
+          {isEditing ? <option value="published">已发布</option> : null}
         </select>
       </label>
       {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-      <button className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-60" disabled={isSubmitting} type="submit">
-        {isSubmitting ? '创建中...' : '创建评估周期'}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button className="action-primary" disabled={isSubmitting} type="submit">
+          {isSubmitting ? (isEditing ? '保存中...' : '创建中...') : (isEditing ? '保存周期修改' : '创建评估周期')}
+        </button>
+        {isEditing && onCancelEdit ? (
+          <button className="action-secondary" onClick={onCancelEdit} type="button">取消编辑</button>
+        ) : null}
+      </div>
     </form>
   );
 }

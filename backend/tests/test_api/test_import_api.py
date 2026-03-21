@@ -17,7 +17,7 @@ class ApiDatabaseContext:
         temp_root = Path('.tmp').resolve()
         temp_root.mkdir(parents=True, exist_ok=True)
         database_path = (temp_root / f'import-api-{uuid4().hex}.db').as_posix()
-        self.settings = Settings(database_url=f'sqlite+pysqlite:///{database_path}')
+        self.settings = Settings(allow_self_registration=True, database_url=f'sqlite+pysqlite:///{database_path}')
         load_model_modules()
         self.engine = create_db_engine(self.settings)
         init_database(self.engine)
@@ -90,3 +90,4 @@ def test_import_api_flow() -> None:
         )
         assert xlsx_response.status_code == 201
         assert xlsx_response.json()['status'] == 'failed'
+

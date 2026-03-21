@@ -21,48 +21,61 @@ const STATUS_STYLES: Record<ImportJobRow['status'], string> = {
   failed: 'bg-rose-100 text-rose-700',
 };
 
+const STATUS_LABELS: Record<ImportJobRow['status'], string> = {
+  pending: '待处理',
+  queued: '排队中',
+  processing: '处理中',
+  completed: '已完成',
+  failed: '失败',
+};
+
+function formatImportType(importType: string): string {
+  return {
+    employees: '员工',
+    certifications: '认证',
+  }[importType] ?? importType;
+}
+
 export function ImportJobTable({ rows, onExport }: ImportJobTableProps) {
   return (
-    <section className="rounded-[28px] bg-white p-6 shadow-panel">
-      <div className="flex items-center justify-between gap-3">
+    <section className="table-shell animate-fade-up">
+      <div className="section-head px-6 py-5">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-ember">Import Jobs</p>
-          <h3 className="mt-2 text-2xl font-bold text-ink">Batch import runs</h3>
+          <p className="eyebrow">导入任务</p>
+          <h3 className="section-title">批量导入记录</h3>
         </div>
-        <span className="text-sm text-slate-500">{rows.length} jobs</span>
+        <span className="text-sm text-steel">{rows.length} 个任务</span>
       </div>
-      <div className="mt-5 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-3 text-sm">
+      <div className="overflow-x-auto">
+        <table className="table-lite">
           <thead>
-            <tr className="text-left text-slate-500">
-              <th className="px-4">File</th>
-              <th className="px-4">Type</th>
-              <th className="px-4">Status</th>
-              <th className="px-4">Rows</th>
-              <th className="px-4">Success</th>
-              <th className="px-4">Failed</th>
-              <th className="px-4">Export</th>
+            <tr>
+              <th>文件</th>
+              <th>类型</th>
+              <th>状态</th>
+              <th>总行数</th>
+              <th>成功</th>
+              <th>失败</th>
+              <th>导出</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={row.id} className="bg-slate-50 text-slate-700">
-                <td className="rounded-l-[20px] px-4 py-4 font-semibold text-ink">{row.fileName}</td>
-                <td className="px-4 py-4">{row.importType}</td>
-                <td className="px-4 py-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[row.status]}`}>{row.status}</span>
+              <tr key={row.id}>
+                <td>
+                  <div className="font-medium text-ink">{row.fileName}</div>
+                  <div className="mt-1 text-xs text-steel">任务编号 {row.id.slice(0, 8)}</div>
                 </td>
-                <td className="px-4 py-4">{row.totalRows}</td>
-                <td className="px-4 py-4">{row.successRows}</td>
-                <td className="px-4 py-4">{row.failedRows}</td>
-                <td className="rounded-r-[20px] px-4 py-4">
-                  <button
-                    className="rounded-full border border-ink/15 px-4 py-2 text-xs font-semibold text-ink disabled:cursor-not-allowed disabled:opacity-40"
-                    disabled={!onExport}
-                    onClick={() => onExport?.(row.id)}
-                    type="button"
-                  >
-                    Export report
+                <td>{formatImportType(row.importType)}</td>
+                <td>
+                  <span className={`status-pill ${STATUS_STYLES[row.status]}`}>{STATUS_LABELS[row.status]}</span>
+                </td>
+                <td>{row.totalRows}</td>
+                <td className="text-emerald-700">{row.successRows}</td>
+                <td className={row.failedRows > 0 ? 'text-rose-600' : 'text-steel'}>{row.failedRows}</td>
+                <td>
+                  <button className="action-secondary px-4 py-2 text-xs" disabled={!onExport} onClick={() => onExport?.(row.id)} type="button">
+                    导出报告
                   </button>
                 </td>
               </tr>

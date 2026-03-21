@@ -1,15 +1,20 @@
-interface ApprovalRow {
+﻿interface ApprovalRow {
   id: string;
   employeeName: string;
   department: string;
   aiLevel: string;
+  cycleName: string;
   recommendedIncrease: string;
-  status: 'pending' | 'approved' | 'rejected';
   approver: string;
+  status: 'pending' | 'approved' | 'rejected';
+  canAct: boolean;
 }
 
 interface ApprovalTableProps {
   rows: ApprovalRow[];
+  processingId?: string | null;
+  onApprove?: (approvalId: string) => void;
+  onReject?: (approvalId: string) => void;
 }
 
 const STATUS_STYLES: Record<ApprovalRow['status'], string> = {
@@ -18,53 +23,71 @@ const STATUS_STYLES: Record<ApprovalRow['status'], string> = {
   rejected: 'bg-rose-100 text-rose-700',
 };
 
-export function ApprovalTable({ rows }: ApprovalTableProps) {
+const STATUS_LABELS: Record<ApprovalRow['status'], string> = {
+  pending: '待处理',
+  approved: '已通过',
+  rejected: '已驳回',
+};
+
+export function ApprovalTable({ rows, processingId = null, onApprove, onReject }: ApprovalTableProps) {
   return (
-    <section className="rounded-[32px] bg-white p-6 shadow-panel">
-      <div className="flex items-center justify-between gap-3">
+    <section className="table-shell animate-fade-up">
+      <div className="section-head px-6 py-5">
         <div>
-          <p className="text-sm uppercase tracking-[0.24em] text-ember">Approval Center</p>
-          <h2 className="mt-2 text-3xl font-bold text-ink">Pending salary approvals</h2>
+          <p className="eyebrow">审批任务</p>
+          <h2 className="section-title">待处理调薪审批</h2>
         </div>
-        <span className="text-sm text-slate-500">{rows.length} records</span>
+        <span className="text-sm text-steel">{rows.length} 条记录</span>
       </div>
 
-      <div className="mt-6 overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-y-3 text-sm">
+      <div className="overflow-x-auto">
+        <table className="table-lite">
           <thead>
-            <tr className="text-left text-slate-500">
-              <th className="px-4">Employee</th>
-              <th className="px-4">Department</th>
-              <th className="px-4">AI Level</th>
-              <th className="px-4">Increase</th>
-              <th className="px-4">Approver</th>
-              <th className="px-4">Status</th>
-              <th className="px-4">Actions</th>
+            <tr>
+              <th>员工</th>
+              <th>部门</th>
+              <th>评估周期</th>
+              <th>AI 等级</th>
+              <th>建议涨幅</th>
+              <th>审批人</th>
+              <th>状态</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="bg-slate-50 text-slate-700">
-                <td className="rounded-l-[20px] px-4 py-4 font-semibold text-ink">{row.employeeName}</td>
-                <td className="px-4 py-4">{row.department}</td>
-                <td className="px-4 py-4">{row.aiLevel}</td>
-                <td className="px-4 py-4">{row.recommendedIncrease}</td>
-                <td className="px-4 py-4">{row.approver}</td>
-                <td className="px-4 py-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLES[row.status]}`}>{row.status}</span>
-                </td>
-                <td className="rounded-r-[20px] px-4 py-4">
-                  <div className="flex flex-wrap gap-2">
-                    <button className="rounded-full bg-ink px-4 py-2 text-xs font-semibold text-white" type="button">
-                      Approve
-                    </button>
-                    <button className="rounded-full border border-rose-200 px-4 py-2 text-xs font-semibold text-rose-600" type="button">
-                      Reject
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const isProcessing = processingId === row.id;
+              return (
+                <tr key={row.id}>
+                  <td>
+                    <div className="font-medium text-ink">{row.employeeName}</div>
+                    <div className="mt-1 text-xs text-steel">{row.department}</div>
+                  </td>
+                  <td>{row.department}</td>
+                  <td>{row.cycleName}</td>
+                  <td>{row.aiLevel}</td>
+                  <td className="font-medium text-ink">{row.recommendedIncrease}</td>
+                  <td>{row.approver}</td>
+                  <td>
+                    <span className={`status-pill ${STATUS_STYLES[row.status]}`}>{STATUS_LABELS[row.status]}</span>
+                  </td>
+                  <td>
+                    {row.canAct && onApprove && onReject ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button className="action-primary px-4 py-2 text-xs" disabled={isProcessing} onClick={() => onApprove(row.id)} type="button">
+                          {isProcessing ? '处理中...' : '通过'}
+                        </button>
+                        <button className="action-danger px-4 py-2 text-xs" disabled={isProcessing} onClick={() => onReject(row.id)} type="button">
+                          驳回
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-steel">{row.status === 'pending' ? '等待对应审批人处理' : '已完成'}</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

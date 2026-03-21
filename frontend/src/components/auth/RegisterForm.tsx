@@ -8,9 +8,16 @@ type RegisterFormProps = {
   onSubmit: (payload: RegisterPayload) => Promise<void>;
 };
 
+const ROLE_OPTIONS = [
+  { value: 'employee', label: '员工' },
+  { value: 'manager', label: '主管' },
+  { value: 'hrbp', label: 'HRBP' },
+  { value: 'admin', label: '管理员' },
+];
+
 export function RegisterForm({ isSubmitting, errorMessage, onSubmit }: RegisterFormProps) {
-  const [email, setEmail] = useState('new.user@example.com');
-  const [password, setPassword] = useState('Password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState('employee');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -23,8 +30,9 @@ export function RegisterForm({ isSubmitting, errorMessage, onSubmit }: RegisterF
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         邮箱
         <input
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-ember"
+          className="toolbar-input"
           onChange={(event) => setEmail(event.target.value)}
+          placeholder="name@company.com"
           type="email"
           value={email}
         />
@@ -32,31 +40,23 @@ export function RegisterForm({ isSubmitting, errorMessage, onSubmit }: RegisterF
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         密码
         <input
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-ember"
+          className="toolbar-input"
           onChange={(event) => setPassword(event.target.value)}
+          placeholder="至少 8 位密码"
           type="password"
           value={password}
         />
       </label>
       <label className="flex flex-col gap-2 text-sm font-medium text-ink">
         角色
-        <select
-          className="rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none transition focus:border-ember"
-          onChange={(event) => setRole(event.target.value)}
-          value={role}
-        >
-          <option value="employee">employee</option>
-          <option value="manager">manager</option>
-          <option value="hrbp">hrbp</option>
-          <option value="admin">admin</option>
+        <select className="toolbar-input" onChange={(event) => setRole(event.target.value)} value={role}>
+          {ROLE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>{option.label}</option>
+          ))}
         </select>
       </label>
       {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
-      <button
-        className="rounded-full bg-ember px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={isSubmitting}
-        type="submit"
-      >
+      <button className="action-primary w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? '注册中...' : '创建账号'}
       </button>
     </form>

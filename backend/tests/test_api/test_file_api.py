@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from pathlib import Path
 from uuid import uuid4
@@ -21,7 +21,7 @@ class ApiDatabaseContext:
         temp_root.mkdir(parents=True, exist_ok=True)
         database_path = (temp_root / f'files-api-{uuid4().hex}.db').as_posix()
         uploads_path = (temp_root / f'files-uploads-{uuid4().hex}').as_posix()
-        self.settings = Settings(
+        self.settings = Settings(allow_self_registration=True, 
             database_url=f'sqlite+pysqlite:///{database_path}',
             storage_base_dir=uploads_path,
         )

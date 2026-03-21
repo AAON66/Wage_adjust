@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -48,6 +48,19 @@ def recommend_salary(
         if 'not found' in message.lower():
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
+    return serialize_recommendation(recommendation)
+
+
+@router.get('/by-evaluation/{evaluation_id}', response_model=SalaryRecommendationRead)
+def get_recommendation_by_evaluation(
+    evaluation_id: str,
+    db: Session = Depends(get_db),
+    _: object = Depends(get_current_user),
+) -> SalaryRecommendationRead:
+    service = SalaryService(db)
+    recommendation = service.get_recommendation_by_evaluation(evaluation_id)
+    if recommendation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Salary recommendation not found.')
     return serialize_recommendation(recommendation)
 
 

@@ -12,6 +12,7 @@ import {
   register as registerRequest,
   storeAuthSession,
   updateStoredTokens,
+  updateStoredUser,
 } from '../services/auth';
 
 type AuthContextValue = {
@@ -19,8 +20,9 @@ type AuthContextValue = {
   accessToken: string | null;
   isAuthenticated: boolean;
   isBootstrapping: boolean;
-  login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
+  login: (payload: LoginPayload) => Promise<UserProfile>;
+  register: (payload: RegisterPayload) => Promise<UserProfile>;
+  refreshProfile: () => Promise<UserProfile | null>;
   logout: () => void;
 };
 
@@ -52,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const profile = await fetchCurrentUser(storedToken);
         if (!cancelled) {
+          updateStoredUser(profile);
           setUser(profile);
           setAccessToken(storedToken);
         }
@@ -61,6 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           updateStoredTokens(refreshedTokens);
           const profile = await fetchCurrentUser(refreshedTokens.access_token);
           if (!cancelled) {
+            updateStoredUser(profile);
             setUser(profile);
             setAccessToken(refreshedTokens.access_token);
           }
@@ -84,19 +88,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  async function handleRegister(payload: RegisterPayload) {
+  async function handleRegister(payload: RegisterPayload): Promise<UserProfile> {
     const response = await registerRequest(payload);
     storeAuthSession(response);
     setUser(response.user);
     setAccessToken(response.tokens.access_token);
+    return response.user;
   }
 
-  async function handleLogin(payload: LoginPayload) {
+  async function handleLogin(payload: LoginPayload): Promise<UserProfile> {
     const tokens = await loginRequest(payload);
     const profile = await fetchCurrentUser(tokens.access_token);
     storeAuthSession({ user: profile, tokens });
     setUser(profile);
     setAccessToken(tokens.access_token);
+    return profile;
+  }
+
+  async function refreshProfile(): Promise<UserProfile | null> {
+    const token = accessToken ?? getStoredAccessToken();
+    if (!token) {
+      return null;
+    }
+    const profile = await fetchCurrentUser(token);
+    updateStoredUser(profile);
+    setUser(profile);
+    return profile;
   }
 
   function logout() {
@@ -113,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isBootstrapping,
       login: handleLogin,
       register: handleRegister,
+      refreshProfile,
       logout,
     }),
     [accessToken, isBootstrapping, user],

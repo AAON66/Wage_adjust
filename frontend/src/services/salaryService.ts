@@ -1,8 +1,13 @@
-import api from './api';
+﻿import api from './api';
 import type { SalaryRecommendationRecord, SalarySimulationResponse } from '../types/api';
 
 export async function recommendSalary(evaluationId: string): Promise<SalaryRecommendationRecord> {
   const response = await api.post<SalaryRecommendationRecord>('/salary/recommend', { evaluation_id: evaluationId });
+  return response.data;
+}
+
+export async function fetchSalaryRecommendationByEvaluation(evaluationId: string): Promise<SalaryRecommendationRecord> {
+  const response = await api.get<SalaryRecommendationRecord>(`/salary/by-evaluation/${evaluationId}`);
   return response.data;
 }
 

@@ -3,21 +3,22 @@ import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
 import { ImportJobTable } from '../components/import/ImportJobTable';
+import { AppShell } from '../components/layout/AppShell';
 import { createImportJob, downloadImportTemplate, exportImportJob, fetchImportJobs } from '../services/importService';
 import type { ImportJobRecord } from '../types/api';
 
 const IMPORT_TYPES = [
-  { value: 'employees', label: 'Employees' },
-  { value: 'certifications', label: 'Certifications' },
+  { value: 'employees', label: '员工' },
+  { value: 'certifications', label: '认证' },
 ];
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return (error.response?.data as { detail?: string; message?: string } | undefined)?.detail ??
       (error.response?.data as { detail?: string; message?: string } | undefined)?.message ??
-      'Failed to complete import action.';
+      '导入操作失败。';
   }
-  return 'Failed to complete import action.';
+  return '导入操作失败。';
 }
 
 function saveBlob(blob: Blob, fileName: string): void {
@@ -78,7 +79,7 @@ export function ImportCenterPage() {
 
   async function handleUpload() {
     if (!selectedFile) {
-      setErrorMessage('Please choose a CSV file before uploading.');
+      setErrorMessage('请先选择需要上传的文件。');
       return;
     }
     setIsUploading(true);
@@ -117,94 +118,84 @@ export function ImportCenterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-sand px-6 py-10 text-ink">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="flex flex-wrap items-start justify-between gap-4 rounded-[32px] bg-white p-6 shadow-panel">
+    <AppShell
+      title="批量导入中心"
+      description="统一处理模板下载、批量导入和结果导出，适合作为内部数据接入与批量维护入口。"
+      actions={
+        <>
+          <Link className="chip-button" to="/workspace">返回工作台</Link>
+          <Link className="action-primary" to="/dashboard">打开组织看板</Link>
+        </>
+      }
+    >
+      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
+
+      <section className="metric-strip animate-fade-up">
+        {[
+          ['员工模板', 'CSV', '下载员工导入模板并按列填充数据。'],
+          ['认证模板', 'CSV', '下载认证导入模板并导入历史认证记录。'],
+          ['处理中任务', String(stats.processing), '正在排队或处理中，需等待结果回写。'],
+          ['任务总数', String(jobs.length), `已完成 ${stats.completed}，失败 ${stats.failed}。`],
+        ].map(([label, value, note]) => (
+          <article className="metric-tile" key={label}>
+            <p className="metric-label">{label}</p>
+            <p className="metric-value">{value}</p>
+            <p className="metric-note">{note}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="surface animate-fade-up px-6 py-6 lg:px-7">
+        <div className="section-head">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-ember">Import Center</p>
-            <h1 className="mt-2 text-4xl font-bold">Batch import workspace</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-              This page now runs live import jobs, downloads CSV templates, and exports row-level result reports from the backend import APIs.
-            </p>
+            <p className="eyebrow">上传任务</p>
+            <h2 className="section-title">创建导入任务</h2>
+            <p className="mt-2 text-sm leading-6 text-steel">导入类型、文件选择和模板下载都集中在同一处完成，减少批量运营时的切换成本。</p>
           </div>
-          <div className="flex gap-3">
-            <Link className="rounded-full border border-ink/15 px-5 py-3 text-sm font-semibold text-ink" to="/workspace">
-              Back to workspace
-            </Link>
-            <Link className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white" to="/dashboard">
-              Open dashboard
-            </Link>
+          <div className="flex flex-wrap gap-2">
+            <button className="chip-button" onClick={() => void handleDownloadTemplate('employees')} type="button">下载员工模板</button>
+            <button className="chip-button" onClick={() => void handleDownloadTemplate('certifications')} type="button">下载认证模板</button>
           </div>
-        </header>
+        </div>
 
-        {errorMessage ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMessage}</p> : null}
-
-        <section className="grid gap-4 md:grid-cols-3">
-          <article className="rounded-[28px] bg-white p-5 shadow-panel">
-            <p className="text-sm text-slate-500">Employee template</p>
-            <p className="mt-3 text-3xl font-bold text-ink">csv</p>
-            <button className="mt-4 rounded-full border border-ink/15 px-4 py-2 text-sm font-semibold text-ink" onClick={() => handleDownloadTemplate('employees')} type="button">
-              Download
-            </button>
-          </article>
-          <article className="rounded-[28px] bg-white p-5 shadow-panel">
-            <p className="text-sm text-slate-500">Certification template</p>
-            <p className="mt-3 text-3xl font-bold text-ink">csv</p>
-            <button className="mt-4 rounded-full border border-ink/15 px-4 py-2 text-sm font-semibold text-ink" onClick={() => handleDownloadTemplate('certifications')} type="button">
-              Download
-            </button>
-          </article>
-          <article className="rounded-[28px] bg-white p-5 shadow-panel">
-            <p className="text-sm text-slate-500">Current jobs</p>
-            <p className="mt-3 text-3xl font-bold text-ink">{jobs.length}</p>
-            <p className="mt-2 text-sm text-slate-500">Completed {stats.completed} · Processing {stats.processing} · Failed {stats.failed}</p>
-          </article>
-        </section>
-
-        <section className="rounded-[28px] bg-white p-6 shadow-panel">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-ember">Upload</p>
-              <h3 className="mt-2 text-2xl font-bold text-ink">Create import job</h3>
-            </div>
-            <span className="text-sm text-slate-500">CSV is the stable format in this environment</span>
-          </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-[220px_1fr_auto]">
-            <label className="rounded-[20px] border border-slate-200 p-4">
-              <span className="text-sm text-slate-500">Import type</span>
-              <select className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-ink" onChange={(event) => setSelectedType(event.target.value)} value={selectedType}>
-                {IMPORT_TYPES.map((item) => (
-                  <option key={item.value} value={item.value}>{item.label}</option>
-                ))}
-              </select>
-            </label>
-            <label className="rounded-[20px] border border-dashed border-slate-300 p-4">
-              <span className="text-sm text-slate-500">CSV file</span>
-              <input accept=".csv,.xlsx,.xls" className="mt-2 block w-full text-sm text-slate-600" id="import-file-input" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} type="file" />
-              <p className="mt-2 text-xs text-slate-500">Excel uploads currently return a clear error because `openpyxl` is not installed.</p>
-            </label>
-            <button className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40" disabled={isUploading} onClick={() => void handleUpload()} type="button">
-              {isUploading ? 'Uploading...' : 'Start import'}
+        <div className="mt-5 grid gap-4 lg:grid-cols-[240px_1fr_auto]">
+          <label className="surface-subtle px-4 py-4">
+            <span className="text-sm text-steel">导入类型</span>
+            <select className="toolbar-input mt-3 w-full" onChange={(event) => setSelectedType(event.target.value)} value={selectedType}>
+              {IMPORT_TYPES.map((item) => (
+                <option key={item.value} value={item.value}>{item.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="surface-subtle px-4 py-4">
+            <span className="text-sm text-steel">上传文件</span>
+            <input accept=".csv,.xlsx,.xls" className="mt-3 block w-full text-sm text-steel file:mr-3 file:rounded-full file:border-0 file:bg-[#edf3ff] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#2750b6]" id="import-file-input" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} type="file" />
+            <p className="mt-3 text-xs leading-5 text-steel">请根据模板要求准备文件后再导入，系统会按任务结果返回成功与失败明细。</p>
+          </label>
+          <div className="flex items-end">
+            <button className="action-primary w-full lg:w-auto" disabled={isUploading} onClick={() => void handleUpload()} type="button">
+              {isUploading ? '上传中...' : '开始导入'}
             </button>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {isLoading ? <p className="text-sm text-slate-500">Loading import jobs...</p> : null}
-        <ImportJobTable
-          onExport={(jobId) => {
-            void handleExport(jobId);
-          }}
-          rows={jobs.map((job) => ({
-            id: job.id,
-            fileName: job.file_name,
-            importType: job.import_type,
-            status: job.status,
-            totalRows: job.total_rows,
-            successRows: job.success_rows,
-            failedRows: job.failed_rows,
-          }))}
-        />
-      </div>
-    </main>
+      {isLoading ? <p className="px-2 text-sm text-steel">正在加载导入任务...</p> : null}
+      <ImportJobTable
+        onExport={(jobId) => {
+          void handleExport(jobId);
+        }}
+        rows={jobs.map((job) => ({
+          id: job.id,
+          fileName: job.file_name,
+          importType: job.import_type,
+          status: job.status,
+          totalRows: job.total_rows,
+          successRows: job.success_rows,
+          failedRows: job.failed_rows,
+        }))}
+      />
+    </AppShell>
   );
 }
+

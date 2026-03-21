@@ -22,7 +22,7 @@ The project is ready for a small single-node deployment split into:
 
 ```powershell
 $env:PYTHONPATH = (Resolve-Path '.').Path
-.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+.\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8011
 ```
 
 ## Frontend Build Command
@@ -32,6 +32,8 @@ cmd /c npm.cmd run build --prefix frontend
 ```
 
 Serve `frontend/dist/` behind nginx, Caddy, or another static file server.
+
+If you use the bundled PowerShell helper scripts on Windows, run them with `-ExecutionPolicy Bypass`.
 
 ## Database Migration
 

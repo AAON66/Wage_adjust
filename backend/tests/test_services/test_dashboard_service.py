@@ -70,8 +70,11 @@ def test_dashboard_service_returns_overview_distribution_and_heatmap() -> None:
 
         service = DashboardService(db)
         overview = service.get_overview(cycle.id)
+        assert overview[0]['label'] == '覆盖员工数'
         assert overview[0]['value'] == '3'
+        assert overview[2]['label'] == '高潜人才'
         assert overview[2]['value'] == '2'
+        assert overview[3]['label'] == '待复核项'
         assert overview[3]['value'] == '2'
 
         ai_distribution = service.get_ai_level_distribution(cycle.id)

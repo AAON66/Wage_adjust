@@ -1,5 +1,5 @@
 ﻿import api from './api';
-import type { AuthResponse, LoginPayload, RegisterPayload, TokenPair, UserProfile } from '../types/api';
+import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterPayload, TokenPair, UserProfile } from '../types/api';
 
 const ACCESS_TOKEN_KEY = 'wage_adjust.access_token';
 const REFRESH_TOKEN_KEY = 'wage_adjust.refresh_token';
@@ -38,6 +38,10 @@ export function updateStoredTokens(tokens: TokenPair): void {
   window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
 }
 
+export function updateStoredUser(user: UserProfile): void {
+  window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 export function clearAuthStorage(): void {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
@@ -68,5 +72,10 @@ export async function fetchCurrentUser(token?: string): Promise<UserProfile> {
         }
       : undefined,
   });
+  return response.data;
+}
+
+export async function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
+  const response = await api.post<{ message: string }>('/auth/change-password', payload);
   return response.data;
 }

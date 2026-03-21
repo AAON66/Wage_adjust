@@ -8,6 +8,7 @@ export interface UserProfile {
   id: string;
   email: string;
   role: string;
+  must_change_password: boolean;
   created_at: string;
 }
 
@@ -29,6 +30,11 @@ export interface LoginPayload {
 
 export interface RegisterPayload extends LoginPayload {
   role: string;
+}
+
+export interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
 }
 
 export interface EmployeeRecord {
@@ -79,6 +85,13 @@ export interface CycleCreatePayload {
   review_period: string;
   budget_amount: string;
   status: string;
+}
+
+export interface CycleUpdatePayload {
+  name?: string;
+  review_period?: string;
+  budget_amount?: string;
+  status?: string;
 }
 
 export interface SubmissionRecord {
@@ -189,6 +202,48 @@ export interface SalarySimulationResponse {
   items: SalarySimulationItem[];
 }
 
+export interface ApprovalRecord {
+  id: string;
+  recommendation_id: string;
+  evaluation_id: string;
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  cycle_id: string;
+  cycle_name: string;
+  ai_level: string;
+  current_salary: string;
+  recommended_salary: string;
+  final_adjustment_ratio: number;
+  recommendation_status: string;
+  approver_id: string;
+  approver_email: string;
+  approver_role: string;
+  step_name: string;
+  decision: 'pending' | 'approved' | 'rejected';
+  comment: string | null;
+  decided_at: string | null;
+  created_at: string;
+}
+
+export interface ApprovalListResponse {
+  items: ApprovalRecord[];
+  total: number;
+}
+
+export interface ApprovalStatusResponse {
+  approval_id: string;
+  recommendation_id: string;
+  decision: 'approved' | 'rejected';
+  recommendation_status: string;
+}
+
+export interface ApprovalStepPayload {
+  step_name: string;
+  approver_id: string;
+  comment?: string;
+}
+
 export interface DashboardOverviewItem {
   label: string;
   value: string;
@@ -242,4 +297,41 @@ export interface ImportJobRecord {
 export interface ImportJobListResponse {
   items: ImportJobRecord[];
   total: number;
+}
+
+export interface UserListResponse {
+  items: UserProfile[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface UserQuery {
+  page?: number;
+  page_size?: number;
+  role?: string;
+  keyword?: string;
+}
+
+export interface AdminUserCreatePayload {
+  email: string;
+  password: string;
+  role: string;
+}
+
+export interface BulkFailureRecord {
+  identifier: string;
+  message: string;
+}
+
+export interface BulkUserCreateResponse {
+  created: UserProfile[];
+  failed: BulkFailureRecord[];
+  total_requested: number;
+}
+
+export interface BulkUserDeleteResponse {
+  deleted_user_ids: string[];
+  failed: BulkFailureRecord[];
+  total_requested: number;
 }

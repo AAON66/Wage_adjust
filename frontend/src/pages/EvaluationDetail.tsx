@@ -6,14 +6,17 @@ import { EvidenceCard } from '../components/evaluation/EvidenceCard';
 import { FileList } from '../components/evaluation/FileList';
 import { FileUploadPanel } from '../components/evaluation/FileUploadPanel';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
+import { AppShell } from '../components/layout/AppShell';
 import { CalibrationCompareTable } from '../components/review/CalibrationCompareTable';
 import { DimensionScoreEditor, type DimensionScoreDraft } from '../components/review/DimensionScoreEditor';
 import { ReviewPanel } from '../components/review/ReviewPanel';
+import { useAuth } from '../hooks/useAuth';
+import { submitApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
 import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, submitManualReview } from '../services/evaluationService';
 import { fetchSubmissionEvidence, fetchSubmissionFiles, parseFile, uploadSubmissionFiles } from '../services/fileService';
 import { fetchEmployee } from '../services/employeeService';
-import { recommendSalary } from '../services/salaryService';
+import { fetchSalaryRecommendationByEvaluation, recommendSalary } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
 import type { CycleRecord, EmployeeRecord, EvaluationRecord, EvidenceRecord, SalaryRecommendationRecord, SubmissionRecord, UploadedFileRecord } from '../types/api';
 
@@ -23,32 +26,36 @@ function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
     return (error.response?.data as { detail?: string; message?: string } | undefined)?.detail ??
       (error.response?.data as { detail?: string; message?: string } | undefined)?.message ??
-      'Failed to load employee detail.';
+      '加载员工详情失败。';
   }
-  return 'Failed to load employee detail.';
+  return '加载员工详情失败。';
 }
 
 function formatDateTime(value: string): string {
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function formatCurrency(value: string): string {
+  return new Intl.NumberFormat('zh-CN', { style: 'currency', currency: 'CNY', maximumFractionDigits: 0 }).format(Number(value));
 }
 
 function createInitialDimensions(): DimensionScoreDraft[] {
   return [
-    { code: 'TOOL', label: 'AI tool mastery', score: 70, rationale: 'Awaiting evaluation.' },
-    { code: 'DEPTH', label: 'AI application depth', score: 70, rationale: 'Awaiting evaluation.' },
-    { code: 'LEARN', label: 'AI learning velocity', score: 70, rationale: 'Awaiting evaluation.' },
-    { code: 'SHARE', label: 'Knowledge sharing', score: 70, rationale: 'Awaiting evaluation.' },
-    { code: 'IMPACT', label: 'Business impact', score: 70, rationale: 'Awaiting evaluation.' },
+    { code: 'TOOL', label: 'AI 工具掌握度', score: 70, rationale: '等待评估结果。' },
+    { code: 'DEPTH', label: 'AI 应用深度', score: 70, rationale: '等待评估结果。' },
+    { code: 'LEARN', label: 'AI 学习速度', score: 70, rationale: '等待评估结果。' },
+    { code: 'SHARE', label: '知识分享', score: 70, rationale: '等待评估结果。' },
+    { code: 'IMPACT', label: '业务影响力', score: 70, rationale: '等待评估结果。' },
   ];
 }
 
 function formatDimensionLabel(code: string): string {
   return {
-    TOOL: 'AI tool mastery',
-    DEPTH: 'AI application depth',
-    LEARN: 'AI learning velocity',
-    SHARE: 'Knowledge sharing',
-    IMPACT: 'Business impact',
+    TOOL: 'AI 工具掌握度',
+    DEPTH: 'AI 应用深度',
+    LEARN: 'AI 学习速度',
+    SHARE: '知识分享',
+    IMPACT: '业务影响力',
   }[code] ?? code;
 }
 
@@ -70,8 +77,11 @@ function mapEvidence(item: EvidenceRecord): EvidenceRecord {
 }
 
 function inferStatus(submission: SubmissionRecord | null, files: UploadedFileRecord[], evaluation: EvaluationRecord | null, recommendation: SalaryRecommendationRecord | null): string {
-  if (recommendation?.status === 'locked') {
+  if (recommendation?.status === 'locked' || recommendation?.status === 'approved') {
     return 'approved';
+  }
+  if (recommendation?.status === 'pending_approval') {
+    return 'reviewing';
   }
   if (evaluation?.status === 'confirmed') {
     return 'calibrated';
@@ -94,6 +104,7 @@ function inferStatus(submission: SubmissionRecord | null, files: UploadedFileRec
 export function EvaluationDetailPage() {
   const { employeeId } = useParams<{ employeeId: string }>();
   const [searchParams] = useSearchParams();
+  const { user } = useAuth();
   const [employee, setEmployee] = useState<EmployeeRecord | null>(null);
   const [cycles, setCycles] = useState<CycleRecord[]>([]);
   const [selectedCycleId, setSelectedCycleId] = useState('');
@@ -104,21 +115,24 @@ export function EvaluationDetailPage() {
   const [salaryRecommendation, setSalaryRecommendation] = useState<SalaryRecommendationRecord | null>(null);
   const [dimensions, setDimensions] = useState<DimensionScoreDraft[]>(() => createInitialDimensions());
   const [reviewLevel, setReviewLevel] = useState('Level 3');
-  const [reviewComment, setReviewComment] = useState('Manual review opened. Capture disagreements and rationale here before calibration.');
+  const [reviewComment, setReviewComment] = useState('已开启人工复核，请记录分歧点、判断依据和需要升级处理的说明。');
   const [isUploading, setIsUploading] = useState(false);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
+  const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const canSubmitApproval = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadBase() {
       if (!employeeId) {
-        setErrorMessage('Missing employee id.');
+        setErrorMessage('缺少员工 ID。');
         setIsLoading(false);
         return;
       }
@@ -178,15 +192,27 @@ export function EvaluationDetailPage() {
 
         try {
           const evaluationResponse = await fetchEvaluationBySubmission(submissionResponse.id);
-          if (!cancelled) {
-            setEvaluation(evaluationResponse);
-            setDimensions(mapEvaluationToDrafts(evaluationResponse));
-            setReviewLevel(evaluationResponse.ai_level);
-            setReviewComment(evaluationResponse.explanation);
+          if (cancelled) {
+            return;
+          }
+          setEvaluation(evaluationResponse);
+          setDimensions(mapEvaluationToDrafts(evaluationResponse));
+          setReviewLevel(evaluationResponse.ai_level);
+          setReviewComment(evaluationResponse.explanation);
+          try {
+            const recommendationResponse = await fetchSalaryRecommendationByEvaluation(evaluationResponse.id);
+            if (!cancelled) {
+              setSalaryRecommendation(recommendationResponse);
+            }
+          } catch {
+            if (!cancelled) {
+              setSalaryRecommendation(null);
+            }
           }
         } catch {
           if (!cancelled) {
             setEvaluation(null);
+            setSalaryRecommendation(null);
             setDimensions(createInitialDimensions());
           }
         }
@@ -230,8 +256,15 @@ export function EvaluationDetailPage() {
       setDimensions(mapEvaluationToDrafts(evaluationResponse));
       setReviewLevel(evaluationResponse.ai_level);
       setReviewComment(evaluationResponse.explanation);
+      try {
+        const recommendationResponse = await fetchSalaryRecommendationByEvaluation(evaluationResponse.id);
+        setSalaryRecommendation(recommendationResponse);
+      } catch {
+        setSalaryRecommendation(null);
+      }
     } catch {
       setEvaluation(null);
+      setSalaryRecommendation(null);
       setDimensions(createInitialDimensions());
     }
   }
@@ -275,6 +308,7 @@ export function EvaluationDetailPage() {
     try {
       const nextEvaluation = await generateEvaluation(submission.id);
       setEvaluation(nextEvaluation);
+      setSalaryRecommendation(null);
       setDimensions(mapEvaluationToDrafts(nextEvaluation));
       setReviewLevel(nextEvaluation.ai_level);
       setReviewComment(nextEvaluation.explanation);
@@ -340,141 +374,165 @@ export function EvaluationDetailPage() {
     }
   }
 
+  async function handleSubmitApproval() {
+    if (!salaryRecommendation || !user) {
+      return;
+    }
+    setIsSubmittingApproval(true);
+    setErrorMessage(null);
+    try {
+      await submitApproval({
+        recommendationId: salaryRecommendation.id,
+        steps: [
+          {
+            step_name: '当前审批',
+            approver_id: user.id,
+            comment: '由评估详情页提交审批。',
+          },
+        ],
+      });
+      setSalaryRecommendation((current) => current ? { ...current, status: 'pending_approval' } : current);
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setIsSubmittingApproval(false);
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-sand px-6 py-10 text-ink">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <header className="rounded-[28px] bg-white p-6 shadow-panel">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-sm uppercase tracking-[0.3em] text-ember">Evaluation Detail</p>
-              <h1 className="mt-2 text-3xl font-bold">Employee Evaluation Detail</h1>
-              <p className="mt-2 text-sm text-slate-500">This page now reads real submissions, files, evidence, evaluation output, and salary recommendations from the backend.</p>
-            </div>
-            <div className="flex gap-3">
-              <Link className="rounded-full border border-ink/15 px-5 py-3 text-sm font-semibold text-ink" to="/employees">
-                Back to list
-              </Link>
-              <Link className="rounded-full bg-ink px-5 py-3 text-sm font-semibold text-white" to="/cycles/create">
-                Create cycle
-              </Link>
-            </div>
-          </div>
-        </header>
+    <AppShell
+      title="员工评估详情"
+      description="围绕单个员工查看材料、证据、AI 评估、人工复核和调薪建议。"
+      actions={
+        <>
+          <Link className="chip-button" to="/employees">返回列表</Link>
+          <Link className="chip-button" to="/cycles/create">创建周期</Link>
+        </>
+      }
+    >
+      {isLoading ? <p className="px-2 text-sm text-steel">正在加载员工详情...</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
 
-        {isLoading ? <p className="text-sm text-slate-500">Loading employee detail...</p> : null}
-        {errorMessage ? <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{errorMessage}</p> : null}
-
-        {employee ? (
-          <>
-            <section className="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
-              <article className="rounded-[28px] bg-white p-6 shadow-panel">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-2xl font-bold">{employee.name}</h2>
-                      <StatusIndicator status={employee.status} />
-                    </div>
-                    <p className="mt-2 text-sm text-slate-500">Employee No. {employee.employee_no}</p>
-                  </div>
-                  <div className="rounded-[24px] bg-slate-50 px-4 py-3 text-right text-sm text-slate-600">
-                    <p>Updated at</p>
-                    <p className="mt-1 font-semibold text-ink">{formatDateTime(employee.updated_at)}</p>
-                  </div>
-                </div>
-
-                <dl className="mt-6 grid gap-4 md:grid-cols-2">
-                  <div className="rounded-[24px] bg-slate-50 p-4">
-                    <dt className="text-sm text-slate-500">Department</dt>
-                    <dd className="mt-2 text-lg font-semibold">{employee.department}</dd>
-                  </div>
-                  <div className="rounded-[24px] bg-slate-50 p-4">
-                    <dt className="text-sm text-slate-500">Job family</dt>
-                    <dd className="mt-2 text-lg font-semibold">{employee.job_family}</dd>
-                  </div>
-                  <div className="rounded-[24px] bg-slate-50 p-4">
-                    <dt className="text-sm text-slate-500">Job level</dt>
-                    <dd className="mt-2 text-lg font-semibold">{employee.job_level}</dd>
-                  </div>
-                  <label className="rounded-[24px] bg-slate-50 p-4">
-                    <span className="text-sm text-slate-500">Current cycle</span>
-                    <select className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-ink" onChange={(event) => setSelectedCycleId(event.target.value)} value={selectedCycleId}>
-                      {cycles.map((cycle) => (
-                        <option key={cycle.id} value={cycle.id}>{cycle.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                </dl>
-              </article>
-
-              <aside className="rounded-[28px] bg-white p-6 shadow-panel">
-                <p className="text-sm uppercase tracking-[0.24em] text-ember">Live Actions</p>
-                <div className="mt-4 grid gap-3">
-                  <button className="rounded-[24px] border border-slate-200 p-4 text-left disabled:opacity-60" disabled={isGeneratingEvaluation || !submission} onClick={handleGenerateEvaluation} type="button">
-                    <h3 className="font-semibold">{isGeneratingEvaluation ? 'Generating evaluation...' : 'Generate AI evaluation'}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">Create or refresh the backend evaluation result for the active submission.</p>
-                  </button>
-                  <button className="rounded-[24px] border border-slate-200 p-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation} onClick={handleGenerateSalary} type="button">
-                    <h3 className="font-semibold">{isGeneratingSalary ? 'Generating salary...' : 'Generate salary advice'}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">Run the salary recommendation engine against the current evaluation.</p>
-                  </button>
-                  <div className="rounded-[24px] border border-slate-200 p-4">
-                    <h3 className="font-semibold">Submission context</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">Submission: {submission?.id ?? 'Not ready'}</p>
-                    <p className="text-sm leading-6 text-slate-500">Cycle: {currentCycle?.name ?? 'No cycle selected'}</p>
-                    <p className="text-sm leading-6 text-slate-500">Evaluation: {evaluation?.status ?? 'Not generated yet'}</p>
-                  </div>
-                </div>
-              </aside>
-            </section>
-
-            <section className="rounded-[28px] bg-white p-6 shadow-panel">
-              <div className="flex flex-wrap items-center justify-between gap-3">
+      {employee ? (
+        <>
+          <section className="grid gap-5 lg:grid-cols-[1.24fr_0.76fr]">
+            <article className="surface animate-fade-up px-6 py-6 lg:px-7">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e6eef9] pb-4">
                 <div>
-                  <p className="text-sm uppercase tracking-[0.24em] text-ember">Status Flow</p>
-                  <h2 className="mt-2 text-2xl font-bold">Evaluation lifecycle</h2>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h2 className="text-[28px] font-semibold tracking-[-0.04em] text-ink">{employee.name}</h2>
+                    <StatusIndicator status={employee.status} />
+                  </div>
+                  <p className="mt-2 text-sm text-steel">员工编号 {employee.employee_no}</p>
                 </div>
-                <StatusIndicator status={currentStatus} />
+                <div className="surface-subtle px-4 py-4 text-right">
+                  <p className="text-sm text-steel">更新时间</p>
+                  <p className="mt-2 text-sm font-medium text-ink">{formatDateTime(employee.updated_at)}</p>
+                </div>
               </div>
-              <div className="mt-6 grid gap-3 md:grid-cols-4 xl:grid-cols-8">
-                {FLOW.map((status, index) => {
-                  const isDone = activeIndex >= index;
-                  return (
-                    <div key={status} className={`rounded-[22px] border px-4 py-4 text-center ${isDone ? 'border-ink bg-ink text-white' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
-                      <div className="text-xs uppercase tracking-[0.18em]">Step {index + 1}</div>
-                      <div className="mt-2 flex justify-center">
-                        <StatusIndicator status={status} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
 
-            <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-              <div className="flex flex-col gap-6">
+              <dl className="mt-5 grid gap-3 md:grid-cols-2">
+                <div className="surface-subtle px-4 py-4">
+                  <dt className="text-sm text-steel">部门</dt>
+                  <dd className="mt-2 text-lg font-semibold text-ink">{employee.department}</dd>
+                </div>
+                <div className="surface-subtle px-4 py-4">
+                  <dt className="text-sm text-steel">岗位族</dt>
+                  <dd className="mt-2 text-lg font-semibold text-ink">{employee.job_family}</dd>
+                </div>
+                <div className="surface-subtle px-4 py-4">
+                  <dt className="text-sm text-steel">岗位级别</dt>
+                  <dd className="mt-2 text-lg font-semibold text-ink">{employee.job_level}</dd>
+                </div>
+                <label className="surface-subtle px-4 py-4">
+                  <span className="text-sm text-steel">当前周期</span>
+                  <select className="toolbar-input mt-3 w-full" onChange={(event) => setSelectedCycleId(event.target.value)} value={selectedCycleId}>
+                    {cycles.map((cycle) => (
+                      <option key={cycle.id} value={cycle.id}>{cycle.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </dl>
+            </article>
+
+            <aside className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '60ms' }}>
+              <div className="border-b border-[#e6eef9] pb-4">
+                <p className="eyebrow">实时操作</p>
+                <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">实时操作</h2>
+              </div>
+              <div className="mt-5 grid gap-3">
+                <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingEvaluation || !submission} onClick={handleGenerateEvaluation} type="button">
+                  <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '评估生成中...' : '生成 AI 评估'}</h3>
+                  <p className="mt-2 text-sm leading-6 text-steel">为当前 submission 创建或刷新 AI 评估结果。</p>
+                </button>
+                <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation} onClick={handleGenerateSalary} type="button">
+                  <h3 className="font-medium text-ink">{isGeneratingSalary ? '调薪建议生成中...' : '生成调薪建议'}</h3>
+                  <p className="mt-2 text-sm leading-6 text-steel">基于当前评估结果运行调薪建议引擎。</p>
+                </button>
+                <div className="surface-subtle px-4 py-4">
+                  <h3 className="font-medium text-ink">提交上下文</h3>
+                  <p className="mt-3 text-sm leading-6 text-steel">提交记录：{submission?.id ?? '未就绪'}</p>
+                  <p className="text-sm leading-6 text-steel">周期：{currentCycle?.name ?? '未选择周期'}</p>
+                  <p className="text-sm leading-6 text-steel">评估：{evaluation?.status ?? '尚未生成'}</p>
+                  <p className="text-sm leading-6 text-steel">审批：{salaryRecommendation?.status ?? '尚未提交'}</p>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section className="surface animate-fade-up px-6 py-6 lg:px-7">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6eef9] pb-4">
+              <div>
+                <p className="eyebrow">流程状态</p>
+                <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">评估生命周期</h2>
+              </div>
+              <StatusIndicator status={currentStatus} />
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-4 xl:grid-cols-8">
+              {FLOW.map((status, index) => {
+                const isDone = activeIndex >= index;
+                return (
+                  <div className={`rounded-[22px] border px-4 py-4 text-center ${isDone ? 'border-[#2d5cff] bg-[#2d5cff] text-white' : 'border-[#dce6f5] bg-[#f8fbff] text-steel'}`} key={status}>
+                    <div className="text-xs uppercase tracking-[0.18em]">步骤 {index + 1}</div>
+                    <div className="mt-3 flex justify-center">
+                      <StatusIndicator status={status} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
+            <div className="flex flex-col gap-5">
+              <div className="surface px-6 py-6 lg:px-7">
                 <FileUploadPanel isUploading={isUploading} onFilesSelected={handleFilesSelected} />
+              </div>
+              <div className="surface px-6 py-6 lg:px-7">
                 <FileList files={files} onDelete={handleDeleteFile} onRetryParse={handleRetryParse} />
               </div>
-              <section className="rounded-[28px] bg-white p-6 shadow-panel">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm uppercase tracking-[0.24em] text-ember">Evidence</p>
-                    <h2 className="mt-2 text-2xl font-bold">Extracted signals</h2>
-                  </div>
-                  <span className="text-sm text-slate-500">{evidenceItems.length} cards</span>
+            </div>
+            <section className="surface px-6 py-6 lg:px-7">
+              <div className="flex items-center justify-between gap-3 border-b border-[#e6eef9] pb-4">
+                <div>
+                  <p className="eyebrow">证据提取</p>
+                  <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">提取出的证据卡片</h2>
                 </div>
-                <div className="mt-5 grid gap-4">
-                  {evidenceItems.map((item) => (
-                    <EvidenceCard evidence={item} key={item.id} />
-                  ))}
-                </div>
-              </section>
+                <span className="text-sm text-steel">{evidenceItems.length} 张卡片</span>
+              </div>
+              <div className="mt-5 grid gap-4">
+                {evidenceItems.map((item) => (
+                  <EvidenceCard evidence={item} key={item.id} />
+                ))}
+              </div>
             </section>
+          </section>
 
-            <section className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
-              <div className="flex flex-col gap-6">
+          <section className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
+            <div className="flex flex-col gap-5">
+              <div className="surface px-6 py-6 lg:px-7">
                 <ReviewPanel
-                  aiLevel={evaluation?.ai_level ?? 'Not generated'}
+                  aiLevel={evaluation?.ai_level ?? '未生成'}
                   dimensions={dimensions}
                   isConfirming={isConfirming}
                   isSubmitting={isReviewSubmitting}
@@ -485,29 +543,53 @@ export function EvaluationDetailPage() {
                   reviewComment={reviewComment}
                   reviewLevel={reviewLevel}
                 />
+              </div>
+              <div className="surface px-6 py-6 lg:px-7">
                 <DimensionScoreEditor dimensions={dimensions} onChange={setDimensions} />
               </div>
-              <div className="flex flex-col gap-6">
+            </div>
+            <div className="flex flex-col gap-5">
+              <div className="surface px-6 py-6 lg:px-7">
                 <CalibrationCompareTable rows={calibrationRows} />
-                <section className="rounded-[28px] bg-white p-6 shadow-panel">
-                  <p className="text-sm uppercase tracking-[0.24em] text-ember">Salary Advice</p>
-                  <h3 className="mt-2 text-2xl font-bold text-ink">Recommendation snapshot</h3>
-                  {salaryRecommendation ? (
-                    <dl className="mt-5 space-y-3 text-sm text-slate-600">
-                      <div className="flex justify-between gap-4"><dt>Status</dt><dd>{salaryRecommendation.status}</dd></div>
-                      <div className="flex justify-between gap-4"><dt>Current salary</dt><dd>{salaryRecommendation.current_salary}</dd></div>
-                      <div className="flex justify-between gap-4"><dt>Recommended salary</dt><dd>{salaryRecommendation.recommended_salary}</dd></div>
-                      <div className="flex justify-between gap-4"><dt>Final adjustment</dt><dd>{(salaryRecommendation.final_adjustment_ratio * 100).toFixed(2)}%</dd></div>
-                    </dl>
-                  ) : (
-                    <p className="mt-4 text-sm text-slate-500">No salary recommendation has been generated for this evaluation yet.</p>
-                  )}
-                </section>
               </div>
-            </section>
-          </>
-        ) : null}
-      </div>
-    </main>
+              <section className="surface px-6 py-6 lg:px-7">
+                <div className="border-b border-[#e6eef9] pb-4">
+                  <p className="eyebrow">调薪建议</p>
+                  <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">建议结果快照</h3>
+                </div>
+                {salaryRecommendation ? (
+                  <>
+                    <dl className="mt-5 space-y-3 text-sm text-steel">
+                      <div className="flex justify-between gap-4"><dt>状态</dt><dd className="text-ink">{salaryRecommendation.status}</dd></div>
+                      <div className="flex justify-between gap-4"><dt>当前薪资</dt><dd className="text-ink">{formatCurrency(salaryRecommendation.current_salary)}</dd></div>
+                      <div className="flex justify-between gap-4"><dt>建议薪资</dt><dd className="text-ink">{formatCurrency(salaryRecommendation.recommended_salary)}</dd></div>
+                      <div className="flex justify-between gap-4"><dt>最终调整比例</dt><dd className="text-ink">{(salaryRecommendation.final_adjustment_ratio * 100).toFixed(2)}%</dd></div>
+                    </dl>
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <button
+                        className="rounded-full bg-[#2d5cff] px-5 py-3 text-sm font-semibold text-white shadow-float disabled:opacity-60"
+                        disabled={!canSubmitApproval || isSubmittingApproval || salaryRecommendation.status === 'pending_approval' || salaryRecommendation.status === 'approved' || salaryRecommendation.status === 'locked'}
+                        onClick={handleSubmitApproval}
+                        type="button"
+                      >
+                        {isSubmittingApproval ? '提交中...' : '提交审批'}
+                      </button>
+                      <Link className="chip-button" to="/approvals">
+                        查看审批中心
+                      </Link>
+                    </div>
+                    {!canSubmitApproval ? <p className="mt-3 text-sm text-amber-700">当前账号角色无法发起审批，请使用主管、HRBP 或管理员账号。</p> : null}
+                  </>
+                ) : (
+                  <p className="mt-4 text-sm text-steel">当前评估尚未生成调薪建议。</p>
+                )}
+              </section>
+            </div>
+          </section>
+        </>
+      ) : null}
+    </AppShell>
   );
 }
+
+
