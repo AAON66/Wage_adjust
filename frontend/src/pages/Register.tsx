@@ -38,37 +38,37 @@ export function RegisterPage() {
   }
 
   return (
-    <main className="app-shell flex min-h-screen items-center px-4 py-4 text-ink lg:px-5">
-      <div className="mx-auto grid w-full max-w-[1320px] gap-5 lg:grid-cols-[1.06fr_0.94fr]">
-        <section className="surface animate-fade-up overflow-hidden px-6 py-8 lg:px-8">
+    <main style={{ minHeight: '100vh', background: 'var(--color-bg-page)', display: 'flex', alignItems: 'center', padding: '24px 20px' }}>
+      <div style={{ margin: '0 auto', width: '100%', maxWidth: 1100, display: 'grid', gap: 20 }} className="lg:grid-cols-[1.06fr_0.94fr]">
+        <section className="surface animate-fade-up" style={{ padding: '32px', overflow: 'hidden' }}>
           <p className="eyebrow">创建账号</p>
-          <h1 className="mt-3 text-[40px] font-semibold leading-[1.06] tracking-[-0.05em] text-ink lg:text-[54px]">先确定角色，再进入对应工作区</h1>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-steel">创建后按角色进入对应工作区。</p>
-          <div className="mt-8 space-y-3">
+          <h1 style={{ marginTop: 8, fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--color-ink)', lineHeight: 1.2 }}>先确定角色，再进入对应工作区</h1>
+          <p style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7, color: 'var(--color-steel)' }}>创建后按角色进入对应工作区。</p>
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
               ['管理员', '处理系统配置与导入'],
               ['HRBP', '处理预算、复核与审批'],
               ['主管', '处理团队评估与审批'],
               ['员工', '查看个人评估与材料'],
             ].map(([title, desc]) => (
-              <div className="surface-subtle px-4 py-4" key={title}>
-                <p className="font-medium text-ink">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-steel">{desc}</p>
+              <div className="surface-subtle" style={{ padding: '12px 14px' }} key={title}>
+                <p style={{ fontWeight: 500, color: 'var(--color-ink)', fontSize: 14 }}>{title}</p>
+                <p style={{ marginTop: 4, fontSize: 13, lineHeight: 1.6, color: 'var(--color-steel)' }}>{desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="surface animate-fade-up px-6 py-8 lg:px-8" style={{ animationDelay: '80ms' }}>
+        <section className="surface animate-fade-up" style={{ padding: '32px', animationDelay: '80ms' }}>
           <p className="eyebrow">注册入口</p>
-          <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.04em] text-ink">创建平台账号</h2>
-          <p className="mt-2 text-sm text-steel">请选择对应角色。</p>
-          <div className="mt-6">
+          <h2 style={{ marginTop: 8, fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--color-ink)' }}>创建平台账号</h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-steel)' }}>请选择对应角色。</p>
+          <div style={{ marginTop: 20 }}>
             <RegisterForm errorMessage={errorMessage} isSubmitting={isSubmitting} onSubmit={handleRegister} />
           </div>
-          <p className="mt-6 text-sm text-steel">
+          <p style={{ marginTop: 16, fontSize: 13, color: 'var(--color-steel)' }}>
             已经有账号？
-            <Link className="ml-2 font-medium text-[#2d5cff]" to="/login">
+            <Link style={{ marginLeft: 8, fontWeight: 500, color: 'var(--color-primary)' }} to="/login">
               返回登录
             </Link>
           </p>

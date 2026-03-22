@@ -155,7 +155,7 @@ export function SalarySimulatorPage() {
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载调薪模拟...</p> : null}
       {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
 
-      <section className="surface animate-fade-up px-6 py-6 lg:px-7">
+      <section className="surface" style={{ padding: '16px 20px' }}>
         <div className="section-head">
           <div>
             <p className="eyebrow">模拟结果</p>
@@ -173,10 +173,10 @@ export function SalarySimulatorPage() {
               <article className="list-row" key={item.employee_id}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <h3 className="text-xl font-semibold tracking-[-0.03em] text-ink">{item.employee_name}</h3>
+                    <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--color-ink)' }}>{item.employee_name}</h3>
                     <p className="mt-1 text-sm text-steel">{item.department} · {item.job_family}</p>
                   </div>
-                  <span className="status-pill bg-[#edf3ff] text-[#2d5cff]">
+                  <span className="status-pill" style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}>
                     {(item.final_adjustment_ratio * 100).toFixed(1)}%
                   </span>
                 </div>

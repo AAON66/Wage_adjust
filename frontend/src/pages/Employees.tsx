@@ -75,11 +75,11 @@ export function EmployeesPage() {
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
-          <Link className="rounded-full bg-[#2d5cff] px-5 py-2.5 text-sm font-medium text-white shadow-float" to="/cycles/create">创建周期</Link>
+          <Link className="action-primary" to="/cycles/create">创建周期</Link>
         </>
       }
     >
-      <section className="surface animate-fade-up px-6 py-6 lg:px-7">
+      <section className="surface" style={{ padding: '16px 20px' }}>
         <div className="grid gap-3 md:grid-cols-3">
           <input className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} placeholder="按部门筛选" value={department} />
           <input className="toolbar-input" onChange={(event) => updateFilter('job_family', event.target.value)} placeholder="按岗位族筛选" value={jobFamily} />
@@ -95,7 +95,7 @@ export function EmployeesPage() {
           <Link className="list-row animate-fade-up" key={employee.id} style={{ animationDelay: `${index * 40}ms` }} to={`/employees/${employee.id}`}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-semibold tracking-[-0.03em] text-ink">{employee.name}</h2>
+                <h2 style={{ fontSize: 16, fontWeight: 600, color: 'var(--color-ink)' }}>{employee.name}</h2>
                 <p className="mt-1 text-sm text-steel">{employee.employee_no}</p>
               </div>
               <StatusIndicator status={employee.status} />
@@ -105,7 +105,7 @@ export function EmployeesPage() {
               <div className="flex justify-between gap-4"><dt>岗位族</dt><dd className="text-ink">{employee.job_family}</dd></div>
               <div className="flex justify-between gap-4"><dt>岗位级别</dt><dd className="text-ink">{employee.job_level}</dd></div>
             </dl>
-            <div className="mt-5 border-t border-[#e9eff8] pt-4 text-sm text-[#2d5cff]">进入详情并继续处理</div>
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-border)', fontSize: 13, color: 'var(--color-primary)' }}>进入详情并继续处理</div>
           </Link>
         ))}
       </section>

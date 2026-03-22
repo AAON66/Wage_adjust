@@ -45,40 +45,40 @@ export function LoginPage() {
   }
 
   return (
-    <main className="app-shell flex min-h-screen items-center px-4 py-4 text-ink lg:px-5">
-      <div className="mx-auto grid w-full max-w-[1320px] gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="surface animate-fade-up overflow-hidden px-6 py-8 lg:px-8">
+    <main style={{ minHeight: '100vh', background: 'var(--color-bg-page)', display: 'flex', alignItems: 'center', padding: '24px 20px' }}>
+      <div style={{ margin: '0 auto', width: '100%', maxWidth: 1100, display: 'grid', gap: 20 }} className="lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="surface animate-fade-up" style={{ padding: '32px 32px', overflow: 'hidden' }}>
           <p className="eyebrow">账号登录</p>
-          <h1 className="mt-3 text-[40px] font-semibold leading-[1.06] tracking-[-0.05em] text-ink lg:text-[54px]">欢迎使用智能调薪平台</h1>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-steel">登录后进入对应工作区。</p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <h1 style={{ marginTop: 8, fontSize: 32, fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--color-ink)', lineHeight: 1.2 }}>欢迎使用智能调薪平台</h1>
+          <p style={{ marginTop: 12, fontSize: 13, lineHeight: 1.7, color: 'var(--color-steel)' }}>登录后进入对应工作区。</p>
+          <div style={{ marginTop: 24, display: 'grid', gap: 10 }} className="sm:grid-cols-2">
             {[
               ['员工', '查看个人材料与评估进展'],
               ['主管', '查看团队评估与审批'],
               ['HRBP', '处理复核、预算与审批'],
               ['管理员', '处理周期、导入与全局配置'],
             ].map(([title, desc]) => (
-              <div className="surface-subtle px-4 py-4" key={title}>
-                <p className="font-medium text-ink">{title}</p>
-                <p className="mt-2 text-sm leading-6 text-steel">{desc}</p>
+              <div className="surface-subtle" style={{ padding: '12px 14px' }} key={title}>
+                <p style={{ fontWeight: 500, color: 'var(--color-ink)', fontSize: 14 }}>{title}</p>
+                <p style={{ marginTop: 4, fontSize: 13, lineHeight: 1.6, color: 'var(--color-steel)' }}>{desc}</p>
               </div>
             ))}
           </div>
         </section>
 
-        <section className="surface animate-fade-up px-6 py-8 lg:px-8" style={{ animationDelay: '80ms' }}>
+        <section className="surface animate-fade-up" style={{ padding: '32px 32px', animationDelay: '80ms' }}>
           <p className="eyebrow">访问入口</p>
-          <h2 className="mt-3 text-[30px] font-semibold tracking-[-0.04em] text-ink">登录平台</h2>
-          <p className="mt-2 text-sm text-steel">请使用公司内部已开通账号登录。</p>
-          <div className="mt-6">
+          <h2 style={{ marginTop: 8, fontSize: 24, fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--color-ink)' }}>登录平台</h2>
+          <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-steel)' }}>请使用公司内部已开通账号登录。</p>
+          <div style={{ marginTop: 20 }}>
             <LoginForm errorMessage={errorMessage} isSubmitting={isSubmitting} onSubmit={handleLogin} />
           </div>
-          <div className="mt-6 rounded-[22px] bg-[#f6f9ff] px-4 py-4 text-sm leading-6 text-steel">
+          <div style={{ marginTop: 16, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 14px', fontSize: 13, lineHeight: 1.6, color: 'var(--color-steel)' }}>
             账号由管理员开通。首次登录需先改密。
           </div>
-          <p className="mt-6 text-sm text-steel">
+          <p style={{ marginTop: 16, fontSize: 13, color: 'var(--color-steel)' }}>
             返回平台首页
-            <Link className="ml-2 font-medium text-[#2d5cff]" to="/">
+            <Link style={{ marginLeft: 8, fontWeight: 500, color: 'var(--color-primary)' }} to="/">
               查看系统说明
             </Link>
           </p>

@@ -1,4 +1,6 @@
-﻿interface ImportJobRow {
+import type React from 'react';
+
+interface ImportJobRow {
   id: string;
   fileName: string;
   importType: string;
@@ -17,12 +19,12 @@ interface ImportJobTableProps {
   onExport?: (jobId: string) => void;
 }
 
-const STATUS_STYLES: Record<ImportJobRow['status'], string> = {
-  pending: 'bg-slate-100 text-slate-700',
-  queued: 'bg-slate-100 text-slate-700',
-  processing: 'bg-amber-100 text-amber-700',
-  completed: 'bg-emerald-100 text-emerald-700',
-  failed: 'bg-rose-100 text-rose-700',
+const STATUS_STYLES: Record<ImportJobRow['status'], React.CSSProperties> = {
+  pending:    { background: 'var(--color-bg-subtle)', color: 'var(--color-steel)' },
+  queued:     { background: 'var(--color-bg-subtle)', color: 'var(--color-steel)' },
+  processing: { background: 'var(--color-warning-bg)', color: 'var(--color-warning)' },
+  completed:  { background: 'var(--color-success-bg)', color: 'var(--color-success)' },
+  failed:     { background: 'var(--color-danger-bg)', color: 'var(--color-danger)' },
 };
 
 const STATUS_LABELS: Record<ImportJobRow['status'], string> = {
@@ -34,10 +36,7 @@ const STATUS_LABELS: Record<ImportJobRow['status'], string> = {
 };
 
 function formatImportType(importType: string): string {
-  return {
-    employees: '员工',
-    certifications: '认证',
-  }[importType] ?? importType;
+  return { employees: '员工', certifications: '认证' }[importType] ?? importType;
 }
 
 export function ImportJobTable({
@@ -51,27 +50,27 @@ export function ImportJobTable({
   const allSelected = rows.length > 0 && selectedIds.length === rows.length;
 
   return (
-    <section className="table-shell animate-fade-up">
-      <div className="section-head px-6 py-5">
+    <section className="table-shell">
+      <div className="section-head" style={{ padding: '16px 20px' }}>
         <div>
           <p className="eyebrow">导入任务</p>
           <h3 className="section-title">批量导入记录</h3>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
           {onDeleteSelected ? (
-            <button className="action-danger px-4 py-2 text-xs" disabled={!selectedIds.length} onClick={onDeleteSelected} type="button">
+            <button className="action-danger" disabled={!selectedIds.length} onClick={onDeleteSelected} type="button">
               删除所选{selectedIds.length ? `（${selectedIds.length}）` : ''}
             </button>
           ) : null}
-          <span className="text-sm text-steel">{rows.length} 个任务</span>
+          <span style={{ fontSize: 13, color: 'var(--color-steel)' }}>{rows.length} 个任务</span>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div style={{ overflowX: 'auto' }}>
         <table className="table-lite">
           <thead>
             <tr>
               <th>
-                <label className="flex items-center gap-2 text-xs font-semibold text-steel">
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <input checked={allSelected} onChange={() => onToggleAll?.()} type="checkbox" />
                   <span>全选</span>
                 </label>
@@ -94,18 +93,18 @@ export function ImportJobTable({
                     <input checked={isSelected} onChange={() => onToggleRow?.(row.id)} type="checkbox" />
                   </td>
                   <td>
-                    <div className="font-medium text-ink">{row.fileName}</div>
-                    <div className="mt-1 text-xs text-steel">任务编号 {row.id.slice(0, 8)}</div>
+                    <div style={{ fontWeight: 500, color: 'var(--color-ink)' }}>{row.fileName}</div>
+                    <div style={{ marginTop: 2, fontSize: 12, color: 'var(--color-steel)' }}>任务编号 {row.id.slice(0, 8)}</div>
                   </td>
                   <td>{formatImportType(row.importType)}</td>
                   <td>
-                    <span className={`status-pill ${STATUS_STYLES[row.status]}`}>{STATUS_LABELS[row.status]}</span>
+                    <span className="status-pill" style={STATUS_STYLES[row.status]}>{STATUS_LABELS[row.status]}</span>
                   </td>
                   <td>{row.totalRows}</td>
-                  <td className="text-emerald-700">{row.successRows}</td>
-                  <td className={row.failedRows > 0 ? 'text-rose-600' : 'text-steel'}>{row.failedRows}</td>
+                  <td style={{ color: 'var(--color-success)' }}>{row.successRows}</td>
+                  <td style={{ color: row.failedRows > 0 ? 'var(--color-danger)' : 'var(--color-steel)' }}>{row.failedRows}</td>
                   <td>
-                    <button className="action-secondary px-4 py-2 text-xs" disabled={!onExport} onClick={() => onExport?.(row.id)} type="button">
+                    <button className="action-secondary" style={{ height: 30, padding: '0 12px', fontSize: 13 }} disabled={!onExport} onClick={() => onExport?.(row.id)} type="button">
                       导出报告
                     </button>
                   </td>

@@ -369,8 +369,8 @@ export function EmployeeAdminPage() {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-3">
               <h3 className="break-all text-base font-semibold text-ink">{item.email}</h3>
-              <span className="status-pill bg-[#edf3ff] text-[#2750b6]">{getRoleLabel(item.role)}</span>
-              {item.employee_id ? <span className="status-pill bg-emerald-50 text-emerald-700">已绑定</span> : <span className="status-pill bg-amber-50 text-amber-700">待绑定</span>}
+              <span className="status-pill" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>{getRoleLabel(item.role)}</span>
+              {item.employee_id ? <span className="status-pill" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>已绑定</span> : <span className="status-pill" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>待绑定</span>}
             </div>
             <p className="mt-2 text-sm text-steel">
               {item.employee_id ? `当前绑定：${item.employee_name ?? '未命名员工'}${item.employee_no ? `（${item.employee_no}）` : ''}` : '当前尚未绑定员工档案。'}
@@ -389,7 +389,7 @@ export function EmployeeAdminPage() {
         </div>
 
         {isExpanded ? (
-          <div className="mt-4 border-t border-[#edf2fb] pt-4">
+          <div style={{ marginTop: 12, borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
             <div className="grid gap-2 text-sm text-ink">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <span>搜索并选择员工档案</span>
@@ -436,9 +436,9 @@ export function EmployeeAdminPage() {
               </div>
 
               {isPickerOpen ? (
-                <div className="mt-2 overflow-hidden rounded-[20px] border border-[#dbe7fb] bg-white shadow-[0_14px_30px_rgba(46,90,200,0.08)]">
+                <div style={{ marginTop: 8, overflow: 'hidden', borderRadius: 8, border: '1px solid var(--color-border)', background: '#FFFFFF', boxShadow: 'var(--shadow-dropdown)' }}>
                   <button
-                    className="flex w-full items-center justify-between border-b border-[#eef3fb] px-4 py-3 text-left text-sm text-ink transition hover:bg-[#f7faff]"
+                    style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--color-border)', padding: '10px 14px', textAlign: 'left', fontSize: 13, color: 'var(--color-ink)', background: 'none', cursor: 'pointer' }}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => selectEmployeeForBinding(item.id, null)}
                     type="button"
@@ -487,16 +487,20 @@ export function EmployeeAdminPage() {
       <button
         key={item.key}
         title={item.description}
-        className={`group rounded-[24px] border px-5 py-4 text-left transition ${
-          isActive
-            ? 'border-[#2d5cff] bg-[#edf3ff] shadow-[0_12px_24px_rgba(45,92,255,0.08)]'
-            : 'border-[#e6eef9] bg-white hover:border-[#cfe0ff] hover:bg-[#f8fbff]'
-        }`}
+        style={{
+          borderRadius: 6,
+          border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+          background: isActive ? 'var(--color-primary-light)' : '#FFFFFF',
+          padding: '10px 16px',
+          textAlign: 'left',
+          cursor: 'pointer',
+          transition: 'background 0.15s, border-color 0.15s',
+        }}
         onClick={() => setActiveTab(item.key)}
         type="button"
       >
-        <p className={`text-sm font-semibold ${isActive ? 'text-[#2750b6]' : 'text-ink'}`}>{item.label}</p>
-        <p className="mt-2 max-h-0 -translate-y-1 overflow-hidden text-sm leading-6 text-steel opacity-0 transition-all duration-200 group-hover:max-h-16 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:max-h-16 group-focus-visible:translate-y-0 group-focus-visible:opacity-100">{item.description}</p>
+        <p style={{ fontSize: 14, fontWeight: 500, color: isActive ? 'var(--color-primary)' : 'var(--color-ink)' }}>{item.label}</p>
+        <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-steel)' }}>{item.description}</p>
       </button>
     );
   }
@@ -505,7 +509,7 @@ export function EmployeeAdminPage() {
     <AppShell
       title="员工档案与手册"
       description="处理员工档案、账号绑定、批量导入和员工手册。"
-      actions={<span className="rounded-full bg-[#edf3ff] px-4 py-2 text-sm text-[#2750b6]">当前身份：{getRoleLabel(user?.role)}</span>}
+      actions={<span className="status-pill" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>当前身份：{getRoleLabel(user?.role)}</span>}
     >
       <section className="metric-strip animate-fade-up">
         {[
@@ -526,13 +530,8 @@ export function EmployeeAdminPage() {
       {successMessage ? <p className="surface px-5 py-4 text-sm text-emerald-700">{successMessage}</p> : null}
       {isLoading ? <p className="surface px-5 py-4 text-sm text-steel">正在加载员工档案管理数据...</p> : null}
 
-      <section className="surface animate-fade-up px-6 py-6 lg:px-7">
-        <div className="section-head">
-          <div>
-            <p className="eyebrow">工作台切换</p>
-            <h2 className="section-title">按任务切换当前工作面</h2>
-          </div>
-        </div>
+      <section className="surface" style={{ padding: '20px 24px' }}>
+        <h2 className="section-title">按任务切换当前工作面</h2>
         <div className="mt-5 grid gap-3 lg:grid-cols-4">
           {TAB_ITEMS.map((item) => renderTabButton(item))}
         </div>

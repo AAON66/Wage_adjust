@@ -35,7 +35,7 @@ export function CalibrationCompareTable({ rows }: CalibrationCompareTableProps) 
           <tbody>
             {rows.map((row) => {
               const delta = row.manualScore - row.aiScore;
-              const deltaClass = delta === 0 ? 'text-steel' : delta > 0 ? 'text-emerald-600' : 'text-rose-600';
+              const deltaColor = delta === 0 ? 'var(--color-steel)' : delta > 0 ? 'var(--color-success)' : 'var(--color-danger)';
               return (
                 <tr key={row.code}>
                   <td>
@@ -44,7 +44,7 @@ export function CalibrationCompareTable({ rows }: CalibrationCompareTableProps) 
                   </td>
                   <td>{row.aiScore}</td>
                   <td>{row.manualScore}</td>
-                  <td className={`font-semibold ${deltaClass}`}>{delta > 0 ? `+${delta}` : `${delta}`}</td>
+                  <td style={{ fontWeight: 600, color: deltaColor }}>{delta > 0 ? `+${delta}` : `${delta}`}</td>
                   <td>{row.note || '暂无补充说明'}</td>
                 </tr>
               );

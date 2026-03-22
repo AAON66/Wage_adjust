@@ -145,7 +145,7 @@ export function ImportCenterPage() {
         ))}
       </section>
 
-      <section className="surface animate-fade-up px-6 py-6 lg:px-7">
+      <section className="surface" style={{ padding: '16px 20px' }}>
         <div className="section-head">
           <div>
             <p className="eyebrow">上传任务</p>

@@ -140,7 +140,7 @@ export function DashboardPage() {
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
-          <Link className="rounded-full bg-[#2d5cff] px-5 py-2.5 text-sm font-medium text-white shadow-float" to="/import-center">打开导入中心</Link>
+          <Link className="action-primary" to="/import-center">打开导入中心</Link>
         </>
       }
     >

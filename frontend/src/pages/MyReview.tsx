@@ -233,7 +233,7 @@ export function MyReviewPage() {
       description="维护个人材料并查看评估进展。"
       actions={
         <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-full bg-[#edf3ff] px-4 py-2 text-sm text-[#2750b6]">当前角色：{getRoleLabel(user?.role)}</span>
+          <span className="status-pill" style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)' }}>当前角色：{getRoleLabel(user?.role)}</span>
           <Link className="chip-button" to="/settings">账号设置</Link>
         </div>
       }
@@ -267,7 +267,7 @@ export function MyReviewPage() {
 
           <section className="grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
             <article className="surface px-6 py-6 lg:px-7">
-              <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[#e6eef9] pb-4">
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
                 <div>
                   <p className="eyebrow">当前周期</p>
                   <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">材料与提交概览</h2>
@@ -316,7 +316,7 @@ export function MyReviewPage() {
             </article>
 
             <article className="surface px-6 py-6 lg:px-7">
-              <div className="border-b border-[#e6eef9] pb-4">
+              <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
                 <p className="eyebrow">我的历史提交</p>
                 <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">周期提交记录</h2>
               </div>
@@ -362,7 +362,7 @@ export function MyReviewPage() {
             </div>
 
             <article className="surface px-6 py-6 lg:px-7">
-              <div className="flex items-center justify-between gap-3 border-b border-[#e6eef9] pb-4">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
                 <div>
                   <p className="eyebrow">证据摘要</p>
                   <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">AI 提取结果</h2>

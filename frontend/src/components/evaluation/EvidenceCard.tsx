@@ -23,29 +23,19 @@ function formatDate(value: string): string {
 }
 
 function formatMetadataValue(value: unknown): string {
-  if (typeof value === 'boolean') {
-    return value ? '是' : '否';
-  }
-  if (Array.isArray(value)) {
-    return value.join(' / ');
-  }
-  if (value == null) {
-    return '--';
-  }
+  if (typeof value === 'boolean') return value ? '是' : '否';
+  if (Array.isArray(value)) return value.join(' / ');
+  if (value == null) return '--';
   return String(value);
 }
 
 function splitEvidenceContent(content: string): string[] {
   const normalized = content.replace(/\s+/g, ' ').trim();
-  if (!normalized) {
-    return [];
-  }
-
+  if (!normalized) return [];
   const segments = normalized
     .split(/(?<=[。！？.!?;；])\s+|\s*\n+\s*/)
     .map((item) => item.trim())
     .filter((item) => item.length >= 8);
-
   return segments.length ? segments : [normalized];
 }
 
@@ -76,99 +66,106 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
   const integrityFlagged = Boolean(evidence.metadata_json?.prompt_manipulation_detected);
 
   return (
-    <article className="overflow-hidden rounded-[30px] border border-[#d8e3f6] bg-[linear-gradient(180deg,#ffffff_0%,#fbfdff_100%)] shadow-[0_22px_46px_rgba(15,23,42,0.05)]">
-      <div className="border-b border-[#e7eef9] px-5 py-4 lg:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-[#eef4ff] px-3 py-1 text-xs font-semibold tracking-[0.02em] text-[#315fc9]">{evidence.source_type}</span>
-              <span className="rounded-full border border-[#dbe6fb] bg-white px-3 py-1 text-xs text-[#5d79ab]">{formatDate(evidence.created_at)}</span>
-              {integrityFlagged ? <span className="status-pill bg-rose-100 text-rose-700">需重点复核</span> : null}
+    <article style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
+      {/* Header */}
+      <div style={{ borderBottom: '1px solid var(--color-border)', padding: '14px 20px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+              <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 500 }}>
+                {evidence.source_type}
+              </span>
+              <span style={{ border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--color-steel)' }}>
+                {formatDate(evidence.created_at)}
+              </span>
+              {integrityFlagged ? (
+                <span className="status-pill" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)' }}>需重点复核</span>
+              ) : null}
             </div>
-            <h3 className="mt-3 text-[22px] font-semibold tracking-[-0.03em] text-ink">{evidence.title}</h3>
+            <h3 style={{ marginTop: 8, fontSize: 16, fontWeight: 600, color: 'var(--color-ink)' }}>{evidence.title}</h3>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#eef3ff] px-3 py-1 text-xs font-semibold text-[#3159c7]">置信度 {confidence}</span>
-            <button className="chip-button px-3 py-1 text-xs" onClick={() => setIsExpanded((current) => !current)} type="button">
-              {isExpanded ? '收起详情' : '展开详情'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--color-steel)' }}>
+              置信度 {confidence}
+            </span>
+            <button className="chip-button" onClick={() => setIsExpanded((c) => !c)} type="button">
+              {isExpanded ? '收起' : '展开'}
             </button>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-0 xl:grid-cols-[minmax(0,1fr)_280px]">
-        <section className="px-5 py-5 lg:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-ink">核心结论</p>
-              <p className="mt-1 text-sm text-steel">优先展示最值得判断的证据摘要。</p>
-            </div>
-            <span className="text-xs text-steel">{summaryPoints.length || 1} 条摘要</span>
+      {/* Body */}
+      <div style={{ display: 'grid' }} className="xl:grid-cols-[minmax(0,1fr)_260px]">
+        {/* Summary */}
+        <section style={{ padding: '16px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>核心结论</p>
+            <span style={{ fontSize: 12, color: 'var(--color-steel)' }}>{summaryPoints.length || 1} 条摘要</span>
           </div>
 
-          <div className="mt-4 grid gap-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {visibleSummaryPoints.length ? (
               visibleSummaryPoints.map((point, index) => (
-                <div className="rounded-[24px] border border-[#dce6f5] bg-[linear-gradient(180deg,#f9fbff_0%,#f5f9ff_100%)] px-4 py-4" key={`${evidence.id}-${index}`}>
-                  <div className="flex items-start gap-3">
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e7efff] text-xs font-semibold text-[#325fca]">
-                      {index + 1}
-                    </span>
-                    <p className="min-w-0 text-sm leading-7 text-ink">{truncateText(point, isExpanded ? 260 : 108)}</p>
-                  </div>
+                <div key={`${evidence.id}-${index}`} style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {index + 1}
+                  </span>
+                  <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-ink)', minWidth: 0 }}>{truncateText(point, isExpanded ? 260 : 108)}</p>
                 </div>
               ))
             ) : (
-              <div className="rounded-[24px] border border-dashed border-[#d8e4f7] bg-[#fbfdff] px-4 py-5 text-sm leading-7 text-steel">
+              <div style={{ border: '1px dashed var(--color-border)', borderRadius: 6, padding: '14px 16px', fontSize: 13, color: 'var(--color-steel)' }}>
                 当前证据暂无可展示内容。
               </div>
             )}
           </div>
 
           {isExpanded && normalizedContent ? (
-            <div className="mt-4 rounded-[24px] border border-[#dce6f5] bg-white px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs uppercase tracking-[0.16em] text-[#6b87d8]">原文摘录</p>
-                <span className="text-xs text-steel">便于复核上下文</span>
+            <div style={{ marginTop: 12, background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-steel)' }}>原文摘录</p>
+                <span style={{ fontSize: 12, color: 'var(--color-placeholder)' }}>便于复核上下文</span>
               </div>
-              <p className="mt-3 text-sm leading-7 text-steel">{truncateText(normalizedContent, 520)}</p>
+              <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-steel)' }}>{truncateText(normalizedContent, 520)}</p>
             </div>
           ) : null}
         </section>
 
-        <aside className="border-t border-[#e7eef9] bg-[linear-gradient(180deg,#fcfdff_0%,#f5f8ff_100%)] px-5 py-5 xl:border-l xl:border-t-0 xl:px-6">
-          <div className="rounded-[24px] border border-white/80 bg-white/90 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-ink">证据快照</p>
-              <span className="text-xs text-steel">快速扫描</span>
+        {/* Sidebar */}
+        <aside style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-subtle)', padding: '16px 20px' }} className="xl:border-l xl:border-t-0">
+          {/* Metadata */}
+          <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '12px 14px', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>证据快照</p>
+              <span style={{ fontSize: 12, color: 'var(--color-steel)' }}>快速扫描</span>
             </div>
-
-            <div className="mt-4 space-y-2.5 text-sm">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {visibleMetadata.length ? (
                 visibleMetadata.map((item) => (
-                  <div className="flex items-start justify-between gap-3 rounded-[18px] border border-[#dce6f5] bg-[#f8fbff] px-3 py-3" key={`${item.label}-${item.value}`}>
-                    <span className="text-steel">{item.label}</span>
-                    <span className="max-w-[58%] break-words text-right font-medium text-ink">{truncateText(item.value, isExpanded ? 64 : 26)}</span>
+                  <div key={`${item.label}-${item.value}`} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '6px 10px', background: 'var(--color-bg-subtle)', borderRadius: 4, fontSize: 13 }}>
+                    <span style={{ color: 'var(--color-steel)', flexShrink: 0 }}>{item.label}</span>
+                    <span style={{ maxWidth: '58%', wordBreak: 'break-all', textAlign: 'right', fontWeight: 500, color: 'var(--color-ink)' }}>{truncateText(item.value, isExpanded ? 64 : 26)}</span>
                   </div>
                 ))
               ) : (
-                <div className="rounded-[18px] border border-dashed border-[#dce6f5] px-3 py-4 text-steel">
+                <div style={{ border: '1px dashed var(--color-border)', borderRadius: 4, padding: '10px 12px', fontSize: 13, color: 'var(--color-steel)' }}>
                   当前证据没有额外元信息。
                 </div>
               )}
             </div>
           </div>
 
+          {/* Tags */}
           {visibleTags.length ? (
-            <div className="mt-4 rounded-[24px] border border-white/80 bg-white/90 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.95)]">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-ink">标签</p>
-                <span className="text-xs text-steel">辅助定位主题</span>
+            <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '12px 14px', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>标签</p>
+                <span style={{ fontSize: 12, color: 'var(--color-steel)' }}>辅助定位主题</span>
               </div>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {visibleTags.map((tag) => (
-                  <span key={tag} className="rounded-full border border-[#d9e5fb] bg-[#f8fbff] px-3 py-1 text-xs text-[#48638f]">
+                  <span key={tag} style={{ border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--color-steel)', background: '#FFFFFF' }}>
                     {truncateText(tag, 24)}
                   </span>
                 ))}
@@ -177,8 +174,8 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
           ) : null}
 
           {hasMoreContent && !isExpanded ? (
-            <div className="mt-4 rounded-[20px] border border-dashed border-[#d4def3] px-4 py-4 text-xs leading-6 text-steel">
-              这张证据还有更多原文和元信息，展开后可以继续查看完整上下文。
+            <div style={{ border: '1px dashed var(--color-border)', borderRadius: 6, padding: '10px 14px', fontSize: 12, lineHeight: 1.6, color: 'var(--color-steel)' }}>
+              还有更多原文和元信息，展开后可查看完整上下文。
             </div>
           ) : null}
         </aside>

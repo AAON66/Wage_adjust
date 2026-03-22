@@ -95,7 +95,7 @@ export function ApprovalsPage() {
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
-          <Link className="rounded-full bg-[#2d5cff] px-5 py-2.5 text-sm font-medium text-white shadow-float" to="/salary-simulator">打开调薪模拟</Link>
+          <Link className="action-primary" to="/salary-simulator">打开调薪模拟</Link>
         </>
       }
     >
@@ -114,7 +114,7 @@ export function ApprovalsPage() {
         ))}
       </section>
 
-      <section className="surface animate-fade-up px-6 py-5 lg:px-7">
+      <section className="surface" style={{ padding: '14px 20px' }}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             {[
@@ -145,7 +145,7 @@ export function ApprovalsPage() {
           <h2 className="text-xl font-semibold text-ink">当前没有可展示的审批记录</h2>
           <p className="mt-2 text-sm leading-6 text-steel">先生成调薪建议，再来这里审批。</p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
-            <Link className="rounded-full bg-[#2d5cff] px-5 py-3 text-sm font-medium text-white shadow-float" to="/employees">前往员工评估</Link>
+            <Link className="action-primary" to="/employees">前往员工评估</Link>
             <Link className="chip-button" to="/salary-simulator">查看调薪模拟</Link>
           </div>
           {!canSubmitApproval ? <p className="mt-4 text-sm text-amber-700">当前账号角色无法提交审批。请使用主管、HRBP 或管理员账号发起审批。</p> : null}

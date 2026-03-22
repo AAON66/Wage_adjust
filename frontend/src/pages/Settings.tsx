@@ -109,13 +109,13 @@ export function SettingsPage() {
           </div>
 
           {mustChangePassword ? (
-            <div className="mt-5 rounded-[22px] bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-700">
+            <div style={{ marginTop: 16, background: 'var(--color-warning-bg)', border: '1px solid #FFD8A8', borderRadius: 6, padding: '10px 14px', fontSize: 13, lineHeight: 1.6, color: 'var(--color-warning)' }}>
               当前账号仍在使用初始密码，请先完成改密。
             </div>
           ) : null}
 
-          {errorMessage ? <p className="mt-5 rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-600">{errorMessage}</p> : null}
-          {successMessage ? <p className="mt-5 rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successMessage}</p> : null}
+          {errorMessage ? <p style={{ marginTop: 16, background: 'var(--color-danger-bg)', border: '1px solid #FFCDD0', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--color-danger)' }}>{errorMessage}</p> : null}
+          {successMessage ? <p style={{ marginTop: 16, background: 'var(--color-success-bg)', border: '1px solid #B7F5C2', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--color-success)' }}>{successMessage}</p> : null}
 
           <div className="mt-5 grid gap-4">
             <label className="grid gap-2 text-sm font-medium text-ink">
@@ -131,8 +131,8 @@ export function SettingsPage() {
                 <p className="text-sm font-medium text-ink">密码强度</p>
                 <span className={`rounded-full px-3 py-1 text-xs font-medium ${passwordStrength.toneClass}`}>{passwordStrength.label}</span>
               </div>
-              <div className="mt-3 h-2 rounded-full bg-slate-100">
-                <div className="h-2 rounded-full bg-[#2d5cff] transition-all" style={{ width: `${Math.max(passwordStrength.score, 1) * 20}%` }} />
+              <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: 'var(--color-bg-subtle)' }}>
+                <div style={{ height: 6, borderRadius: 3, background: 'var(--color-primary)', transition: 'width 0.2s', width: `${Math.max(passwordStrength.score, 1) * 20}%` }} />
               </div>
               <p className="mt-3 text-sm leading-6 text-steel">{passwordStrength.hint}</p>
             </div>

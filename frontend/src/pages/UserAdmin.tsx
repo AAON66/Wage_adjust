@@ -556,8 +556,8 @@ export function UserAdminPage() {
                   <p className="text-sm font-medium text-ink">密码强度</p>
                   <span className={`rounded-full px-3 py-1 text-xs font-medium ${singlePasswordStrength.toneClass}`}>{singlePasswordStrength.label}</span>
                 </div>
-                <div className="mt-3 h-2 rounded-full bg-slate-100">
-                  <div className="h-2 rounded-full bg-[#2d5cff] transition-all" style={{ width: `${Math.max(singlePasswordStrength.score, 1) * 20}%` }} />
+                <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: 'var(--color-bg-subtle)' }}>
+                  <div style={{ height: 6, borderRadius: 3, background: 'var(--color-primary)', transition: 'width 0.2s', width: `${Math.max(singlePasswordStrength.score, 1) * 20}%` }} />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-steel">{singlePasswordStrength.hint}</p>
               </div>
@@ -629,8 +629,8 @@ export function UserAdminPage() {
                   <p className="text-sm font-medium text-ink">密码强度</p>
                   <span className={`rounded-full px-3 py-1 text-xs font-medium ${resetPasswordStrength.toneClass}`}>{resetPasswordStrength.label}</span>
                 </div>
-                <div className="mt-3 h-2 rounded-full bg-slate-100">
-                  <div className="h-2 rounded-full bg-[#2d5cff] transition-all" style={{ width: `${Math.max(resetPasswordStrength.score, 1) * 20}%` }} />
+                <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: 'var(--color-bg-subtle)' }}>
+                  <div style={{ height: 6, borderRadius: 3, background: 'var(--color-primary)', transition: 'width 0.2s', width: `${Math.max(resetPasswordStrength.score, 1) * 20}%` }} />
                 </div>
                 <p className="mt-3 text-sm leading-6 text-steel">{resetPasswordStrength.hint}</p>
               </div>
@@ -727,9 +727,9 @@ export function UserAdminPage() {
                         <td>{new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.created_at))}</td>
                         <td>
                           {item.must_change_password ? (
-                            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">首次登录需改密</span>
+                            <span className="status-pill" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>首次登录需改密</span>
                           ) : (
-                            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">密码状态正常</span>
+                            <span className="status-pill" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>密码状态正常</span>
                           )}
                         </td>
                         <td>

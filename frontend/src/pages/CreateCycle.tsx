@@ -1,3 +1,4 @@
+import type React from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
@@ -25,13 +26,13 @@ function formatStatus(status: string): string {
   }[status] ?? status;
 }
 
-function statusTone(status: string): string {
-  return {
-    draft: 'bg-slate-100 text-slate-600',
-    collecting: 'bg-amber-50 text-amber-700',
-    published: 'bg-emerald-50 text-emerald-700',
-    archived: 'bg-rose-50 text-rose-600',
-  }[status] ?? 'bg-slate-100 text-slate-600';
+function statusTone(status: string): React.CSSProperties {
+  return ({
+    draft:      { background: 'var(--color-bg-subtle)', color: 'var(--color-steel)' },
+    collecting: { background: 'var(--color-warning-bg)', color: 'var(--color-warning)' },
+    published:  { background: 'var(--color-success-bg)', color: 'var(--color-success)' },
+    archived:   { background: 'var(--color-danger-bg)', color: 'var(--color-danger)' },
+  } as Record<string, React.CSSProperties>)[status] ?? { background: 'var(--color-bg-subtle)', color: 'var(--color-steel)' };
 }
 
 function toFormValues(cycle: CycleRecord): CycleCreatePayload {
@@ -169,8 +170,8 @@ export function CreateCyclePage() {
       {successMessage ? <p className="surface px-5 py-4 text-sm text-emerald-700">{successMessage}</p> : null}
 
       <section className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
-        <section className="surface animate-fade-up px-6 py-6 lg:px-7">
-          <div className="border-b border-[#e6eef9] pb-4">
+        <section className="surface" style={{ padding: '20px 24px' }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
             <p className="eyebrow">周期配置</p>
             <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">{selectedCycle ? '编辑评估周期' : '新建评估周期'}</h2>
             <p className="mt-2 text-sm leading-6 text-steel">
@@ -194,8 +195,8 @@ export function CreateCyclePage() {
           </div>
         </section>
 
-        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '60ms' }}>
-          <div className="flex items-end justify-between gap-3 border-b border-[#e6eef9] pb-4">
+        <section className="surface" style={{ padding: '20px 24px', animationDelay: '60ms' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
             <div>
               <p className="eyebrow">已有周期</p>
               <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">现有评估周期</h2>
@@ -214,7 +215,7 @@ export function CreateCyclePage() {
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-base font-semibold text-ink">{cycle.name}</h3>
-                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${statusTone(cycle.status)}`}>{formatStatus(cycle.status)}</span>
+                        <span className="status-pill" style={statusTone(cycle.status)}>{formatStatus(cycle.status)}</span>
                       </div>
                       <p className="mt-3 text-sm text-steel">评估周期：{cycle.review_period}</p>
                       <p className="mt-1 text-sm text-steel">预算：{cycle.budget_amount}</p>

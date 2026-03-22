@@ -183,7 +183,7 @@ function localizeDimensionRationale(code: string, rationale: string): string {
     return '暂无维度说明，等待 AI 重新分析该维度。';
   }
   if (looksCorruptedText(trimmed)) {
-    return `当前维度“${dimensionLabel}”的原始说明存在乱码，建议重新执行 AI 评分以生成新的中文说明。`;
+    return `当前维度"${dimensionLabel}"的原始说明存在乱码，建议重新执行 AI 评分以生成新的中文说明。`;
   }
   if (hasChineseText(trimmed)) {
     return trimmed;
@@ -194,7 +194,7 @@ function localizeDimensionRationale(code: string, rationale: string): string {
   if (matched) {
     const [, keywordHits, sourceTypes, confidence, reliability] = matched;
     const penaltyMatched = trimmed.match(/(\d+)\s+evidence item\(s\) contained blocked prompt-like instructions and were penalized/i);
-    let localized = `当前维度“${dimensionLabel}”识别到 ${keywordHits} 个相关能力信号，覆盖 ${sourceTypes} 类证据来源，平均置信度 ${confidence}，证据可靠度 ${reliability}。`;
+    let localized = `当前维度"${dimensionLabel}"识别到 ${keywordHits} 个相关能力信号，覆盖 ${sourceTypes} 类证据来源，平均置信度 ${confidence}，证据可靠度 ${reliability}。`;
     localized += Number(keywordHits) > 2
       ? '该维度证据较充分，能够支撑当前评分判断。'
       : '该维度已有初步支撑，建议结合更多项目细节继续复核。';
@@ -204,7 +204,7 @@ function localizeDimensionRationale(code: string, rationale: string): string {
     return localized;
   }
 
-  return `当前维度“${dimensionLabel}”的历史说明为旧版英文内容，建议重新执行 AI 评分以生成新的中文说明。`;
+  return `当前维度"${dimensionLabel}"的历史说明为旧版英文内容，建议重新执行 AI 评分以生成新的中文说明。`;
 }
 
 function localizeEvaluationNarrative(text: string): string {
@@ -222,7 +222,7 @@ function localizeEvaluationNarrative(text: string): string {
   const matched = trimmed.match(/Generated from\s+(\d+)\s+evidence items with average confidence\s+([\d.]+)\.\s+The strongest dimension is\s+(.+?),\s+the overall score is\s+([\d.]+),\s+and the result maps to\s+(Level\s+\d)/i);
   if (matched) {
     const [, evidenceCount, confidence, strongestDimension, overallScore, level] = matched;
-    return `综合分析基于 ${evidenceCount} 份证据材料，平均置信度 ${confidence}。当前表现最突出的维度是“${formatDimensionLabel(strongestDimension.trim())}”，综合得分 ${overallScore}，对应 ${formatLevelLabel(level)}。`;
+    return `综合分析基于 ${evidenceCount} 份证据材料，平均置信度 ${confidence}。当前表现最突出的维度是"${formatDimensionLabel(strongestDimension.trim())}"，综合得分 ${overallScore}，对应 ${formatLevelLabel(level)}。`;
   }
 
   return '当前说明为旧版英文内容，建议重新执行 AI 评分以生成新的中文说明。';
@@ -305,12 +305,12 @@ function inferStatus(
   return submission?.status ?? 'collecting';
 }
 
-function getParseStatusTone(status: UploadedFileRecord['parse_status']): string {
+function getParseStatusColor(status: UploadedFileRecord['parse_status']): string {
   return {
-    pending: 'text-slate-600',
-    parsing: 'text-amber-700',
-    parsed: 'text-emerald-700',
-    failed: 'text-rose-700',
+    pending: 'var(--color-steel)',
+    parsing: 'var(--color-warning)',
+    parsed: 'var(--color-success)',
+    failed: 'var(--color-danger)',
   }[status];
 }
 
@@ -830,7 +830,7 @@ export function EvaluationDetailPage() {
       return (
         <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
           <section className="surface animate-fade-up overflow-hidden px-0 py-0">
-            <div className="border-b border-[#e6eef9] bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(242,247,255,0.94))] px-6 py-5 lg:px-7">
+            <div style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-subtle)', padding: '20px 24px' }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="eyebrow">当前概览</p>
@@ -852,7 +852,7 @@ export function EvaluationDetailPage() {
                 ))}
               </div>
 
-              <div className="mt-5 rounded-[24px] border border-[#dce6f5] bg-white px-4 py-4">
+              <div style={{ marginTop: 20, border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '16px' }}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="text-sm font-semibold text-ink">流程状态</p>
                   <span className="text-xs text-steel">当前处于 {formatFlowLabel(currentStatus)}</span>
@@ -862,10 +862,17 @@ export function EvaluationDetailPage() {
                     const isDone = activeIndex >= index;
                     return (
                       <div
-                        className={`rounded-[20px] border px-3 py-3 text-center ${isDone ? 'border-[#2d5cff] bg-[#2d5cff] text-white' : 'border-[#dce6f5] bg-[#f8fbff] text-steel'}`}
                         key={status}
+                        style={{
+                          borderRadius: 6,
+                          border: `1px solid ${isDone ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                          background: isDone ? 'var(--color-primary)' : 'var(--color-bg-subtle)',
+                          color: isDone ? '#FFFFFF' : 'var(--color-steel)',
+                          padding: '10px 8px',
+                          textAlign: 'center',
+                        }}
                       >
-                        <div className="text-[11px] uppercase tracking-[0.18em]">步骤 {index + 1}</div>
+                        <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em' }}>步骤 {index + 1}</div>
                         <div className="mt-2 flex justify-center">
                           <StatusIndicator status={status} />
                         </div>
@@ -879,7 +886,7 @@ export function EvaluationDetailPage() {
               {insightPanels.length ? (
                 <div className="mt-5 grid gap-4 lg:grid-cols-3">
                   {insightPanels.map((panel) => (
-                    <details className="rounded-[22px] border border-[#dce6f5] bg-[#fbfdff] px-4 py-4" key={panel.title}>
+                    <details key={panel.title} style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '12px 16px' }}>
                       <summary className="cursor-pointer text-sm font-semibold text-ink">{panel.title}</summary>
                       <p className="mt-3 text-sm leading-7 text-steel">{panel.content}</p>
                     </details>
@@ -888,15 +895,15 @@ export function EvaluationDetailPage() {
               ) : null}
 
               {integrityFlagged ? (
-                <div className="mt-5 rounded-[22px] border border-rose-200 bg-[linear-gradient(180deg,#fff7f8_0%,#fff2f4_100%)] px-4 py-4 text-sm leading-6 text-rose-700">
-                  检测到 {evaluation?.integrity_issue_count ?? 0} 条诚信风险提示，建议优先切到“人工复核”模块查看。
+                <div style={{ marginTop: 20, border: '1px solid var(--color-danger)', borderRadius: 8, background: 'var(--color-danger-bg)', padding: '12px 16px', fontSize: 14, lineHeight: 1.6, color: 'var(--color-danger)' }}>
+                  检测到 {evaluation?.integrity_issue_count ?? 0} 条诚信风险提示，建议优先切到「人工复核」模块查看。
                 </div>
               ) : null}
             </div>
           </section>
 
           <aside className="surface animate-fade-up px-6 py-6 lg:px-7">
-            <div className="border-b border-[#e6eef9] pb-4">
+            <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 16 }}>
               <p className="eyebrow">下一步动作</p>
               <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">处理建议</h2>
               <p className="mt-2 text-sm leading-6 text-steel">优先处理当前动作。</p>
@@ -917,8 +924,8 @@ export function EvaluationDetailPage() {
               </button>
             </div>
 
-            <div className="mt-5 rounded-[24px] border border-[#dce6f5] bg-[linear-gradient(180deg,#fbfdff_0%,#f4f8ff_100%)] px-4 py-4">
-              <p className="text-xs uppercase tracking-[0.18em] text-[#6f8ecc]">当前上下文</p>
+            <div style={{ marginTop: 20, border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '16px' }}>
+              <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>当前上下文</p>
               <div className="mt-3 space-y-2 text-sm text-steel">
                 <div className="flex items-center justify-between gap-4"><span>提交记录</span><span className="max-w-[60%] truncate font-medium text-ink">{submission?.id ?? '未创建'}</span></div>
                 <div className="flex items-center justify-between gap-4"><span>评估状态</span><span className="font-medium text-ink">{formatEvaluationStatus(evaluation?.status)}</span></div>
@@ -954,15 +961,15 @@ export function EvaluationDetailPage() {
           </div>
 
           <section className="surface overflow-hidden px-0 py-0">
-            <div className="border-b border-[#e6eef9] bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(242,247,255,0.94))] px-6 py-5 lg:px-7">
+            <div style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-subtle)', padding: '20px 24px' }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="eyebrow">材料解析</p>
                   <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">{parseStatusTitle}</h2>
                   <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">{parseStatusDescription}</p>
                 </div>
-                <div className="rounded-[24px] border border-white/80 bg-white/82 px-5 py-4 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.96)]">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#6f8ecc]">完成度</p>
+                <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 8, padding: '12px 16px', textAlign: 'right' }}>
+                  <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>完成度</p>
                   <p className="mt-2 text-[34px] font-semibold tracking-[-0.05em] text-ink">{parseProgressPercent}%</p>
                   <p className="text-xs text-steel">{parseCompletedCount}/{files.length || 0} 份材料已完成解析</p>
                 </div>
@@ -970,31 +977,36 @@ export function EvaluationDetailPage() {
             </div>
 
             <div className="px-6 py-6 lg:px-7">
-              <div className="h-3 overflow-hidden rounded-full bg-[#e7eefb]">
+              <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--color-bg-subtle)' }}>
                 <div
-                  className={`h-full rounded-full transition-all duration-500 ${parseFailedCount > 0 ? 'bg-[linear-gradient(90deg,#f97316_0%,#ef4444_100%)]' : 'bg-[linear-gradient(90deg,#4c7dff_0%,#27c2a0_100%)]'}`}
-                  style={{ width: `${parseProgressPercent}%` }}
+                  style={{
+                    height: '100%',
+                    borderRadius: 4,
+                    transition: 'width 0.5s',
+                    width: `${parseProgressPercent}%`,
+                    background: parseFailedCount > 0 ? 'var(--color-danger)' : 'var(--color-primary)',
+                  }}
                 />
               </div>
 
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">已完成</p><p className="mt-2 text-2xl font-semibold text-emerald-700">{parseCompletedCount}</p></div>
-                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">进行中</p><p className="mt-2 text-2xl font-semibold text-amber-700">{isParsingAll ? Math.max(parseInProgressCount, 1) : parseInProgressCount}</p></div>
-                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">待处理</p><p className="mt-2 text-2xl font-semibold text-slate-700">{parsePendingCount}</p></div>
-                <div className={`surface-subtle px-4 py-4 ${parseFailedCount > 0 ? 'border-rose-200 bg-rose-50' : ''}`}><p className="text-sm text-steel">失败</p><p className={`mt-2 text-2xl font-semibold ${parseFailedCount > 0 ? 'text-rose-700' : 'text-slate-700'}`}>{parseFailedCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">已完成</p><p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--color-success)' }}>{parseCompletedCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">进行中</p><p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--color-warning)' }}>{isParsingAll ? Math.max(parseInProgressCount, 1) : parseInProgressCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">待处理</p><p className="mt-2 text-2xl font-semibold text-ink">{parsePendingCount}</p></div>
+                <div className="surface-subtle px-4 py-4" style={parseFailedCount > 0 ? { borderColor: 'var(--color-danger)', background: 'var(--color-danger-bg)' } : {}}><p className="text-sm text-steel">失败</p><p className="mt-2 text-2xl font-semibold" style={{ color: parseFailedCount > 0 ? 'var(--color-danger)' : 'var(--color-ink)' }}>{parseFailedCount}</p></div>
               </div>
 
               <div className="mt-5 grid gap-3 lg:grid-cols-2">
-                <div className="rounded-[24px] border border-[#dce6f5] bg-white px-4 py-4">
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '16px' }}>
                   <p className="text-sm font-semibold text-ink">材料快照</p>
                   <div className="mt-4 space-y-3 text-sm text-steel">
                     <div className="flex items-center justify-between gap-4"><span>当前周期</span><span className="font-medium text-ink">{currentCycle?.name ?? '未选择'}</span></div>
                     <div className="flex items-center justify-between gap-4"><span>最近材料</span><span className="max-w-[58%] truncate font-medium text-ink">{latestParsedFile?.file_name ?? '暂无'}</span></div>
-                    <div className="flex items-center justify-between gap-4"><span>最近状态</span><span className={`font-medium ${latestParsedFile ? getParseStatusTone(latestParsedFile.parse_status) : 'text-ink'}`}>{latestParsedFile ? FILE_STATUS_LABELS[latestParsedFile.parse_status] : '暂无'}</span></div>
-                    <div className="flex items-center justify-between gap-4"><span>风险证据</span><span className={`font-medium ${flaggedEvidenceCount > 0 ? 'text-rose-700' : 'text-ink'}`}>{flaggedEvidenceCount} 条</span></div>
+                    <div className="flex items-center justify-between gap-4"><span>最近状态</span><span className="font-medium" style={{ color: latestParsedFile ? getParseStatusColor(latestParsedFile.parse_status) : 'var(--color-ink)' }}>{latestParsedFile ? FILE_STATUS_LABELS[latestParsedFile.parse_status] : '暂无'}</span></div>
+                    <div className="flex items-center justify-between gap-4"><span>风险证据</span><span className="font-medium" style={{ color: flaggedEvidenceCount > 0 ? 'var(--color-danger)' : 'var(--color-ink)' }}>{flaggedEvidenceCount} 条</span></div>
                   </div>
                 </div>
-                <div className="rounded-[24px] border border-[#dce6f5] bg-[#fbfdff] px-4 py-4 text-sm leading-6 text-steel">
+                <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '16px', fontSize: 14, lineHeight: 1.6, color: 'var(--color-steel)' }}>
                   <p className="text-sm font-semibold text-ink">处理建议</p>
                   <p className="mt-3">上传新材料后系统会自动解析；如果某个文件失败，优先替换或重试，再继续生成 AI 评分。</p>
                   <button className="action-primary mt-4" disabled={isParsingAll || !submission || !hasFiles} onClick={handleParseAllMaterials} type="button">
@@ -1011,30 +1023,30 @@ export function EvaluationDetailPage() {
     if (activeModule === 'evidence') {
       return (
         <section className="surface px-0 py-0">
-          <div className="border-b border-[#e6eef9] px-6 py-5 lg:px-7">
+          <div style={{ borderBottom: '1px solid var(--color-border)', padding: '20px 24px' }}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">证据工作区</p>
                 <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">提取出的证据卡片</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">左侧总览，右侧单条证据。</p>
               </div>
-              <div className="rounded-[22px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-3 text-right">
-                <p className="text-xs uppercase tracking-[0.18em] text-[#6f8ecc]">阅读方式</p>
+              <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '10px 16px', textAlign: 'right' }}>
+                <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>阅读方式</p>
                 <p className="mt-2 text-sm font-medium text-ink">先看总览，再看单条证据</p>
               </div>
             </div>
           </div>
 
           <div className="grid gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="border-b border-[#e6eef9] px-6 py-6 lg:px-7 xl:border-b-0 xl:border-r">
+            <div style={{ borderBottom: '1px solid var(--color-border)', padding: '24px' }} className="xl:border-b-0 xl:border-r">
               <EvidenceWorkspaceOverview evidenceItems={evidenceItems} />
             </div>
 
             <div className="px-6 py-6 lg:px-7">
               <div className="mb-5 grid gap-3 md:grid-cols-3">
-                <div className="rounded-[20px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-4"><p className="text-sm text-steel">证据数量</p><p className="mt-2 text-2xl font-semibold text-ink">{evidenceItems.length}</p></div>
-                <div className="rounded-[20px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-4"><p className="text-sm text-steel">平均置信度</p><p className="mt-2 text-2xl font-semibold text-ink">{evidenceAverageConfidence}%</p></div>
-                <div className={`rounded-[20px] border px-4 py-4 ${flaggedEvidenceCount > 0 ? 'border-rose-200 bg-rose-50' : 'border-[#dce6f5] bg-[#f8fbff]'}`}><p className="text-sm text-steel">风险证据</p><p className={`mt-2 text-2xl font-semibold ${flaggedEvidenceCount > 0 ? 'text-rose-700' : 'text-ink'}`}>{flaggedEvidenceCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">证据数量</p><p className="mt-2 text-2xl font-semibold text-ink">{evidenceItems.length}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">平均置信度</p><p className="mt-2 text-2xl font-semibold text-ink">{evidenceAverageConfidence}%</p></div>
+                <div className="surface-subtle px-4 py-4" style={flaggedEvidenceCount > 0 ? { borderColor: 'var(--color-danger)', background: 'var(--color-danger-bg)' } : {}}><p className="text-sm text-steel">风险证据</p><p className="mt-2 text-2xl font-semibold" style={{ color: flaggedEvidenceCount > 0 ? 'var(--color-danger)' : 'var(--color-ink)' }}>{flaggedEvidenceCount}</p></div>
               </div>
 
               <div className="grid gap-4">
@@ -1042,7 +1054,7 @@ export function EvaluationDetailPage() {
                   <EvidenceCard evidence={item} key={item.id} />
                 ))}
                 {!evidenceItems.length ? (
-                  <div className="rounded-[24px] border border-dashed border-[#d8e3f8] bg-[#fbfdff] px-6 py-8 text-sm leading-7 text-steel">
+                  <div style={{ border: '1px dashed var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '24px', fontSize: 14, lineHeight: 1.8, color: 'var(--color-steel)' }}>
                     当前还没有证据卡片。先上传材料或导入 GitHub 链接，完成解析后这里会按摘要卡片的形式自动整理出来。
                   </div>
                 ) : null}
@@ -1057,7 +1069,7 @@ export function EvaluationDetailPage() {
         <div className="grid gap-5 xl:grid-cols-[1.02fr_0.98fr]">
           <div className="flex flex-col gap-5">
             <div className="surface px-6 py-6 lg:px-7">
-              <div className="mb-5 border-b border-[#e6eef9] pb-4">
+              <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 20 }}>
                 <p className="eyebrow">评分工作台</p>
                 <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">主管与 HR 复核</h2>
                 <p className="mt-2 text-sm leading-6 text-steel">处理评分、审核和校准。</p>
@@ -1090,7 +1102,7 @@ export function EvaluationDetailPage() {
 
           <div className="flex flex-col gap-5">
             <div className="surface px-6 py-6 lg:px-7">
-              <div className="mb-5 border-b border-[#e6eef9] pb-4">
+              <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 20 }}>
                 <p className="eyebrow">校准对照</p>
                 <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">AI 与人工评分差异</h2>
                 <p className="mt-2 text-sm leading-6 text-steel">查看分差和说明。</p>
@@ -1099,14 +1111,14 @@ export function EvaluationDetailPage() {
             </div>
 
             {integrityFlagged ? (
-              <section className="surface border border-rose-200 bg-rose-50 px-6 py-6 lg:px-7">
-                <p className="eyebrow text-rose-600">诚信风险提示</p>
-                <h3 className="mt-2 text-[22px] font-semibold tracking-[-0.03em] text-rose-700">建议在评分前先核查这些异常内容</h3>
-                <p className="mt-3 text-sm leading-6 text-rose-700">检测到 {evaluation?.integrity_issue_count ?? 0} 条风险提示，下面列出当前样例，便于 HR 或主管快速复核。</p>
+              <section className="surface px-6 py-6 lg:px-7" style={{ borderColor: 'var(--color-danger)', background: 'var(--color-danger-bg)' }}>
+                <p className="eyebrow" style={{ color: 'var(--color-danger)' }}>诚信风险提示</p>
+                <h3 className="mt-2 text-[22px] font-semibold tracking-[-0.03em]" style={{ color: 'var(--color-danger)' }}>建议在评分前先核查这些异常内容</h3>
+                <p className="mt-3 text-sm leading-6" style={{ color: 'var(--color-danger)' }}>检测到 {evaluation?.integrity_issue_count ?? 0} 条风险提示，下面列出当前样例，便于 HR 或主管快速复核。</p>
                 {integrityExamples.length ? (
                   <div className="mt-4 grid gap-3">
                     {integrityExamples.map((example) => (
-                      <div className="rounded-[18px] border border-rose-200 bg-white px-4 py-3 text-sm leading-6 text-rose-700" key={example}>
+                      <div key={example} style={{ border: '1px solid var(--color-danger)', borderRadius: 6, background: '#FFFFFF', padding: '10px 14px', fontSize: 14, lineHeight: 1.6, color: 'var(--color-danger)' }}>
                         {example}
                       </div>
                     ))}
@@ -1121,14 +1133,14 @@ export function EvaluationDetailPage() {
 
     return (
       <section className="surface px-6 py-6 lg:px-7">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e6eef9] pb-4">
+        <div className="flex flex-wrap items-start justify-between gap-4" style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 20 }}>
           <div>
             <p className="eyebrow">调薪建议</p>
             <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">建议结果快照</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">查看建议薪资和审批动作。</p>
           </div>
-          <div className="rounded-[22px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-3 text-right">
-            <p className="text-xs uppercase tracking-[0.18em] text-[#6f8ecc]">当前状态</p>
+          <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '10px 16px', textAlign: 'right' }}>
+            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>当前状态</p>
             <p className="mt-2 text-sm font-medium text-ink">{formatRecommendationStatus(salaryRecommendation?.status)}</p>
           </div>
         </div>
@@ -1143,13 +1155,13 @@ export function EvaluationDetailPage() {
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-3">
-              <div className="rounded-[20px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-4"><p className="text-sm text-steel">建议涨幅</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.recommended_ratio, 2)}</p></div>
-              <div className="rounded-[20px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-4"><p className="text-sm text-steel">AI 系数</p><p className="mt-2 text-lg font-semibold text-ink">{salaryRecommendation.ai_multiplier.toFixed(2)}</p></div>
-              <div className="rounded-[20px] border border-[#dce6f5] bg-[#f8fbff] px-4 py-4"><p className="text-sm text-steel">认证加成</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.certification_bonus, 2)}</p></div>
+              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">建议涨幅</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.recommended_ratio, 2)}</p></div>
+              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">AI 系数</p><p className="mt-2 text-lg font-semibold text-ink">{salaryRecommendation.ai_multiplier.toFixed(2)}</p></div>
+              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">认证加成</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.certification_bonus, 2)}</p></div>
             </div>
 
             {salaryRecommendation.explanation ? (
-              <details className="mt-5 rounded-[22px] border border-[#dce6f5] bg-[#fbfdff] px-4 py-4">
+              <details className="mt-5" style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '12px 16px' }}>
                 <summary className="cursor-pointer text-sm font-semibold text-ink">查看建议说明</summary>
                 <p className="mt-3 text-sm leading-7 text-steel">{salaryRecommendation.explanation}</p>
               </details>
@@ -1157,7 +1169,7 @@ export function EvaluationDetailPage() {
 
             <div className="mt-5 flex flex-wrap gap-3">
               <button
-                className="rounded-full bg-[#2d5cff] px-5 py-3 text-sm font-semibold text-white shadow-float disabled:opacity-60"
+                className="action-primary"
                 disabled={
                   !canSubmitApproval ||
                   isSubmittingApproval ||
@@ -1175,10 +1187,10 @@ export function EvaluationDetailPage() {
               </Link>
             </div>
 
-            {!canSubmitApproval ? <p className="mt-3 text-sm text-amber-700">当前账号无法发起审批，请使用主管、HRBP 或管理员账号。</p> : null}
+            {!canSubmitApproval ? <p className="mt-3 text-sm" style={{ color: 'var(--color-warning)' }}>当前账号无法发起审批，请使用主管、HRBP 或管理员账号。</p> : null}
           </>
         ) : (
-          <div className="mt-5 rounded-[22px] border border-dashed border-[#d8e3f8] bg-[#fbfdff] px-4 py-5 text-sm leading-7 text-steel">
+          <div className="mt-5" style={{ border: '1px dashed var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '16px 20px', fontSize: 14, lineHeight: 1.8, color: 'var(--color-steel)' }}>
             当前评估还没有生成调薪建议。先确认评估结果，再使用上方动作或切回概览模块生成建议。
           </div>
         )}
@@ -1208,18 +1220,18 @@ export function EvaluationDetailPage() {
       {employee ? (
         <>
           <section className="surface animate-fade-up overflow-hidden px-0 py-0">
-            <div className="border-b border-[#e6eef9] bg-[radial-gradient(circle_at_top_left,rgba(68,112,255,0.14),transparent_30%),linear-gradient(180deg,rgba(247,250,255,0.98),rgba(242,247,255,0.96))] px-6 py-6 lg:px-7">
+            <div style={{ borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-subtle)', padding: '20px 24px' }}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-[30px] font-semibold tracking-[-0.04em] text-ink">{employee.name}</h2>
+                    <h2 className="text-[24px] font-semibold tracking-[-0.03em] text-ink">{employee.name}</h2>
                     <StatusIndicator status={employee.status} />
                   </div>
                   <p className="mt-2 text-sm text-steel">员工编号 {employee.employee_no}</p>
                   <p className="mt-3 max-w-2xl text-sm leading-6 text-steel">按当前周期处理评估流程。</p>
                 </div>
-                <div className="rounded-[24px] border border-white/80 bg-white/82 px-5 py-4 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.96)]">
-                  <p className="text-xs uppercase tracking-[0.18em] text-[#6f8ecc]">当前模块</p>
+                <div style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 8, padding: '12px 16px', textAlign: 'right' }}>
+                  <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>当前模块</p>
                   <p className="mt-2 text-lg font-semibold text-ink">{activeModuleMeta.label}</p>
                   <p className="mt-1 text-xs text-steel">{activeModuleMeta.note}</p>
                 </div>
@@ -1241,26 +1253,34 @@ export function EvaluationDetailPage() {
                 </label>
               </div>
 
-              <div className="mt-5 rounded-[26px] border border-[#dce6f5] bg-white px-4 py-4">
+              <div style={{ marginTop: 20, border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '16px' }}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-ink">模块切换</p>
                     <p className="mt-1 text-sm text-steel">切换后只显示当前模块。</p>
                   </div>
-                  <div className="cursor-help rounded-full border border-[#dce6f5] bg-[#f8fbff] px-4 py-2 text-xs text-[#5270a0]" title={activeModuleMeta.helper}>模块说明</div>
+                  <div className="cursor-help text-xs text-steel" style={{ border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 12px' }} title={activeModuleMeta.helper}>模块说明</div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   {moduleTabs.map((item) => {
                     const isActive = item.key === activeModule;
                     return (
                       <button
-                        className={`rounded-[22px] border px-4 py-3 text-left transition-all ${isActive ? 'border-[#2d5cff] bg-[#2d5cff] text-white shadow-[0_12px_30px_rgba(45,92,255,0.18)]' : 'border-[#dce6f5] bg-[#f8fbff] text-ink hover:border-[#bdd1fb] hover:bg-white'}`}
                         key={item.key}
                         onClick={() => setActiveModule(item.key)}
                         type="button"
+                        style={{
+                          borderRadius: 6,
+                          border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                          background: isActive ? 'var(--color-primary)' : '#FFFFFF',
+                          color: isActive ? '#FFFFFF' : 'var(--color-ink)',
+                          padding: '8px 14px',
+                          textAlign: 'left',
+                          cursor: 'pointer',
+                        }}
                       >
                         <div className="text-sm font-semibold">{item.label}</div>
-                        <div className={`mt-1 text-xs ${isActive ? 'text-white/80' : 'text-steel'}`}>{item.note}</div>
+                        <div style={{ marginTop: 2, fontSize: 11, color: isActive ? 'rgba(255,255,255,0.8)' : 'var(--color-steel)' }}>{item.note}</div>
                       </button>
                     );
                   })}
