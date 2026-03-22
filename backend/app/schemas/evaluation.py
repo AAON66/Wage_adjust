@@ -37,6 +37,9 @@ class EvaluationRead(BaseModel):
     created_at: datetime
     updated_at: datetime
     needs_manual_review: bool = False
+    integrity_flagged: bool = False
+    integrity_issue_count: int = 0
+    integrity_examples: list[str] = Field(default_factory=list)
     dimension_scores: list[DimensionScoreRead] = Field(default_factory=list)
 
 

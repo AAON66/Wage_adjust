@@ -1,4 +1,4 @@
-﻿import { type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
 import { useAuth } from '../../hooks/useAuth';
@@ -25,19 +25,19 @@ function ShellSidebar() {
       </div>
 
       <nav className="mt-5 flex flex-1 flex-col gap-1">
-        <NavLink className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`} to={homePath}>
+        <NavLink className={({ isActive }) => `group nav-link ${isActive ? 'nav-link-active' : ''}`} title="返回当前身份的主工作台" to={homePath}>
           <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-ember/80" />
           <div>
             <div className="font-medium">角色首页</div>
-            <div className="mt-1 text-xs text-steel">返回当前身份的主工作台</div>
+            <div className="mt-1 max-h-0 overflow-hidden text-xs text-steel opacity-0 transition-all duration-200 group-hover:max-h-10 group-hover:opacity-100 group-focus-visible:max-h-10 group-focus-visible:opacity-100">返回当前身份的主工作台</div>
           </div>
         </NavLink>
         {modules.map((module) => (
-          <NavLink className={({ isActive }) => `nav-link ${isActive ? 'nav-link-active' : ''}`} key={module.href} to={module.href}>
+          <NavLink className={({ isActive }) => `group nav-link ${isActive ? 'nav-link-active' : ''}`} key={module.href} title={module.description} to={module.href}>
             <div className="mt-0.5 h-2.5 w-2.5 rounded-full bg-[#bfd1ff]" />
             <div>
               <div className="font-medium">{module.title}</div>
-              <div className="mt-1 text-xs text-steel">{module.description}</div>
+              <div className="mt-1 max-h-0 overflow-hidden text-xs text-steel opacity-0 transition-all duration-200 group-hover:max-h-10 group-hover:opacity-100 group-focus-visible:max-h-10 group-focus-visible:opacity-100">{module.description}</div>
             </div>
           </NavLink>
         ))}
@@ -69,7 +69,7 @@ export function AppShell({ title, description, actions, children }: AppShellProp
       <div className="app-shell-inner">
         <ShellSidebar />
         <div className="app-main">
-          <header className="surface animate-fade-up px-6 py-6 lg:px-8">
+          <header className="surface page-head animate-fade-up px-6 py-6 lg:px-8">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="eyebrow">{getRoleLabel(user?.role)}工作区</p>

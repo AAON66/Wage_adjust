@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -245,18 +245,18 @@ export function UserAdminPage() {
         eyebrow: '新增账号',
         title: '开通单个账号',
         note: user?.role === 'admin'
-          ? '管理员可创建 HRBP、主管和员工账号，但不能创建其他管理员账号。'
-          : '当前身份只能创建员工账号，不能创建同级或更高权限账号。',
+          ? '可创建 HRBP、主管和员工账号。'
+          : '当前身份只能创建员工账号。',
       },
       batch: {
         eyebrow: '批量开通',
         title: '导入多名账号',
-        note: '系统会按你的身份自动校验可创建的角色范围。',
+        note: '系统会校验可创建角色。',
       },
       password: {
         eyebrow: '密码管理',
         title: '重置用户密码',
-        note: '只能重置比你权限低的账号密码；同级和更高权限账号不能操作。',
+        note: '只能重置低权限账号密码。',
       },
     } as const;
   }, [user?.role]);
@@ -432,7 +432,7 @@ export function UserAdminPage() {
   return (
     <AppShell
       title="平台账号管理"
-      description="账号操作按层级控制：管理员高于 HRBP/主管，HRBP 与主管同级，高于员工；低级不能改高级，同级不能互相更改。"
+      description="按权限管理账号与密码。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
@@ -464,7 +464,7 @@ export function UserAdminPage() {
             <div>
               <p className="eyebrow">密码交付提醒</p>
               <h2 className="section-title">请安全传达本次密码</h2>
-              <p className="section-note mt-2">建议通过公司内部安全渠道单独发送密码，不要与账号邮箱放在同一条公开消息中。</p>
+              <p className="section-note mt-2">请通过安全渠道单独发送密码。</p>
             </div>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
@@ -487,7 +487,7 @@ export function UserAdminPage() {
             <div>
               <p className="eyebrow">异常结果</p>
               <h2 className="section-title">未完成项</h2>
-              <p className="section-note mt-2">以下账号未能完成本次操作，请按原因重新处理。</p>
+              <p className="section-note mt-2">按失败原因重新处理。</p>
             </div>
           </div>
           <div className="mt-5 grid gap-3">
@@ -507,7 +507,7 @@ export function UserAdminPage() {
             <div>
               <p className="eyebrow">操作中心</p>
               <h2 className="section-title">集中处理账号操作</h2>
-              <p className="section-note mt-2">你只能操作比当前身份更低的账号，系统不会展示不可创建的角色选项。</p>
+              <p className="section-note mt-2">仅显示可操作角色。</p>
             </div>
           </div>
 
@@ -569,7 +569,7 @@ export function UserAdminPage() {
                   ))}
                 </select>
               </label>
-              <p className="text-xs leading-6 text-steel">创建后的账号将被标记为“首次登录需改密”，用户必须完成改密后才能访问其他业务页面。</p>
+              <p className="text-xs leading-6 text-steel">新账号首次登录需改密。</p>
               <button className="action-primary w-full" disabled={isCreating || assignableRoleOptions.length === 0} onClick={() => void handleCreateUser()} type="button">
                 {isCreating ? '创建中...' : '创建账号'}
               </button>
@@ -590,7 +590,7 @@ export function UserAdminPage() {
                 ))}
               </div>
               <div className="surface-subtle px-4 py-4 text-sm leading-6 text-steel">
-                每行格式：邮箱，角色，密码。系统会自动按当前身份拦截同级和更高权限角色。
+                每行格式：邮箱，角色，密码。
               </div>
               <button className="action-primary w-full" disabled={isBatchCreating || assignableRoleOptions.length === 0} onClick={() => void handleBatchCreate()} type="button">
                 {isBatchCreating ? '批量创建中...' : '执行批量创建'}
@@ -650,7 +650,7 @@ export function UserAdminPage() {
             <div>
               <p className="eyebrow">账号总览</p>
               <h2 className="section-title">当前可管理账号</h2>
-              <p className="section-note mt-2">列表只展示你本人和可管理的更低级账号，因此不会出现可见但不可操作的同级或更高级账号。</p>
+              <p className="section-note mt-2">仅显示你本人和可管理账号。</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="chip-button">当前登录：{user?.email}</span>

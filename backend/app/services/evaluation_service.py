@@ -21,7 +21,10 @@ class EvaluationService:
     def _query_evaluation(self, evaluation_id: str) -> AIEvaluation | None:
         query = (
             select(AIEvaluation)
-            .options(selectinload(AIEvaluation.dimension_scores))
+            .options(
+                selectinload(AIEvaluation.dimension_scores),
+                selectinload(AIEvaluation.submission).selectinload(EmployeeSubmission.evidence_items),
+            )
             .where(AIEvaluation.id == evaluation_id)
         )
         return self.db.scalar(query)
@@ -29,7 +32,10 @@ class EvaluationService:
     def get_evaluation_by_submission(self, submission_id: str) -> AIEvaluation | None:
         query = (
             select(AIEvaluation)
-            .options(selectinload(AIEvaluation.dimension_scores))
+            .options(
+                selectinload(AIEvaluation.dimension_scores),
+                selectinload(AIEvaluation.submission).selectinload(EmployeeSubmission.evidence_items),
+            )
             .where(AIEvaluation.submission_id == submission_id)
         )
         return self.db.scalar(query)

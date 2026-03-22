@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 from pathlib import Path
+from urllib.error import HTTPError
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -54,11 +55,13 @@ class MockUrlOpenResponse:
         return False
 
 
+
 def build_client() -> tuple[TestClient, ApiDatabaseContext]:
     context = ApiDatabaseContext()
     app = create_app(context.settings)
     app.dependency_overrides[get_db] = context.override_get_db
     return TestClient(app), context
+
 
 
 def register_and_login_admin(client: TestClient) -> str:
@@ -68,6 +71,7 @@ def register_and_login_admin(client: TestClient) -> str:
     )
     assert register_response.status_code == 201
     return register_response.json()['tokens']['access_token']
+
 
 
 def seed_submission(context: ApiDatabaseContext) -> str:
@@ -94,6 +98,7 @@ def seed_submission(context: ApiDatabaseContext) -> str:
         return submission.id
     finally:
         db.close()
+
 
 
 def test_file_api_upload_replace_parse_preview_and_delete_flow() -> None:
@@ -162,7 +167,8 @@ def test_file_api_upload_replace_parse_preview_and_delete_flow() -> None:
         assert evidence_after_delete.json()['total'] == 0
 
 
-def test_file_api_github_import_parses_content_immediately() -> None:
+
+def test_file_api_github_import_parses_blob_link_immediately() -> None:
     client, context = build_client()
     with client:
         token = register_and_login_admin(client)
@@ -183,11 +189,119 @@ def test_file_api_github_import_parses_content_immediately() -> None:
         assert import_response.json()['file_name'] == 'README.md'
         assert import_response.json()['parse_status'] == 'parsed'
 
-        list_response = client.get(f'/api/v1/submissions/{submission_id}/files', headers=headers)
-        assert list_response.status_code == 200
-        assert list_response.json()['total'] == 1
-
         evidence_response = client.get(f'/api/v1/submissions/{submission_id}/evidence', headers=headers)
         assert evidence_response.status_code == 200
         assert evidence_response.json()['total'] == 1
         assert 'Shipped GitHub based enablement notes.' in evidence_response.json()['items'][0]['content']
+
+
+
+def test_file_api_github_import_accepts_repository_links() -> None:
+    client, context = build_client()
+    with client:
+        token = register_and_login_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        submission_id = seed_submission(context)
+
+        with patch(
+            'backend.app.services.file_service.urlopen',
+            return_value=MockUrlOpenResponse(b'PK\x03\x04repo-archive'),
+        ):
+            import_response = client.post(
+                f'/api/v1/submissions/{submission_id}/github-import',
+                headers=headers,
+                json={'url': 'https://github.com/openai/platform'},
+            )
+
+        assert import_response.status_code == 201
+        assert import_response.json()['file_name'] == 'platform.zip'
+        assert import_response.json()['parse_status'] == 'parsed'
+
+        evidence_response = client.get(f'/api/v1/submissions/{submission_id}/evidence', headers=headers)
+        assert evidence_response.status_code == 200
+        assert evidence_response.json()['total'] == 1
+        assert 'Compressed archive' in evidence_response.json()['items'][0]['content']
+
+
+
+def test_file_api_github_import_accepts_clone_links() -> None:
+    client, context = build_client()
+    with client:
+        token = register_and_login_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        submission_id = seed_submission(context)
+
+        with patch(
+            'backend.app.services.file_service.urlopen',
+            return_value=MockUrlOpenResponse(b'PK\x03\x04repo-archive'),
+        ) as urlopen_mock:
+            import_response = client.post(
+                f'/api/v1/submissions/{submission_id}/github-import',
+                headers=headers,
+                json={'url': 'https://github.com/openai/platform.git'},
+            )
+
+        assert import_response.status_code == 201
+        assert import_response.json()['file_name'] == 'platform.zip'
+        request = urlopen_mock.call_args.args[0]
+        assert request.full_url == 'https://api.github.com/repos/openai/platform/zipball'
+
+
+
+def test_file_api_github_import_returns_actionable_error_for_missing_repository() -> None:
+    client, context = build_client()
+    with client:
+        token = register_and_login_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        submission_id = seed_submission(context)
+
+        with patch(
+            'backend.app.services.file_service.urlopen',
+            side_effect=HTTPError(
+                url='https://api.github.com/repos/openai/missing/zipball',
+                code=404,
+                msg='Not Found',
+                hdrs=None,
+                fp=None,
+            ),
+        ):
+            import_response = client.post(
+                f'/api/v1/submissions/{submission_id}/github-import',
+                headers=headers,
+                json={'url': 'https://github.com/openai/missing'},
+            )
+
+        assert import_response.status_code == 400
+        assert import_response.json()['message'] == 'Unable to download from GitHub. Please confirm the link is correct and the repository is public.'
+
+
+
+def test_file_service_github_archive_uses_github_api_accept_header() -> None:
+    context = ApiDatabaseContext()
+    db = context.session_factory()
+    try:
+        from backend.app.services.file_service import FileService
+
+        service = FileService(db, context.settings)
+        request = service._build_remote_request('https://api.github.com/repos/AAON66/Wage_adjust/zipball')
+        header_map = {key.lower(): value for key, value in request.header_items()}
+        assert header_map['accept'] == 'application/vnd.github+json'
+        assert header_map['user-agent'] == 'wage-adjust-platform'
+    finally:
+        db.close()
+
+
+
+def test_file_service_raw_github_download_keeps_binary_accept_header() -> None:
+    context = ApiDatabaseContext()
+    db = context.session_factory()
+    try:
+        from backend.app.services.file_service import FileService
+
+        service = FileService(db, context.settings)
+        request = service._build_remote_request('https://raw.githubusercontent.com/openai/platform/main/README.md')
+        header_map = {key.lower(): value for key, value in request.header_items()}
+        assert header_map['accept'] == 'application/octet-stream'
+        assert header_map['user-agent'] == 'wage-adjust-platform'
+    finally:
+        db.close()

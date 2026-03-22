@@ -76,3 +76,34 @@ def test_import_service_rejects_xlsx_without_dependency() -> None:
         assert 'openpyxl' in job.result_summary['error']
     finally:
         db.close()
+
+
+def test_import_service_can_delete_single_and_multiple_jobs() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        service = ImportService(db)
+        first_job = service.run_import(
+            import_type='employees',
+            upload=UploadStub('employees.csv', '\n'.join([
+                'employee_no,name,department,job_family,job_level,status,manager_employee_no',
+                'EMP-2001,Alice Zhang,Engineering,Platform,P5,active,',
+            ]).encode('utf-8')),
+        )
+        second_job = service.run_import(
+            import_type='employees',
+            upload=UploadStub('employees2.csv', '\n'.join([
+                'employee_no,name,department,job_family,job_level,status,manager_employee_no',
+                'EMP-2002,Bob Li,Product,Product,P4,active,',
+            ]).encode('utf-8')),
+        )
+
+        deleted_job_id = service.delete_job(first_job.id)
+        assert deleted_job_id == first_job.id
+        assert service.get_job(first_job.id) is None
+
+        deleted_job_ids = service.bulk_delete_jobs([second_job.id, 'missing-job-id'])
+        assert deleted_job_ids == [second_job.id]
+        assert service.get_job(second_job.id) is None
+    finally:
+        db.close()

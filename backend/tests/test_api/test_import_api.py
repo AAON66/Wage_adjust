@@ -91,3 +91,44 @@ def test_import_api_flow() -> None:
         assert xlsx_response.status_code == 201
         assert xlsx_response.json()['status'] == 'failed'
 
+
+def test_import_api_supports_delete_and_bulk_delete() -> None:
+    client, _ = build_client()
+    with client:
+        token = register_and_login_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+
+        first_job = client.post(
+            '/api/v1/imports/jobs?import_type=employees',
+            files={'file': ('employees.csv', '\n'.join([
+                'employee_no,name,department,job_family,job_level,status,manager_employee_no',
+                'EMP-3001,Alice Zhang,Engineering,Platform,P5,active,',
+            ]).encode('utf-8'), 'text/csv')},
+            headers=headers,
+        )
+        second_job = client.post(
+            '/api/v1/imports/jobs?import_type=employees',
+            files={'file': ('employees2.csv', '\n'.join([
+                'employee_no,name,department,job_family,job_level,status,manager_employee_no',
+                'EMP-3002,Bob Li,Product,Product,P4,active,',
+            ]).encode('utf-8'), 'text/csv')},
+            headers=headers,
+        )
+        assert first_job.status_code == 201
+        assert second_job.status_code == 201
+
+        delete_response = client.delete(f"/api/v1/imports/jobs/{first_job.json()['id']}", headers=headers)
+        assert delete_response.status_code == 200
+        assert delete_response.json()['deleted_job_id'] == first_job.json()['id']
+
+        bulk_delete_response = client.post(
+            '/api/v1/imports/jobs/bulk-delete',
+            json={'job_ids': [second_job.json()['id'], 'missing-job-id']},
+            headers=headers,
+        )
+        assert bulk_delete_response.status_code == 200
+        assert bulk_delete_response.json()['deleted_job_ids'] == [second_job.json()['id']]
+
+        list_response = client.get('/api/v1/imports/jobs', headers=headers)
+        assert list_response.status_code == 200
+        assert list_response.json()['total'] == 0

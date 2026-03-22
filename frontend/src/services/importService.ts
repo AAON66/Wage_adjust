@@ -24,3 +24,13 @@ export async function exportImportJob(jobId: string): Promise<Blob> {
   const response = await api.get(`/imports/jobs/${jobId}/export`, { responseType: 'blob' });
   return response.data;
 }
+
+export async function deleteImportJob(jobId: string): Promise<{ deleted_job_id: string }> {
+  const response = await api.delete<{ deleted_job_id: string }>(`/imports/jobs/${jobId}`);
+  return response.data;
+}
+
+export async function bulkDeleteImportJobs(jobIds: string[]): Promise<{ deleted_job_ids: string[] }> {
+  const response = await api.post<{ deleted_job_ids: string[] }>('/imports/jobs/bulk-delete', { job_ids: jobIds });
+  return response.data;
+}

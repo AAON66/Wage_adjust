@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
@@ -50,13 +50,13 @@ export function LoginPage() {
         <section className="surface animate-fade-up overflow-hidden px-6 py-8 lg:px-8">
           <p className="eyebrow">账号登录</p>
           <h1 className="mt-3 text-[40px] font-semibold leading-[1.06] tracking-[-0.05em] text-ink lg:text-[54px]">欢迎使用智能调薪平台</h1>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-steel">登录后就能回到你熟悉的工作页面。员工查看个人进展，主管、HRBP 和管理员处理各自负责的事项。</p>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-steel">登录后进入对应工作区。</p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2">
             {[
-              ['员工', '查看个人材料、提交状态与证据摘要'],
-              ['主管', '查看团队评估并处理审批任务'],
-              ['HRBP', '推进复核、预算与审批协同'],
-              ['管理员', '配置周期、导入数据与监管全局'],
+              ['员工', '查看个人材料与评估进展'],
+              ['主管', '查看团队评估与审批'],
+              ['HRBP', '处理复核、预算与审批'],
+              ['管理员', '处理周期、导入与全局配置'],
             ].map(([title, desc]) => (
               <div className="surface-subtle px-4 py-4" key={title}>
                 <p className="font-medium text-ink">{title}</p>
@@ -74,7 +74,7 @@ export function LoginPage() {
             <LoginForm errorMessage={errorMessage} isSubmitting={isSubmitting} onSubmit={handleLogin} />
           </div>
           <div className="mt-6 rounded-[22px] bg-[#f6f9ff] px-4 py-4 text-sm leading-6 text-steel">
-            账号由系统管理员统一开通。如遇到初始密码登录，系统会要求先修改密码后再进入工作区。
+            账号由管理员开通。首次登录需先改密。
           </div>
           <p className="mt-6 text-sm text-steel">
             返回平台首页

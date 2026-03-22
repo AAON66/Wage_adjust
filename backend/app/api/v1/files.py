@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -17,6 +19,8 @@ from backend.app.schemas.file import (
 )
 from backend.app.services.file_service import FileService
 from backend.app.services.parse_service import ParseService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=['files'])
 
@@ -57,7 +61,8 @@ def import_github_submission_file(
         status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Failed to import GitHub file.') from exc
+        logger.exception('GitHub import failed for submission %s', submission_id, exc_info=exc)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc) or 'Failed to import GitHub file.') from exc
     return UploadedFileRead.model_validate(parsed_file)
 
 

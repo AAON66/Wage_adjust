@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -91,7 +91,7 @@ export function ApprovalsPage() {
   return (
     <AppShell
       title="调薪审批中心"
-      description="以任务视角处理调薪审批，当前界面优先展示待办、状态和可执行动作。"
+      description="处理待审批与历史记录。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
@@ -143,7 +143,7 @@ export function ApprovalsPage() {
       {!isLoading && rows.length === 0 ? (
         <section className="surface px-6 py-8 text-center">
           <h2 className="text-xl font-semibold text-ink">当前没有可展示的审批记录</h2>
-          <p className="mt-2 text-sm leading-6 text-steel">先到员工评估详情页生成调薪建议，再提交审批，审批中心就会出现真实待办。</p>
+          <p className="mt-2 text-sm leading-6 text-steel">先生成调薪建议，再来这里审批。</p>
           <div className="mt-5 flex flex-wrap justify-center gap-3">
             <Link className="rounded-full bg-[#2d5cff] px-5 py-3 text-sm font-medium text-white shadow-float" to="/employees">前往员工评估</Link>
             <Link className="chip-button" to="/salary-simulator">查看调薪模拟</Link>

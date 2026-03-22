@@ -18,7 +18,7 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
           <p className="eyebrow">材料上传</p>
           <h3 className="section-title">上传员工材料</h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-steel">
-            支持本地文件上传，也可以直接导入 GitHub 文件链接做解析。上传后文件可继续替换或移除。
+            支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除。
           </p>
         </div>
         <label className={isUploading ? 'action-secondary cursor-pointer' : 'action-primary cursor-pointer'} htmlFor={inputId}>
@@ -37,7 +37,7 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
         <input
           className="toolbar-input"
           onChange={(event) => setGitHubUrl(event.target.value)}
-          placeholder="粘贴 GitHub 文件链接，例如 https://github.com/org/repo/blob/main/README.md"
+          placeholder="粘贴 GitHub 链接，例如仓库、目录或文件地址"
           type="url"
           value={githubUrl}
         />
@@ -50,11 +50,11 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
           }}
           type="button"
         >
-          {isGithubImporting ? '导入中...' : '导入 GitHub 文件'}
+          {isGithubImporting ? '导入中...' : '导入 GitHub 链接'}
         </button>
       </div>
       <div className="mt-5 flex flex-wrap gap-2 text-xs text-steel">
-        {['PPT', 'PDF', 'PNG', 'JPG', 'ZIP', 'Markdown', 'Excel', '代码', 'GitHub 文件链接'].map((item) => (
+        {['PPT', 'PDF', 'PNG', 'JPG', 'ZIP', 'Markdown', 'Excel', '代码', 'GitHub 仓库/目录/文件'].map((item) => (
           <span key={item} className="chip-button px-3 py-1 text-xs">
             {item}
           </span>
@@ -63,3 +63,4 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
     </section>
   );
 }
+

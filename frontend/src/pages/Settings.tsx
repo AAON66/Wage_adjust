@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 
@@ -73,7 +73,7 @@ export function SettingsPage() {
   return (
     <AppShell
       title="账号设置"
-      description="查看当前账号信息，并由本人自行更新登录密码。"
+      description="查看账号并修改密码。"
     >
       <section className="grid gap-5 xl:grid-cols-[0.88fr_1.12fr]">
         <section className="surface px-6 py-6 lg:px-7">
@@ -94,7 +94,7 @@ export function SettingsPage() {
             </div>
             <div className="surface-subtle px-4 py-4">
               <p className="text-sm text-steel">安全说明</p>
-              <p className="mt-2 text-sm leading-6 text-steel">密码修改后立即生效。请使用不少于 8 位的强密码，并避免与当前密码重复。</p>
+              <p className="mt-2 text-sm leading-6 text-steel">密码修改后立即生效。请使用强密码。</p>
             </div>
           </div>
         </section>
@@ -104,13 +104,13 @@ export function SettingsPage() {
             <div>
               <p className="eyebrow">密码管理</p>
               <h2 className="section-title">修改登录密码</h2>
-              <p className="mt-2 text-sm leading-6 text-steel">此操作仅影响当前账号，不会修改其他平台用户的登录信息。</p>
+              <p className="mt-2 text-sm leading-6 text-steel">仅修改当前账号密码。</p>
             </div>
           </div>
 
           {mustChangePassword ? (
             <div className="mt-5 rounded-[22px] bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-700">
-              当前账号仍在使用管理员发放的初始密码。为保障安全，请先完成密码修改，随后系统才会放开其他业务页面访问。
+              当前账号仍在使用初始密码，请先完成改密。
             </div>
           ) : null}
 

@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -141,7 +141,7 @@ export function CreateCyclePage() {
   return (
     <AppShell
       title="评估周期管理"
-      description="在同一页面里完成周期新建、编辑、发布和下架，保持评估节奏和预算范围可控。"
+      description="新建、编辑和发布评估周期。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
@@ -175,8 +175,8 @@ export function CreateCyclePage() {
             <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">{selectedCycle ? '编辑评估周期' : '新建评估周期'}</h2>
             <p className="mt-2 text-sm leading-6 text-steel">
               {selectedCycle
-                ? '修改周期名称、评估时间和预算范围。已下架周期不可再编辑。'
-                : '为后续员工评估、预算模拟和审批流创建统一的时间与预算范围。'}
+                ? '修改名称、时间和预算。已下架周期不可编辑。'
+                : '设置评估时间和预算范围。'}
             </p>
           </div>
           <div className="mt-5">
@@ -199,7 +199,7 @@ export function CreateCyclePage() {
             <div>
               <p className="eyebrow">已有周期</p>
               <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">现有评估周期</h2>
-              <p className="mt-2 text-sm leading-6 text-steel">支持直接编辑草稿或进行发布、下架管理。</p>
+              <p className="mt-2 text-sm leading-6 text-steel">可编辑、发布或下架。</p>
             </div>
             <p className="text-sm text-steel">共 {cycles.length} 个周期</p>
           </div>

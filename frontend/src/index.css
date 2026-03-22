@@ -1,4 +1,4 @@
-﻿@tailwind base;
+@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
@@ -93,8 +93,15 @@ body::selection {
     @apply mt-2 text-[28px] font-semibold tracking-[-0.03em] text-ink lg:text-[34px];
   }
 
+
   .page-desc {
-    @apply mt-3 max-w-3xl text-sm leading-7 text-steel;
+    @apply mt-3 max-w-3xl overflow-hidden text-xs leading-6 text-steel transition-all duration-200;
+    max-height: 1.5rem;
+  }
+
+  .page-head:hover .page-desc,
+  .page-head:focus-within .page-desc {
+    max-height: 4.5rem;
   }
 
   .section-head {
@@ -107,6 +114,16 @@ body::selection {
 
   .section-note {
     @apply text-sm leading-6 text-steel;
+  }
+
+  .section-head .section-note {
+    @apply overflow-hidden text-xs leading-5 transition-all duration-200;
+    max-height: 1.25rem;
+  }
+
+  .section-head:hover .section-note,
+  .section-head:focus-within .section-note {
+    max-height: 4rem;
   }
 
   .nav-link {
@@ -146,7 +163,13 @@ body::selection {
   }
 
   .metric-note {
-    @apply mt-2 text-sm leading-6 text-steel;
+    @apply mt-2 overflow-hidden text-xs leading-5 text-steel transition-all duration-200;
+    max-height: 1.25rem;
+  }
+
+  .metric-tile:hover .metric-note,
+  .metric-tile:focus-within .metric-note {
+    max-height: 4rem;
   }
 
   .toolbar-input {
@@ -272,6 +295,16 @@ body::selection {
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.96),
       0 18px 34px rgba(51, 112, 255, 0.09);
+  }
+
+  .list-row-note {
+    @apply mt-2 overflow-hidden text-xs leading-5 text-steel transition-all duration-200;
+    max-height: 1.25rem;
+  }
+
+  .list-row:hover .list-row-note,
+  .list-row:focus-within .list-row-note {
+    max-height: 4rem;
   }
 
   .empty-state {

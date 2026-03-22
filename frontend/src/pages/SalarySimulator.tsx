@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -109,7 +109,7 @@ export function SalarySimulatorPage() {
   return (
     <AppShell
       title="调薪预算测算看板"
-      description="围绕周期预算、筛选范围和建议方案查看当前调薪模拟结果。"
+      description="查看预算范围内的调薪模拟结果。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>

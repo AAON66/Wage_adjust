@@ -16,7 +16,28 @@ from backend.app.services.evaluation_service import EvaluationService
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
 
 
+def _build_integrity_summary(evaluation) -> tuple[bool, int, list[str]]:
+    submission = evaluation.submission
+    if submission is None:
+        return False, 0, []
+
+    examples: list[str] = []
+    issue_count = 0
+    for evidence in submission.evidence_items:
+        metadata = evidence.metadata_json if isinstance(evidence.metadata_json, dict) else {}
+        if metadata.get('prompt_manipulation_detected'):
+            issue_count += 1
+            blocked_examples = metadata.get('blocked_instruction_examples') or []
+            if isinstance(blocked_examples, list):
+                for item in blocked_examples:
+                    text = str(item).strip()
+                    if text and text not in examples:
+                        examples.append(text)
+    return issue_count > 0, issue_count, examples[:3]
+
+
 def serialize_evaluation(evaluation) -> EvaluationRead:
+    integrity_flagged, integrity_issue_count, integrity_examples = _build_integrity_summary(evaluation)
     return EvaluationRead(
         id=evaluation.id,
         submission_id=evaluation.submission_id,
@@ -34,6 +55,9 @@ def serialize_evaluation(evaluation) -> EvaluationRead:
         created_at=evaluation.created_at,
         updated_at=evaluation.updated_at,
         needs_manual_review=evaluation.status in {'pending_hr', 'returned'},
+        integrity_flagged=integrity_flagged,
+        integrity_issue_count=integrity_issue_count,
+        integrity_examples=integrity_examples,
         dimension_scores=evaluation.dimension_scores,
     )
 

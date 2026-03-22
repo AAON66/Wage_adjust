@@ -2,7 +2,6 @@
 
 import csv
 import io
-from datetime import datetime
 
 import pandas as pd
 from fastapi import UploadFile
@@ -30,6 +29,25 @@ class ImportService:
 
     def get_job(self, job_id: str) -> ImportJob | None:
         return self.db.get(ImportJob, job_id)
+
+    def delete_job(self, job_id: str) -> str:
+        job = self.get_job(job_id)
+        if job is None:
+            raise ValueError('Import job not found.')
+        self.db.delete(job)
+        self.db.commit()
+        return job_id
+
+    def bulk_delete_jobs(self, job_ids: list[str]) -> list[str]:
+        deleted_ids: list[str] = []
+        for job_id in job_ids:
+            job = self.get_job(job_id)
+            if job is None:
+                continue
+            self.db.delete(job)
+            deleted_ids.append(job_id)
+        self.db.commit()
+        return deleted_ids
 
     def run_import(self, *, import_type: str, upload: UploadFile) -> ImportJob:
         normalized_type = import_type.strip().lower()

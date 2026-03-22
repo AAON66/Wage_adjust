@@ -55,6 +55,16 @@ export interface EmployeeRecord {
   updated_at: string;
 }
 
+export interface EmployeeCreatePayload {
+  employee_no: string;
+  name: string;
+  department: string;
+  job_family: string;
+  job_level: string;
+  manager_id: string | null;
+  status: string;
+}
+
 export interface EmployeeListResponse {
   items: EmployeeRecord[];
   total: number;
@@ -180,6 +190,9 @@ export interface EvaluationRecord {
   created_at: string;
   updated_at: string;
   needs_manual_review: boolean;
+  integrity_flagged: boolean;
+  integrity_issue_count: number;
+  integrity_examples: string[];
   dimension_scores: DimensionScoreRecord[];
 }
 

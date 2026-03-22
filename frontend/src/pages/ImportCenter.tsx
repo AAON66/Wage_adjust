@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -120,7 +120,7 @@ export function ImportCenterPage() {
   return (
     <AppShell
       title="批量导入中心"
-      description="统一处理模板下载、批量导入和结果导出，适合作为内部数据接入与批量维护入口。"
+      description="下载模板、导入文件、导出结果。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>
@@ -150,7 +150,7 @@ export function ImportCenterPage() {
           <div>
             <p className="eyebrow">上传任务</p>
             <h2 className="section-title">创建导入任务</h2>
-            <p className="mt-2 text-sm leading-6 text-steel">导入类型、文件选择和模板下载都集中在同一处完成，减少批量运营时的切换成本。</p>
+            <p className="mt-2 text-sm leading-6 text-steel">在这里选择类型、文件和模板。</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="chip-button" onClick={() => void handleDownloadTemplate('employees')} type="button">下载员工模板</button>

@@ -1,4 +1,4 @@
-﻿interface CalibrationCompareRow {
+interface CalibrationCompareRow {
   code: string;
   label: string;
   aiScore: number;
@@ -17,6 +17,7 @@ export function CalibrationCompareTable({ rows }: CalibrationCompareTableProps) 
         <div>
           <p className="eyebrow">校准对比</p>
           <h3 className="section-title">AI 与人工评分对照</h3>
+          <p className="mt-2 text-sm leading-6 text-steel">查看分差和复核说明。</p>
         </div>
         <span className="text-sm text-steel">{rows.length} 条记录</span>
       </div>
@@ -28,7 +29,7 @@ export function CalibrationCompareTable({ rows }: CalibrationCompareTableProps) 
               <th>AI 评分</th>
               <th>人工评分</th>
               <th>差值</th>
-              <th>说明</th>
+              <th>复核说明</th>
             </tr>
           </thead>
           <tbody>
@@ -44,7 +45,7 @@ export function CalibrationCompareTable({ rows }: CalibrationCompareTableProps) 
                   <td>{row.aiScore}</td>
                   <td>{row.manualScore}</td>
                   <td className={`font-semibold ${deltaClass}`}>{delta > 0 ? `+${delta}` : `${delta}`}</td>
-                  <td>{row.note}</td>
+                  <td>{row.note || '暂无补充说明'}</td>
                 </tr>
               );
             })}

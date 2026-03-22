@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -136,7 +136,7 @@ export function DashboardPage() {
   return (
     <AppShell
       title="组织洞察看板"
-      description="以运营视角查看当前范围内的预算占用、能力分布、高潜画像和部门热度。"
+      description="查看预算、分布和 ROI。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>

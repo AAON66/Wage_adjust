@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.error import HTTPError, URLError
+from urllib.parse import unquote, urlparse
 from urllib.request import Request, urlopen
 
 from fastapi import UploadFile
@@ -91,30 +92,80 @@ class FileService:
             self.db.refresh(item)
         return saved_files
 
+    def _github_archive_url(self, owner: str, repo: str, ref: str | None = None) -> tuple[str, str]:
+        archive_url = f'https://api.github.com/repos/{owner}/{repo}/zipball'
+        if ref:
+            archive_url = f'{archive_url}/{ref}'
+        safe_ref = ref.replace('/', '-') if ref else None
+        file_name = f'{repo}-{safe_ref}.zip' if safe_ref else f'{repo}.zip'
+        return archive_url, file_name
+
+    def _build_remote_request(self, remote_url: str) -> Request:
+        headers = {'User-Agent': 'wage-adjust-platform'}
+        host = urlparse(remote_url).netloc.lower()
+        if host == 'api.github.com':
+            headers['Accept'] = 'application/vnd.github+json'
+        elif host == 'raw.githubusercontent.com':
+            headers['Accept'] = 'application/octet-stream'
+        return Request(remote_url, headers=headers)
+
+    def _normalize_github_repo(self, owner: str, repo: str) -> tuple[str, str]:
+        normalized_owner = unquote(owner).strip()
+        normalized_repo = unquote(repo).strip()
+        if normalized_repo.endswith('.git'):
+            normalized_repo = normalized_repo[:-4]
+        if not normalized_owner or not normalized_repo:
+            raise ValueError('Unsupported GitHub link.')
+        return normalized_owner, normalized_repo
+
     def _normalize_github_raw_url(self, url: str) -> tuple[str, str]:
         parsed = urlparse(url)
         host = parsed.netloc.lower()
         parts = [part for part in parsed.path.split('/') if part]
 
-        if host in {'raw.githubusercontent.com'}:
+        if host == 'raw.githubusercontent.com':
             if len(parts) < 4:
                 raise ValueError('Unsupported GitHub file URL.')
             return url, parts[-1]
 
         if host in {'github.com', 'www.github.com'}:
-            if len(parts) >= 5 and parts[2] == 'blob':
-                owner, repo, _, branch = parts[:4]
-                file_parts = parts[4:]
-                file_path = '/'.join(file_parts)
-                raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/{branch}/{file_path}'
-                return raw_url, file_parts[-1]
+            if len(parts) < 2:
+                raise ValueError('Unsupported GitHub link.')
 
-        raise ValueError('Only GitHub file links are supported.')
+            owner, repo = self._normalize_github_repo(parts[0], parts[1])
+            if len(parts) == 2:
+                return self._github_archive_url(owner, repo)
+
+            if len(parts) >= 4 and parts[2] == 'blob':
+                ref = parts[3]
+                file_parts = parts[4:]
+                if not file_parts:
+                    raise ValueError('Unsupported GitHub file URL.')
+                file_path = '/'.join(file_parts)
+                raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{file_path}'
+                return raw_url, unquote(file_parts[-1])
+
+            if len(parts) >= 4 and parts[2] == 'tree':
+                ref = parts[3]
+                return self._github_archive_url(owner, repo, ref)
+
+            return self._github_archive_url(owner, repo)
+
+        raise ValueError('Only GitHub repository, branch, folder, or file links are supported.')
 
     def _download_remote_file(self, raw_url: str) -> bytes:
-        request = Request(raw_url, headers={'User-Agent': 'wage-adjust-platform'})
-        with urlopen(request, timeout=15) as response:
-            return response.read()
+        request = self._build_remote_request(raw_url)
+        try:
+            with urlopen(request, timeout=15) as response:
+                return response.read()
+        except HTTPError as exc:
+            if exc.code in {401, 403, 404}:
+                raise ValueError('Unable to download from GitHub. Please confirm the link is correct and the repository is public.') from exc
+            raise ValueError(f'GitHub returned HTTP {exc.code} while downloading the link.') from exc
+        except URLError as exc:
+            raise ValueError('Unable to reach GitHub right now. Please try again later.') from exc
+        except TimeoutError as exc:
+            raise ValueError('Timed out while downloading from GitHub. Please try again later.') from exc
 
     def import_github_file(self, submission_id: str, url: str) -> UploadedFile:
         submission = self.get_submission(submission_id)

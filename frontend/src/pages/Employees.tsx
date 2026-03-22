@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
@@ -71,7 +71,7 @@ export function EmployeesPage() {
   return (
     <AppShell
       title="员工评估列表"
-      description="按部门、岗位族和状态筛选员工，进入详情后继续处理材料、评估和调薪流程。"
+      description="筛选员工并进入评估详情。"
       actions={
         <>
           <Link className="chip-button" to="/workspace">返回工作台</Link>

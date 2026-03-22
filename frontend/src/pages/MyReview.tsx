@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -230,7 +230,7 @@ export function MyReviewPage() {
   return (
     <AppShell
       title="个人评估中心"
-      description="在当前评估周期内维护个人材料、导入 GitHub 文件、查看解析结果与 AI 提取证据。"
+      description="维护个人材料并查看评估进展。"
       actions={
         <div className="flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-[#edf3ff] px-4 py-2 text-sm text-[#2750b6]">当前角色：{getRoleLabel(user?.role)}</span>
@@ -244,7 +244,7 @@ export function MyReviewPage() {
       {!isLoading && !employee ? (
         <section className="surface px-6 py-8">
           <h2 className="text-2xl font-semibold text-ink">暂未匹配到你的员工档案</h2>
-          <p className="mt-3 text-sm leading-7 text-steel">当前账号已经是员工角色，但系统里还没有与你绑定的员工档案。请联系系统管理员或 HRBP 完成账号与员工档案绑定。</p>
+          <p className="mt-3 text-sm leading-7 text-steel">当前账号尚未绑定员工档案，请联系管理员或 HRBP。</p>
         </section>
       ) : null}
 

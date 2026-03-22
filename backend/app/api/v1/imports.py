@@ -5,7 +5,13 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_current_user, get_db, require_roles
-from backend.app.schemas.import_job import ImportJobListResponse, ImportJobRead
+from backend.app.schemas.import_job import (
+    BulkImportJobDeleteRequest,
+    BulkImportJobDeleteResponse,
+    ImportJobDeleteResponse,
+    ImportJobListResponse,
+    ImportJobRead,
+)
 from backend.app.services.import_service import ImportService
 
 router = APIRouter(prefix='/imports', tags=['imports'])
@@ -47,6 +53,31 @@ def get_import_job(
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Import job not found.')
     return ImportJobRead.model_validate(job)
+
+
+@router.delete('/jobs/{job_id}', response_model=ImportJobDeleteResponse)
+def delete_import_job(
+    job_id: str,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> ImportJobDeleteResponse:
+    service = ImportService(db)
+    try:
+        deleted_job_id = service.delete_job(job_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    return ImportJobDeleteResponse(deleted_job_id=deleted_job_id)
+
+
+@router.post('/jobs/bulk-delete', response_model=BulkImportJobDeleteResponse)
+def bulk_delete_import_jobs(
+    payload: BulkImportJobDeleteRequest,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> BulkImportJobDeleteResponse:
+    service = ImportService(db)
+    deleted_job_ids = service.bulk_delete_jobs(payload.job_ids)
+    return BulkImportJobDeleteResponse(deleted_job_ids=deleted_job_ids)
 
 
 @router.get('/templates/{import_type}')

@@ -1,4 +1,4 @@
-﻿import type { UserProfile } from '../types/api';
+import type { UserProfile } from '../types/api';
 
 export interface WorkspaceModuleLink {
   title: string;
@@ -20,41 +20,39 @@ const ROLE_HOME_PATHS: Record<string, string> = {
   employee: '/my-review',
 };
 
-const SETTINGS_MODULE = { title: '账号设置', description: '修改个人密码；如为初始密码登录，需先在此完成改密。', href: '/settings' };
-const EMPLOYEE_ARCHIVE_MODULE = { title: '员工档案', description: '绑定平台账号与员工档案，并维护员工手册解析库。', href: '/employee-admin' };
+const SETTINGS_MODULE = { title: '账号设置', description: '查看账号并修改密码。', href: '/settings' };
+const EMPLOYEE_ARCHIVE_MODULE = { title: '员工档案', description: '处理档案、绑定、导入和手册。', href: '/employee-admin' };
 
 const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
   admin: [
-    { title: '员工评估', description: '查看员工列表、详情与评估流转。', href: '/employees' },
-    { title: '创建周期', description: '创建新的评估周期和预算计划。', href: '/cycles/create' },
-    { title: '调薪模拟', description: '测算预算与建议涨幅的组合结果。', href: '/salary-simulator' },
-    { title: '审批中心', description: '追踪待审批与历史审批状态。', href: '/approvals' },
-    { title: '组织看板', description: '查看分布、热力和 ROI 快照。', href: '/dashboard' },
-    { title: '导入中心', description: '下载模板、上传 CSV、查看任务结果。', href: '/import-center' },
-    { title: '平台账号', description: '可管理员工、主管和 HRBP 账号；不能修改同级管理员。', href: '/user-admin' },
+    { title: '员工评估', description: '查看员工与评估流转。', href: '/employees' },
+    { title: '创建周期', description: '新建周期与预算。', href: '/cycles/create' },
+    { title: '调薪模拟', description: '查看预算与建议方案。', href: '/salary-simulator' },
+    { title: '审批中心', description: '处理待审批与历史记录。', href: '/approvals' },
+    { title: '组织看板', description: '查看分布、热力和 ROI。', href: '/dashboard' },
+    { title: '平台账号', description: '管理账号与权限范围。', href: '/user-admin' },
     EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
   hrbp: [
-    { title: '员工评估', description: '查看员工评估进度与人工复核结果。', href: '/employees' },
-    { title: '调薪模拟', description: '测算预算占用与建议方案。', href: '/salary-simulator' },
-    { title: '审批中心', description: '处理待审批调薪建议。', href: '/approvals' },
-    { title: '组织看板', description: '查看组织分布和高潜画像。', href: '/dashboard' },
-    { title: '导入中心', description: '管理员工与材料导入任务。', href: '/import-center' },
-    { title: '平台账号', description: '仅可管理员工账号，不能修改主管、HRBP 或管理员。', href: '/user-admin' },
+    { title: '员工评估', description: '查看评估进度与复核结果。', href: '/employees' },
+    { title: '调薪模拟', description: '查看预算占用与建议方案。', href: '/salary-simulator' },
+    { title: '审批中心', description: '处理待审批建议。', href: '/approvals' },
+    { title: '组织看板', description: '查看组织分布和高潜。', href: '/dashboard' },
+    { title: '平台账号', description: '管理员工账号。', href: '/user-admin' },
     EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
   manager: [
-    { title: '员工评估', description: '查看团队成员评估详情和材料准备情况。', href: '/employees' },
-    { title: '审批中心', description: '处理分配给你的审批任务。', href: '/approvals' },
-    { title: '组织看板', description: '查看团队在整体评估中的分布表现。', href: '/dashboard' },
-    { title: '平台账号', description: '仅可管理员工账号，不能修改主管、HRBP 或管理员。', href: '/user-admin' },
+    { title: '员工评估', description: '查看团队评估与材料。', href: '/employees' },
+    { title: '审批中心', description: '处理分配给你的审批。', href: '/approvals' },
+    { title: '组织看板', description: '查看团队分布表现。', href: '/dashboard' },
+    { title: '平台账号', description: '管理员工账号。', href: '/user-admin' },
     EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
   employee: [
-    { title: '个人评估中心', description: '查看个人材料、评估状态和当前周期进展。', href: '/my-review' },
+    { title: '个人评估中心', description: '查看材料与评估进展。', href: '/my-review' },
     SETTINGS_MODULE,
   ],
 };

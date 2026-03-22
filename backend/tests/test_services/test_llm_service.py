@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 
@@ -6,7 +6,7 @@ import httpx
 
 from backend.app.core.config import Settings
 from backend.app.parsers.base_parser import ParsedDocument
-from backend.app.services.llm_service import DeepSeekService
+from backend.app.services.llm_service import DeepSeekPromptLibrary, DeepSeekService
 
 
 def test_llm_service_uses_fallback_when_not_configured() -> None:
@@ -54,3 +54,9 @@ def test_llm_service_parses_json_response_with_retry() -> None:
     assert result.used_fallback is False
     assert result.payload['summary'] == 'structured output'
     assert calls['count'] == 2
+
+def test_evaluation_prompt_requires_chinese_output() -> None:
+    messages = DeepSeekPromptLibrary().build_evaluation_messages({'name': '张三'}, [{'summary': '项目成果'}])
+    system_prompt = messages[0]['content']
+    assert 'Chinese-speaking managers and HR reviewers' in system_prompt
+    assert 'Simplified Chinese' in system_prompt
