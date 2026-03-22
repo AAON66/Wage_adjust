@@ -19,9 +19,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render() {
     if (this.state.hasError) {
       return (
-        <div className="rounded-[24px] bg-rose-50 p-6 text-rose-700 shadow-panel">
-          <h2 className="text-xl font-semibold">Something went wrong.</h2>
-          <p className="mt-2 text-sm">Refresh the page or revisit this workflow after the dependent API is available.</p>
+        <div style={{ borderRadius: 8, background: 'var(--color-danger-bg)', border: '1px solid var(--color-danger-border)', padding: '20px 24px', color: 'var(--color-danger)' }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600 }}>页面加载出错。</h2>
+          <p style={{ marginTop: 6, fontSize: 13 }}>请刷新页面重试，或联系管理员。</p>
         </div>
       );
     }

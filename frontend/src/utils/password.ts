@@ -1,7 +1,7 @@
 ﻿export interface PasswordStrength {
   score: number;
   label: string;
-  toneClass: string;
+  toneStyle: { background: string; color: string };
   hint: string;
 }
 
@@ -55,7 +55,7 @@ export function assessPasswordStrength(password: string): PasswordStrength {
     return {
       score: 0,
       label: '未设置',
-      toneClass: 'bg-slate-100 text-slate-500',
+      toneStyle: { background: 'var(--color-bg-subtle)', color: 'var(--color-placeholder)' },
       hint: '建议使用不少于 12 位，并混合大小写字母、数字和符号。',
     };
   }
@@ -64,7 +64,7 @@ export function assessPasswordStrength(password: string): PasswordStrength {
     return {
       score,
       label: '较弱',
-      toneClass: 'bg-rose-50 text-rose-600',
+      toneStyle: { background: 'var(--color-danger-bg)', color: 'var(--color-danger)' },
       hint: '建议补充大小写字母、数字和符号，并增加密码长度。',
     };
   }
@@ -73,7 +73,7 @@ export function assessPasswordStrength(password: string): PasswordStrength {
     return {
       score,
       label: '中等',
-      toneClass: 'bg-amber-50 text-amber-600',
+      toneStyle: { background: 'var(--color-warning-bg)', color: 'var(--color-warning)' },
       hint: '已具备基本强度，建议继续增加长度或符号组合。',
     };
   }
@@ -81,7 +81,7 @@ export function assessPasswordStrength(password: string): PasswordStrength {
   return {
     score,
     label: '较强',
-    toneClass: 'bg-emerald-50 text-emerald-700',
+    toneStyle: { background: 'var(--color-success-bg)', color: 'var(--color-success)' },
     hint: '密码强度较好，适合作为内部平台账号密码。',
   };
 }

@@ -128,7 +128,7 @@ export function ImportCenterPage() {
         </>
       }
     >
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
 
       <section className="metric-strip animate-fade-up">
         {[
@@ -169,7 +169,7 @@ export function ImportCenterPage() {
           </label>
           <label className="surface-subtle px-4 py-4">
             <span className="text-sm text-steel">上传文件</span>
-            <input accept=".csv,.xlsx,.xls" className="mt-3 block w-full text-sm text-steel file:mr-3 file:rounded-full file:border-0 file:bg-[#edf3ff] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#2750b6]" id="import-file-input" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} type="file" />
+            <input accept=".csv,.xlsx,.xls" className="toolbar-input mt-3 w-full" id="import-file-input" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} style={{ height: 'auto', padding: '6px 10px' }} type="file" />
             <p className="mt-3 text-xs leading-5 text-steel">请根据模板要求准备文件后再导入，系统会按任务结果返回成功与失败明细。</p>
           </label>
           <div className="flex items-end">

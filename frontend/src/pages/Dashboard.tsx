@@ -25,6 +25,7 @@ function colorForLabel(label: string): string {
   if (label.includes('二级')) return 'bg-sky-200';
   return 'bg-slate-300';
 }
+// Note: colorClass values are mapped to CSS variables in DistributionChart's BAR_COLORS map
 
 function localizeOverviewLabel(label: string): string {
   return {
@@ -144,7 +145,7 @@ export function DashboardPage() {
         </>
       }
     >
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载组织看板...</p> : null}
       <OverviewCards items={overviewItems} />
       <section className="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">

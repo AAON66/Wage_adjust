@@ -1,4 +1,6 @@
-﻿const STATUS_LABELS: Record<string, string> = {
+import type React from 'react';
+
+const STATUS_LABELS: Record<string, string> = {
   collecting: '收集中',
   submitted: '已提交',
   parsing: '解析中',
@@ -18,25 +20,27 @@
   parsed: '已解析',
 };
 
-const STATUS_STYLES: Record<string, string> = {
-  collecting: 'bg-slate-100 text-slate-700',
-  submitted: 'bg-sky-100 text-sky-700',
-  parsing: 'bg-amber-100 text-amber-700',
-  evaluated: 'bg-emerald-100 text-emerald-700',
-  reviewing: 'bg-orange-100 text-orange-700',
-  calibrated: 'bg-indigo-100 text-indigo-700',
-  approved: 'bg-teal-100 text-teal-700',
-  published: 'bg-violet-100 text-violet-700',
-  active: 'bg-emerald-100 text-emerald-700',
-  inactive: 'bg-slate-200 text-slate-700',
-  pending: 'bg-amber-100 text-amber-700',
-  completed: 'bg-emerald-100 text-emerald-700',
-  failed: 'bg-rose-100 text-rose-700',
-  queued: 'bg-slate-100 text-slate-700',
-  processing: 'bg-amber-100 text-amber-700',
-  rejected: 'bg-rose-100 text-rose-700',
-  parsed: 'bg-emerald-100 text-emerald-700',
+const STATUS_STYLES: Record<string, React.CSSProperties> = {
+  collecting:  { background: 'var(--color-bg-subtle)',    color: 'var(--color-steel)' },
+  submitted:   { background: 'var(--color-info-bg)',      color: 'var(--color-info)' },
+  parsing:     { background: 'var(--color-warning-bg)',   color: 'var(--color-warning)' },
+  evaluated:   { background: 'var(--color-success-bg)',   color: 'var(--color-success)' },
+  reviewing:   { background: 'var(--color-warning-bg)',   color: 'var(--color-warning)' },
+  calibrated:  { background: '#EDE9FE',                   color: '#6D28D9' },
+  approved:    { background: 'var(--color-success-bg)',   color: 'var(--color-success)' },
+  published:   { background: '#EDE9FE',                   color: '#6D28D9' },
+  active:      { background: 'var(--color-success-bg)',   color: 'var(--color-success)' },
+  inactive:    { background: 'var(--color-bg-subtle)',    color: 'var(--color-steel)' },
+  pending:     { background: 'var(--color-warning-bg)',   color: 'var(--color-warning)' },
+  completed:   { background: 'var(--color-success-bg)',   color: 'var(--color-success)' },
+  failed:      { background: 'var(--color-danger-bg)',    color: 'var(--color-danger)' },
+  queued:      { background: 'var(--color-bg-subtle)',    color: 'var(--color-steel)' },
+  processing:  { background: 'var(--color-warning-bg)',   color: 'var(--color-warning)' },
+  rejected:    { background: 'var(--color-danger-bg)',    color: 'var(--color-danger)' },
+  parsed:      { background: 'var(--color-success-bg)',   color: 'var(--color-success)' },
 };
+
+const DEFAULT_STYLE: React.CSSProperties = { background: 'var(--color-bg-subtle)', color: 'var(--color-steel)' };
 
 interface StatusIndicatorProps {
   status: string;
@@ -45,7 +49,7 @@ interface StatusIndicatorProps {
 export function StatusIndicator({ status }: StatusIndicatorProps) {
   const normalized = status.toLowerCase();
   const label = STATUS_LABELS[normalized] ?? status;
-  const style = STATUS_STYLES[normalized] ?? 'bg-slate-100 text-slate-700';
+  const style = STATUS_STYLES[normalized] ?? DEFAULT_STYLE;
 
-  return <span className={`status-pill ${style}`}>{label}</span>;
+  return <span className="status-pill" style={style}>{label}</span>;
 }

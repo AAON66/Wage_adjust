@@ -55,7 +55,7 @@ export function RegisterForm({ isSubmitting, errorMessage, onSubmit }: RegisterF
           ))}
         </select>
       </label>
-      {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{errorMessage}</p> : null}
       <button className="action-primary w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? '注册中...' : '创建账号'}
       </button>

@@ -238,7 +238,7 @@ export function MyReviewPage() {
         </div>
       }
     >
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载个人评估中心...</p> : null}
 
       {!isLoading && !employee ? (

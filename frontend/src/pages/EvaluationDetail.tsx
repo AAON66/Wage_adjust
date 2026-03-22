@@ -1214,8 +1214,8 @@ export function EvaluationDetailPage() {
       }
     >
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载员工评估详情...</p> : null}
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
-      {successMessage ? <p className="surface px-5 py-4 text-sm text-emerald-700">{successMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
+      {successMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-success)" }}>{successMessage}</p> : null}
 
       {employee ? (
         <>

@@ -39,7 +39,7 @@ export function LoginForm({ isSubmitting, errorMessage, onSubmit }: LoginFormPro
           value={password}
         />
       </label>
-      {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{errorMessage}</p> : null}
       <button className="action-primary w-full" disabled={isSubmitting} type="submit">
         {isSubmitting ? '登录中...' : '登录系统'}
       </button>

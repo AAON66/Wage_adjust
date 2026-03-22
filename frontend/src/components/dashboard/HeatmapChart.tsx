@@ -1,4 +1,4 @@
-﻿interface HeatmapCell {
+interface HeatmapCell {
   department: string;
   level: string;
   intensity: number;
@@ -8,11 +8,11 @@ interface HeatmapChartProps {
   cells: HeatmapCell[];
 }
 
-function intensityClass(intensity: number): string {
-  if (intensity >= 80) return 'border-[#2d5cff]/20 bg-[linear-gradient(180deg,#4179ff_0%,#2d5cff_100%)] text-white shadow-[0_18px_36px_rgba(51,112,255,0.22)]';
-  if (intensity >= 60) return 'border-[#d5e2ff] bg-[linear-gradient(180deg,#eff4ff_0%,#dde8ff_100%)] text-[#1d3ea8]';
-  if (intensity >= 40) return 'border-[#dde7f6] bg-[linear-gradient(180deg,#f6f9ff_0%,#edf3ff_100%)] text-[#365a99]';
-  return 'border-[#e3ebf8] bg-[linear-gradient(180deg,#fbfdff_0%,#f6f9ff_100%)] text-steel';
+function intensityStyle(intensity: number): React.CSSProperties {
+  if (intensity >= 80) return { background: 'var(--color-primary)', border: '1px solid var(--color-primary)', color: '#FFFFFF' };
+  if (intensity >= 60) return { background: 'var(--color-primary-light)', border: '1px solid var(--color-primary-border)', color: 'var(--color-primary)' };
+  if (intensity >= 40) return { background: '#EEF3FE', border: '1px solid var(--color-border)', color: 'var(--color-ink)' };
+  return { background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', color: 'var(--color-steel)' };
 }
 
 function localizeLevel(level: string): string {
@@ -25,6 +25,8 @@ function localizeLevel(level: string): string {
   }[level] ?? level;
 }
 
+import type React from 'react';
+
 export function HeatmapChart({ cells }: HeatmapChartProps) {
   return (
     <section className="surface animate-fade-up px-6 py-6 lg:px-7">
@@ -35,17 +37,23 @@ export function HeatmapChart({ cells }: HeatmapChartProps) {
         </div>
         <p className="text-sm text-steel">按部门与优势等级聚合</p>
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cells.map((cell) => (
-          <article className={`rounded-[24px] border px-5 py-5 transition duration-200 hover:-translate-y-0.5 ${intensityClass(cell.intensity)}`} key={`${cell.department}-${cell.level}`}>
-            <p className="text-xs uppercase tracking-[0.18em] opacity-80">{localizeLevel(cell.level)}</p>
-            <h4 className="mt-3 text-lg font-semibold">{cell.department}</h4>
-            <div className="mt-4 flex items-end justify-between gap-3">
-              <p className="text-sm opacity-90">综合热度</p>
-              <p className="text-2xl font-semibold tracking-[-0.03em]">{cell.intensity}</p>
+          <article
+            key={`${cell.department}-${cell.level}`}
+            style={{ borderRadius: 8, padding: '14px 16px', ...intensityStyle(cell.intensity) }}
+          >
+            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.10em', opacity: 0.7 }}>{localizeLevel(cell.level)}</p>
+            <h4 style={{ marginTop: 8, fontSize: 15, fontWeight: 600, lineHeight: 1.3 }}>{cell.department}</h4>
+            <div style={{ marginTop: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+              <p style={{ fontSize: 12, opacity: 0.8 }}>综合热度</p>
+              <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>{cell.intensity}</p>
             </div>
           </article>
         ))}
+        {!cells.length ? (
+          <p style={{ fontSize: 13, color: 'var(--color-steel)', gridColumn: '1/-1' }}>暂无热度数据。</p>
+        ) : null}
       </div>
     </section>
   );

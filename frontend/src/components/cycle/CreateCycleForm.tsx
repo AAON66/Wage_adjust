@@ -63,7 +63,7 @@ export function CreateCycleForm({
           {isEditing ? <option value="published">已发布</option> : null}
         </select>
       </label>
-      {errorMessage ? <p className="text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="text-sm" style={{ color: 'var(--color-danger)' }}>{errorMessage}</p> : null}
       <div className="flex flex-wrap gap-3">
         <button className="action-primary" disabled={isSubmitting} type="submit">
           {isSubmitting ? (isEditing ? '保存中...' : '创建中...') : (isEditing ? '保存周期修改' : '创建评估周期')}

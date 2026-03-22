@@ -137,7 +137,7 @@ export function ApprovalsPage() {
         </div>
       </section>
 
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载审批列表...</p> : null}
 
       {!isLoading && rows.length === 0 ? (
@@ -148,7 +148,7 @@ export function ApprovalsPage() {
             <Link className="action-primary" to="/employees">前往员工评估</Link>
             <Link className="chip-button" to="/salary-simulator">查看调薪模拟</Link>
           </div>
-          {!canSubmitApproval ? <p className="mt-4 text-sm text-amber-700">当前账号角色无法提交审批。请使用主管、HRBP 或管理员账号发起审批。</p> : null}
+          {!canSubmitApproval ? <p className="mt-4 text-sm" style={{ color: "var(--color-warning)" }}>当前账号角色无法提交审批。请使用主管、HRBP 或管理员账号发起审批。</p> : null}
         </section>
       ) : (
         <ApprovalTable

@@ -14,7 +14,7 @@ export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
   if (isBootstrapping) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-sand px-6 text-ink">
-        <div className="rounded-full bg-white px-5 py-3 text-sm font-medium shadow-panel">正在校验登录状态...</div>
+        <div className="surface px-5 py-3 text-sm font-medium">正在校验登录状态...</div>
       </main>
     );
   }

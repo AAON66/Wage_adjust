@@ -153,7 +153,7 @@ export function SalarySimulatorPage() {
       />
 
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载调薪模拟...</p> : null}
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
 
       <section className="surface" style={{ padding: '16px 20px' }}>
         <div className="section-head">

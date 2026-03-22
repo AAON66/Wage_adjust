@@ -39,7 +39,7 @@ export function BudgetSimulationPanel({
 
   return (
     <section className="surface animate-fade-up px-6 py-6 lg:px-7">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e6eef9] pb-4">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, borderBottom: '1px solid var(--color-border)', paddingBottom: 14, marginBottom: 16 }}>
         <div>
           <p className="eyebrow">Simulation</p>
           <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">调薪建议沙盘</h2>
@@ -47,7 +47,7 @@ export function BudgetSimulationPanel({
         </div>
         <div className="surface-subtle px-5 py-4 text-right">
           <p className="text-sm text-steel">剩余预算</p>
-          <p className={`mt-2 text-[28px] font-semibold tracking-[-0.03em] ${remainingBudget >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+          <p style={{ marginTop: 8, fontSize: 26, fontWeight: 600, letterSpacing: '-0.03em', color: remainingBudget >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
             {formatCurrency(remainingBudget)}
           </p>
         </div>

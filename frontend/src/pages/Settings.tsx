@@ -129,7 +129,7 @@ export function SettingsPage() {
             <div className="surface-subtle px-4 py-4">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-sm font-medium text-ink">密码强度</p>
-                <span className={`rounded-full px-3 py-1 text-xs font-medium ${passwordStrength.toneClass}`}>{passwordStrength.label}</span>
+                <span style={{ borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 500, ...passwordStrength.toneStyle }}>{passwordStrength.label}</span>
               </div>
               <div style={{ marginTop: 10, height: 6, borderRadius: 3, background: 'var(--color-bg-subtle)' }}>
                 <div style={{ height: 6, borderRadius: 3, background: 'var(--color-primary)', transition: 'width 0.2s', width: `${Math.max(passwordStrength.score, 1) * 20}%` }} />

@@ -450,7 +450,7 @@ export function EmployeeAdminPage() {
                     {options.length ? (
                       options.map((employee) => (
                         <button
-                          className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-[#f7faff]"
+                          className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left transition hover:bg-[var(--color-bg-hover)]"
                           key={employee.id}
                           onMouseDown={(event) => event.preventDefault()}
                           onClick={() => selectEmployeeForBinding(item.id, employee)}
@@ -460,7 +460,7 @@ export function EmployeeAdminPage() {
                             <p className="text-sm font-medium text-ink">{employee.name}</p>
                             <p className="mt-1 break-words text-xs leading-5 text-steel">{employee.employee_no} · {employee.department} · {employee.job_family}</p>
                           </div>
-                          {selectedEmployee?.id === employee.id ? <span className="shrink-0 text-xs font-medium text-[#2750b6]">已选</span> : null}
+                          {selectedEmployee?.id === employee.id ? <span className="shrink-0 text-xs font-medium" style={{ color: 'var(--color-primary)' }}>已选</span> : null}
                         </button>
                       ))
                     ) : (
@@ -526,8 +526,8 @@ export function EmployeeAdminPage() {
         ))}
       </section>
 
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
-      {successMessage ? <p className="surface px-5 py-4 text-sm text-emerald-700">{successMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
+      {successMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-success)" }}>{successMessage}</p> : null}
       {isLoading ? <p className="surface px-5 py-4 text-sm text-steel">正在加载员工档案管理数据...</p> : null}
 
       <section className="surface" style={{ padding: '20px 24px' }}>
@@ -555,7 +555,7 @@ export function EmployeeAdminPage() {
               <label className="surface-subtle px-4 py-4"><span className="text-sm text-steel">岗位级别</span><input className="toolbar-input mt-3 w-full" onChange={(event) => updateEmployeeForm('job_level', event.target.value)} placeholder="例如 P6" value={employeeForm.job_level} /></label>
               <label className="surface-subtle px-4 py-4"><span className="text-sm text-steel">在职状态</span><select className="toolbar-input mt-3 w-full" onChange={(event) => updateEmployeeForm('status', event.target.value)} value={employeeForm.status}><option value="active">在职</option><option value="inactive">停用</option></select></label>
             </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#e6eef9] pt-4">
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-4">
               <p className="text-sm text-steel">新建完成后，员工档案会立即出现在绑定区和批量管理范围内。</p>
               <div className="flex flex-wrap gap-3">
                 <button className="action-secondary" onClick={() => setEmployeeForm(INITIAL_EMPLOYEE_FORM)} type="button">清空表单</button>
@@ -581,8 +581,8 @@ export function EmployeeAdminPage() {
             <div className="surface-subtle px-4 py-4 text-sm text-steel">已绑定账号 {boundManageableUsers.length} 个，待绑定账号 {unboundManageableUsers.length} 个。</div>
           </div>
           <div className="mt-5 space-y-5">
-            <section className="surface-subtle px-5 py-5"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6eef9] pb-3"><div><p className="text-sm font-semibold text-ink">已绑定账号</p><p className="mt-1 text-sm text-steel">默认展示已经完成绑定的账号，方便直接查看和调整当前绑定关系。</p></div><span className="chip-button">{boundManageableUsers.length} 个</span></div><div className="mt-4 grid gap-4">{boundManageableUsers.length ? boundManageableUsers.map((item) => renderBindingCard(item)) : <p className="text-sm text-steel">当前还没有已绑定的账号。</p>}</div></section>
-            <section className="surface-subtle px-5 py-5"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#e6eef9] pb-3"><div><p className="text-sm font-semibold text-ink">待绑定账号</p><p className="mt-1 text-sm text-steel">这里保留还没有关联员工档案的平台账号，适合逐个完成绑定。</p></div><span className="chip-button">{unboundManageableUsers.length} 个</span></div><div className="mt-4 grid gap-4">{unboundManageableUsers.length ? unboundManageableUsers.map((item) => renderBindingCard(item)) : <p className="text-sm text-steel">当前没有待绑定账号。</p>}</div></section>
+            <section className="surface-subtle px-5 py-5"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3"><div><p className="text-sm font-semibold text-ink">已绑定账号</p><p className="mt-1 text-sm text-steel">默认展示已经完成绑定的账号，方便直接查看和调整当前绑定关系。</p></div><span className="chip-button">{boundManageableUsers.length} 个</span></div><div className="mt-4 grid gap-4">{boundManageableUsers.length ? boundManageableUsers.map((item) => renderBindingCard(item)) : <p className="text-sm text-steel">当前还没有已绑定的账号。</p>}</div></section>
+            <section className="surface-subtle px-5 py-5"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-border)] pb-3"><div><p className="text-sm font-semibold text-ink">待绑定账号</p><p className="mt-1 text-sm text-steel">这里保留还没有关联员工档案的平台账号，适合逐个完成绑定。</p></div><span className="chip-button">{unboundManageableUsers.length} 个</span></div><div className="mt-4 grid gap-4">{unboundManageableUsers.length ? unboundManageableUsers.map((item) => renderBindingCard(item)) : <p className="text-sm text-steel">当前没有待绑定账号。</p>}</div></section>
           </div>
         </section>
       ) : null}
@@ -593,9 +593,9 @@ export function EmployeeAdminPage() {
             <div className="section-head"><div><p className="eyebrow">批量导入</p><h2 className="section-title">员工档案批量导入</h2><p className="section-note mt-2">下载模板、导入文件、查看结果。</p></div><div className="flex flex-wrap gap-2"><button className="chip-button" onClick={() => void handleDownloadTemplate('employees')} type="button">下载员工模板</button></div></div>
             <div className="mt-5 grid gap-4 lg:grid-cols-[220px_1fr]">
               <label className="surface-subtle px-4 py-4"><span className="text-sm text-steel">导入类型</span><select className="toolbar-input mt-3 w-full" onChange={(event) => setSelectedImportType(event.target.value)} value={selectedImportType}>{IMPORT_TYPES.map((item) => (<option key={item.value} value={item.value}>{item.label}</option>))}</select></label>
-              <label className="surface-subtle px-4 py-4"><span className="text-sm text-steel">选择文件</span><input accept=".csv,.xlsx,.xls" className="mt-3 block w-full text-sm text-steel file:mr-3 file:rounded-full file:border-0 file:bg-[#edf3ff] file:px-4 file:py-2 file:text-sm file:font-medium file:text-[#2750b6]" id="employee-admin-import-input" onChange={(event) => setSelectedImportFile(event.target.files?.[0] ?? null)} type="file" /><p className="mt-3 text-xs leading-5 text-steel">建议先下载模板后再导入，系统会返回任务处理结果和可导出的报告。</p></label>
+              <label className="surface-subtle px-4 py-4"><span className="text-sm text-steel">选择文件</span><input accept=".csv,.xlsx,.xls" className="toolbar-input mt-3 w-full" id="employee-admin-import-input" onChange={(event) => setSelectedImportFile(event.target.files?.[0] ?? null)} style={{ height: 'auto', padding: '6px 10px' }} type="file" /><p className="mt-3 text-xs leading-5 text-steel">建议先下载模板后再导入，系统会返回任务处理结果和可导出的报告。</p></label>
             </div>
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#e6eef9] pt-4"><div className="flex flex-wrap gap-3 text-sm text-steel"><span className="chip-button">处理中 {importStats.processing}</span><span className="chip-button">已完成 {importStats.completed}</span><span className="chip-button">总任务 {importStats.total}</span></div><button className="action-primary" disabled={isUploadingImport} onClick={() => void handleUploadImport()} type="button">{isUploadingImport ? '上传中...' : '创建导入任务'}</button></div>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border)] pt-4"><div className="flex flex-wrap gap-3 text-sm text-steel"><span className="chip-button">处理中 {importStats.processing}</span><span className="chip-button">已完成 {importStats.completed}</span><span className="chip-button">总任务 {importStats.total}</span></div><button className="action-primary" disabled={isUploadingImport} onClick={() => void handleUploadImport()} type="button">{isUploadingImport ? '上传中...' : '创建导入任务'}</button></div>
           </section>
           <ImportJobTable onDeleteSelected={() => { void handleDeleteSelectedImportJobs(); }} onExport={(jobId) => { void handleExport(jobId); }} onToggleAll={toggleAllImportSelections} onToggleRow={toggleImportSelection} rows={importJobs.map((job) => ({ id: job.id, fileName: job.file_name, importType: job.import_type, status: job.status, totalRows: job.total_rows, successRows: job.success_rows, failedRows: job.failed_rows }))} selectedIds={selectedImportJobIds} />
           {isDeletingImportJobs ? <p className="surface px-5 py-4 text-sm text-steel">正在删除已选导入记录...</p> : null}
@@ -606,7 +606,7 @@ export function EmployeeAdminPage() {
         <section className="surface px-6 py-6 lg:px-7">
           <div className="section-head"><div><p className="eyebrow">员工手册</p><h2 className="section-title">上传并解析制度文档</h2><p className="section-note mt-2">上传制度文档并查看解析结果。</p></div></div>
           <div className="surface-subtle mt-5 px-5 py-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium text-ink">上传新手册</p><p className="mt-2 text-sm leading-6 text-steel">支持 PDF、Markdown、TXT。上传后自动解析。</p></div><label className={isUploadingHandbook ? 'action-secondary cursor-pointer' : 'action-primary cursor-pointer'}>{isUploadingHandbook ? '上传中...' : '选择手册文件'}<input accept=".pdf,.md,.txt" className="sr-only" onChange={(event) => { void handleUploadHandbook(event.target.files); event.currentTarget.value = ''; }} type="file" /></label></div></div>
-          <div className="mt-5 grid gap-4">{handbooks.map((handbook) => (<article className="list-row p-5" key={handbook.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-base font-semibold text-ink">{handbook.title}</h3><p className="mt-1 text-sm text-steel">{handbook.file_name} · {handbook.file_type.toUpperCase()} · {new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(handbook.created_at))}</p></div><div className="flex flex-wrap items-center gap-2"><span className="status-pill bg-emerald-50 text-emerald-700">{handbook.parse_status === 'parsed' ? '已解析' : handbook.parse_status}</span><button className="action-danger px-4 py-2 text-xs" disabled={deletingHandbookId === handbook.id} onClick={() => void handleDeleteHandbook(handbook)} type="button">{deletingHandbookId === handbook.id ? '删除中...' : '删除'}</button></div></div><p className="mt-4 text-sm leading-6 text-steel">{handbook.summary ?? '当前尚未生成摘要。'}</p>{handbook.key_points_json.length ? (<div className="mt-4 grid gap-2">{handbook.key_points_json.map((point) => (<div className="surface-subtle px-4 py-3 text-sm leading-6 text-ink" key={point}>{point}</div>))}</div>) : null}{handbook.tags_json.length ? (<div className="mt-4 flex flex-wrap gap-2">{handbook.tags_json.map((tag) => (<span className="chip-button" key={tag}>{tag}</span>))}</div>) : null}</article>))}{!handbooks.length ? <p className="text-sm text-steel">当前还没有上传员工手册。</p> : null}</div>
+          <div className="mt-5 grid gap-4">{handbooks.map((handbook) => (<article className="list-row p-5" key={handbook.id}><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-base font-semibold text-ink">{handbook.title}</h3><p className="mt-1 text-sm text-steel">{handbook.file_name} · {handbook.file_type.toUpperCase()} · {new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(handbook.created_at))}</p></div><div className="flex flex-wrap items-center gap-2"><span className="status-pill" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>{handbook.parse_status === 'parsed' ? '已解析' : handbook.parse_status}</span><button className="action-danger px-4 py-2 text-xs" disabled={deletingHandbookId === handbook.id} onClick={() => void handleDeleteHandbook(handbook)} type="button">{deletingHandbookId === handbook.id ? '删除中...' : '删除'}</button></div></div><p className="mt-4 text-sm leading-6 text-steel">{handbook.summary ?? '当前尚未生成摘要。'}</p>{handbook.key_points_json.length ? (<div className="mt-4 grid gap-2">{handbook.key_points_json.map((point) => (<div className="surface-subtle px-4 py-3 text-sm leading-6 text-ink" key={point}>{point}</div>))}</div>) : null}{handbook.tags_json.length ? (<div className="mt-4 flex flex-wrap gap-2">{handbook.tags_json.map((tag) => (<span className="chip-button" key={tag}>{tag}</span>))}</div>) : null}</article>))}{!handbooks.length ? <p className="text-sm text-steel">当前还没有上传员工手册。</p> : null}</div>
         </section>
       ) : null}
     </AppShell>

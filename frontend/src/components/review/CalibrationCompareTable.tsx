@@ -13,13 +13,13 @@ interface CalibrationCompareTableProps {
 export function CalibrationCompareTable({ rows }: CalibrationCompareTableProps) {
   return (
     <section className="table-shell animate-fade-up">
-      <div className="section-head px-6 py-5">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
         <div>
           <p className="eyebrow">校准对比</p>
           <h3 className="section-title">AI 与人工评分对照</h3>
-          <p className="mt-2 text-sm leading-6 text-steel">查看分差和复核说明。</p>
+          <p style={{ marginTop: 4, fontSize: 13, color: 'var(--color-steel)' }}>查看分差和复核说明。</p>
         </div>
-        <span className="text-sm text-steel">{rows.length} 条记录</span>
+        <span style={{ fontSize: 13, color: 'var(--color-steel)' }}>{rows.length} 条记录</span>
       </div>
       <div className="overflow-x-auto">
         <table className="table-lite">

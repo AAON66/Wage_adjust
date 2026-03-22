@@ -166,8 +166,8 @@ export function CreateCyclePage() {
         ))}
       </section>
 
-      {errorMessage ? <p className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</p> : null}
-      {successMessage ? <p className="surface px-5 py-4 text-sm text-emerald-700">{successMessage}</p> : null}
+      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
+      {successMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-success)" }}>{successMessage}</p> : null}
 
       <section className="grid gap-5 lg:grid-cols-[0.96fr_1.04fr]">
         <section className="surface" style={{ padding: '20px 24px' }}>

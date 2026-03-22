@@ -17,10 +17,12 @@ interface ApprovalTableProps {
   onReject?: (approvalId: string) => void;
 }
 
-const STATUS_STYLES: Record<ApprovalRow['status'], string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  approved: 'bg-emerald-100 text-emerald-700',
-  rejected: 'bg-rose-100 text-rose-700',
+import type React from 'react';
+
+const STATUS_STYLES: Record<ApprovalRow['status'], React.CSSProperties> = {
+  pending:  { background: 'var(--color-warning-bg)', color: 'var(--color-warning)' },
+  approved: { background: 'var(--color-success-bg)', color: 'var(--color-success)' },
+  rejected: { background: 'var(--color-danger-bg)',  color: 'var(--color-danger)' },
 };
 
 const STATUS_LABELS: Record<ApprovalRow['status'], string> = {
@@ -32,12 +34,12 @@ const STATUS_LABELS: Record<ApprovalRow['status'], string> = {
 export function ApprovalTable({ rows, processingId = null, onApprove, onReject }: ApprovalTableProps) {
   return (
     <section className="table-shell animate-fade-up">
-      <div className="section-head px-6 py-5">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '14px 16px', borderBottom: '1px solid var(--color-border)' }}>
         <div>
           <p className="eyebrow">审批任务</p>
           <h2 className="section-title">待处理调薪审批</h2>
         </div>
-        <span className="text-sm text-steel">{rows.length} 条记录</span>
+        <span style={{ fontSize: 13, color: 'var(--color-steel)' }}>{rows.length} 条记录</span>
       </div>
 
       <div className="overflow-x-auto">
@@ -69,7 +71,7 @@ export function ApprovalTable({ rows, processingId = null, onApprove, onReject }
                   <td className="font-medium text-ink">{row.recommendedIncrease}</td>
                   <td>{row.approver}</td>
                   <td>
-                    <span className={`status-pill ${STATUS_STYLES[row.status]}`}>{STATUS_LABELS[row.status]}</span>
+                    <span className="status-pill" style={STATUS_STYLES[row.status]}>{STATUS_LABELS[row.status]}</span>
                   </td>
                   <td>
                     {row.canAct && onApprove && onReject ? (
