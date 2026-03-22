@@ -128,15 +128,13 @@ function HomePage() {
           </div>
         </header>
 
-        <section className="surface animate-fade-up relative overflow-hidden px-6 py-7 lg:px-8 lg:py-8" style={{ animationDelay: "60ms" }}>
-          <div className="absolute left-[-6%] top-[-20%] h-64 w-64 rounded-full bg-[#d7e6ff] blur-3xl" />
-          <div className="absolute bottom-[-18%] right-[-4%] h-72 w-72 rounded-full bg-[#eef4ff] blur-3xl" />
-          <div className="relative z-[1] grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
+        <section className="surface animate-fade-up px-6 py-7 lg:px-8 lg:py-8" style={{ animationDelay: "60ms" }}>
+          <div className="grid gap-8 lg:grid-cols-[1.08fr_0.92fr] lg:items-end">
             <div>
-              <span className="inline-flex rounded-full border border-white/80 bg-white/72 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-[#5a7fe7] backdrop-blur-xl">
+              <span style={{ display: 'inline-flex', borderRadius: 4, border: '1px solid var(--color-border)', background: 'var(--color-primary-light)', padding: '3px 10px', fontSize: 11, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--color-primary)' }}>
                 更简洁的首页入口
               </span>
-              <h1 className="mt-5 max-w-3xl text-[38px] font-semibold leading-[1.02] tracking-[-0.06em] text-ink lg:text-[64px]">
+              <h1 className="mt-5 max-w-3xl text-[38px] font-semibold leading-[1.02] tracking-[-0.06em] text-ink lg:text-[48px]">
                 企业内部评估与调薪平台
               </h1>
               <p className="mt-5 max-w-xl text-sm leading-7 text-steel lg:text-[15px]">
@@ -153,18 +151,18 @@ function HomePage() {
               <p className="mt-4 text-sm text-steel">账号由管理员统一开通，登录后会自动回到对应角色工作区。</p>
             </div>
 
-            <div className="relative overflow-hidden rounded-[30px] border border-white/70 bg-white/72 p-5 shadow-[0_22px_70px_rgba(51,112,255,0.12)] backdrop-blur-xl">
+            <div className="surface-subtle p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="eyebrow">流程概览</p>
-                  <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.04em] text-ink">三步完成闭环</h2>
+                  <h2 className="mt-2 text-[22px] font-semibold tracking-[-0.04em] text-ink">三步完成闭环</h2>
                 </div>
-                <span className="rounded-full bg-[#edf3ff] px-3 py-1 text-xs font-medium text-[#2c54bd]">默认只展示核心信息</span>
+                <span style={{ borderRadius: 4, background: 'var(--color-primary-light)', padding: '3px 10px', fontSize: 12, fontWeight: 500, color: 'var(--color-primary)' }}>核心信息</span>
               </div>
-              <div className="mt-6 space-y-3">
+              <div className="mt-5 space-y-3">
                 {journeySteps.map(([step, title, description]) => (
-                  <div className="flex items-start gap-4 rounded-[24px] border border-[#dce6f5] bg-white/76 px-4 py-4" key={step}>
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#edf3ff] text-sm font-semibold text-[#2c54bd]">
+                  <div className="surface flex items-start gap-4 px-4 py-4" key={step}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, flexShrink: 0, borderRadius: 8, background: 'var(--color-primary-light)', fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>
                       {step}
                     </div>
                     <div className="min-w-0">
@@ -188,7 +186,7 @@ function HomePage() {
         </section>
 
         <section className="surface animate-fade-up px-6 py-6 lg:px-7" id="home-details" style={{ animationDelay: "320ms" }}>
-          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#e6eef9] pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4" style={{ borderColor: 'var(--color-border)' }}>
             <div>
               <p className="eyebrow">交互式详情</p>
               <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">点开后再看详细说明</h3>
@@ -218,12 +216,12 @@ function HomePage() {
                 const isExpanded = item.key === expandedItem.key;
                 return (
                   <article
-                    className={
-                      "rounded-[26px] border px-4 py-4 transition duration-200 " +
-                      (isExpanded
-                        ? "border-[#c8d9ff] bg-[#f7faff] shadow-[0_20px_42px_rgba(51,112,255,0.08)]"
-                        : "border-[#dce6f5] bg-white/82")
-                    }
+                    className="border px-4 py-4 transition duration-200"
+                    style={{
+                      borderRadius: 8,
+                      borderColor: isExpanded ? 'var(--color-primary-border)' : 'var(--color-border)',
+                      background: isExpanded ? 'var(--color-primary-light)' : 'var(--color-bg-surface)',
+                    }}
                     key={item.key}
                   >
                     <button
@@ -236,12 +234,12 @@ function HomePage() {
                         <h4 className="text-base font-semibold text-ink">{item.title}</h4>
                         <p className="mt-1 text-sm leading-6 text-steel">{item.summary}</p>
                       </div>
-                      <span className={"mt-1 text-xs font-semibold text-[#4b72d9] transition " + (isExpanded ? "rotate-45" : "")}>+</span>
+                      <span style={{ marginTop: 4, fontSize: 12, fontWeight: 600, color: 'var(--color-primary)', transition: 'transform 0.2s', display: 'inline-block', transform: isExpanded ? 'rotate(45deg)' : 'none' }}>+</span>
                     </button>
                     {isExpanded ? (
-                      <div className="mt-4 border-t border-[#dbe6f8] pt-4">
+                      <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--color-border)' }}>
                         <p className="text-sm leading-7 text-steel">{item.detail}</p>
-                        <Link className="mt-4 inline-flex text-sm font-medium text-[#2d5cff]" to={item.href}>
+                        <Link className="mt-4 inline-flex text-sm font-medium" style={{ color: 'var(--color-primary)' }} to={item.href}>
                           {item.action}
                         </Link>
                       </div>
@@ -255,8 +253,8 @@ function HomePage() {
               <p className="eyebrow">当前详情</p>
               <h4 className="mt-3 text-[30px] font-semibold leading-[1.08] tracking-[-0.05em] text-ink">{expandedItem.title}</h4>
               <p className="mt-4 text-sm leading-7 text-steel">{expandedItem.detail}</p>
-              <div className="mt-6 rounded-[24px] border border-[#dce6f5] bg-white/78 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#6b87d8]">摘要</p>
+              <div className="mt-6 surface px-4 py-4">
+                <p className="eyebrow">摘要</p>
                 <p className="mt-3 text-sm leading-7 text-steel">{expandedItem.summary}</p>
               </div>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -300,7 +298,7 @@ function WorkspacePage() {
     <AppShell
       title={getRoleLabel(user?.role) + "工作台"}
       description="查看当前角色可用模块。"
-      actions={<span className="rounded-full bg-[#edf3ff] px-4 py-2 text-sm text-[#2750b6]">当前身份：{getRoleLabel(user?.role)}</span>}
+      actions={<span style={{ borderRadius: 4, background: 'var(--color-primary-light)', padding: '4px 12px', fontSize: 13, color: 'var(--color-primary)' }}>当前身份：{getRoleLabel(user?.role)}</span>}
     >
       <section className="metric-strip animate-fade-up">
         {[
@@ -317,7 +315,7 @@ function WorkspacePage() {
       </section>
 
       <section className="surface animate-fade-up px-6 py-6 lg:px-7">
-        <div className="flex items-end justify-between gap-3 border-b border-[#e6eef9] pb-4">
+        <div className="flex items-end justify-between gap-3 border-b pb-4" style={{ borderColor: 'var(--color-border)' }}>
           <div>
             <p className="eyebrow">功能入口</p>
             <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">角色可用功能</h2>
@@ -389,7 +387,7 @@ function EmployeeScopedEvaluationPage() {
   if (errorMessage) {
     return (
       <main className="app-shell flex min-h-screen items-center justify-center px-6 text-ink">
-        <div className="surface px-5 py-4 text-sm text-red-600">{errorMessage}</div>
+        <div className="surface px-5 py-4 text-sm" style={{ color: 'var(--color-danger)' }}>{errorMessage}</div>
       </main>
     );
   }
