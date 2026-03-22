@@ -53,9 +53,21 @@ function buildMetadataRows(evidence: EvidenceRecord): Array<{ label: string; val
     }));
 }
 
+function ConfidenceBar({ score }: { score: number }) {
+  const pct = Math.round(score * 100);
+  const color = pct >= 75 ? 'var(--color-success)' : pct >= 50 ? 'var(--color-warning)' : 'var(--color-danger)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'var(--color-border)' }}>
+        <div style={{ height: 4, borderRadius: 2, width: `${pct}%`, background: color, transition: 'width 0.3s' }} />
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color, minWidth: 32, textAlign: 'right' }}>{pct}%</span>
+    </div>
+  );
+}
+
 export function EvidenceCard({ evidence }: EvidenceCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const confidence = `${Math.round(evidence.confidence_score * 100)}%`;
   const summaryPoints = splitEvidenceContent(evidence.content);
   const normalizedContent = evidence.content.replace(/\s+/g, ' ').trim();
   const metadataRows = buildMetadataRows(evidence);
@@ -66,106 +78,99 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
   const integrityFlagged = Boolean(evidence.metadata_json?.prompt_manipulation_detected);
 
   return (
-    <article style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
+    <article style={{ background: '#FFFFFF', border: `1px solid ${integrityFlagged ? 'var(--color-danger-border)' : 'var(--color-border)'}`, borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
       {/* Header */}
-      <div style={{ borderBottom: '1px solid var(--color-border)', padding: '14px 20px' }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ borderBottom: '1px solid var(--color-border)', padding: '12px 16px', background: integrityFlagged ? 'var(--color-danger-bg)' : '#FFFFFF' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-              <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: 4, padding: '2px 8px', fontSize: 12, fontWeight: 500 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
+              <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: 4, padding: '1px 7px', fontSize: 11.5, fontWeight: 500 }}>
                 {evidence.source_type}
               </span>
-              <span style={{ border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--color-steel)' }}>
+              {integrityFlagged ? (
+                <span className="status-pill" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger-border)' }}>需重点复核</span>
+              ) : null}
+              <span style={{ fontSize: 11.5, color: 'var(--color-placeholder)' }}>
                 {formatDate(evidence.created_at)}
               </span>
-              {integrityFlagged ? (
-                <span className="status-pill" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)' }}>需重点复核</span>
-              ) : null}
             </div>
-            <h3 style={{ marginTop: 8, fontSize: 16, fontWeight: 600, color: 'var(--color-ink)' }}>{evidence.title}</h3>
+            <h3 style={{ marginTop: 6, fontSize: 14, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.4 }}>{evidence.title}</h3>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--color-steel)' }}>
-              置信度 {confidence}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <button className="chip-button" onClick={() => setIsExpanded((c) => !c)} type="button">
               {isExpanded ? '收起' : '展开'}
             </button>
           </div>
         </div>
+        {/* Confidence bar */}
+        <div style={{ marginTop: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+            <span style={{ fontSize: 11.5, color: 'var(--color-steel)' }}>置信度</span>
+          </div>
+          <ConfidenceBar score={evidence.confidence_score} />
+        </div>
       </div>
 
       {/* Body */}
-      <div style={{ display: 'grid' }} className="xl:grid-cols-[minmax(0,1fr)_260px]">
+      <div style={{ display: 'grid' }} className="xl:grid-cols-[minmax(0,1fr)_240px]">
         {/* Summary */}
-        <section style={{ padding: '16px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>核心结论</p>
-            <span style={{ fontSize: 12, color: 'var(--color-steel)' }}>{summaryPoints.length || 1} 条摘要</span>
+        <section style={{ padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>核心结论</p>
+            <span style={{ fontSize: 11.5, color: 'var(--color-placeholder)' }}>{summaryPoints.length || 1} 条</span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {visibleSummaryPoints.length ? (
               visibleSummaryPoints.map((point, index) => (
-                <div key={`${evidence.id}-${index}`} style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ flexShrink: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: 11, fontWeight: 600, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div key={`${evidence.id}-${index}`} style={{ background: 'var(--color-bg-subtle)', borderRadius: 6, padding: '9px 12px', display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                  <span style={{ flexShrink: 0, width: 18, height: 18, borderRadius: '50%', background: 'var(--color-primary-light)', color: 'var(--color-primary)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
                     {index + 1}
                   </span>
-                  <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-ink)', minWidth: 0 }}>{truncateText(point, isExpanded ? 260 : 108)}</p>
+                  <p style={{ fontSize: 13, lineHeight: 1.65, color: 'var(--color-ink)', minWidth: 0 }}>{truncateText(point, isExpanded ? 260 : 108)}</p>
                 </div>
               ))
             ) : (
-              <div style={{ border: '1px dashed var(--color-border)', borderRadius: 6, padding: '14px 16px', fontSize: 13, color: 'var(--color-steel)' }}>
+              <div style={{ border: '1px dashed var(--color-border)', borderRadius: 6, padding: '12px 14px', fontSize: 13, color: 'var(--color-steel)' }}>
                 当前证据暂无可展示内容。
               </div>
             )}
           </div>
 
           {isExpanded && normalizedContent ? (
-            <div style={{ marginTop: 12, background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--color-steel)' }}>原文摘录</p>
-                <span style={{ fontSize: 12, color: 'var(--color-placeholder)' }}>便于复核上下文</span>
-              </div>
-              <p style={{ fontSize: 13, lineHeight: 1.7, color: 'var(--color-steel)' }}>{truncateText(normalizedContent, 520)}</p>
+            <div style={{ marginTop: 10, background: 'var(--color-bg-subtle)', borderRadius: 6, padding: '10px 12px' }}>
+              <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--color-steel)', marginBottom: 6 }}>原文摘录</p>
+              <p style={{ fontSize: 12.5, lineHeight: 1.7, color: 'var(--color-steel)' }}>{truncateText(normalizedContent, 520)}</p>
             </div>
           ) : null}
         </section>
 
         {/* Sidebar */}
-        <aside style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-subtle)', padding: '16px 20px' }} className="xl:border-l xl:border-t-0">
+        <aside style={{ borderTop: '1px solid var(--color-border)', background: 'var(--color-bg-subtle)', padding: '14px 16px' }} className="xl:border-l xl:border-t-0">
           {/* Metadata */}
-          <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '12px 14px', marginBottom: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>证据快照</p>
-              <span style={{ fontSize: 12, color: 'var(--color-steel)' }}>快速扫描</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px', marginBottom: 10 }}>
+            <p style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>证据快照</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {visibleMetadata.length ? (
                 visibleMetadata.map((item) => (
-                  <div key={`${item.label}-${item.value}`} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '6px 10px', background: 'var(--color-bg-subtle)', borderRadius: 4, fontSize: 13 }}>
+                  <div key={`${item.label}-${item.value}`} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--color-border)', fontSize: 12.5 }}>
                     <span style={{ color: 'var(--color-steel)', flexShrink: 0 }}>{item.label}</span>
                     <span style={{ maxWidth: '58%', wordBreak: 'break-all', textAlign: 'right', fontWeight: 500, color: 'var(--color-ink)' }}>{truncateText(item.value, isExpanded ? 64 : 26)}</span>
                   </div>
                 ))
               ) : (
-                <div style={{ border: '1px dashed var(--color-border)', borderRadius: 4, padding: '10px 12px', fontSize: 13, color: 'var(--color-steel)' }}>
-                  当前证据没有额外元信息。
-                </div>
+                <p style={{ fontSize: 12.5, color: 'var(--color-placeholder)' }}>暂无元信息。</p>
               )}
             </div>
           </div>
 
           {/* Tags */}
           {visibleTags.length ? (
-            <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '12px 14px', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>标签</p>
-                <span style={{ fontSize: 12, color: 'var(--color-steel)' }}>辅助定位主题</span>
-              </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px', marginBottom: 10 }}>
+              <p style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>标签</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {visibleTags.map((tag) => (
-                  <span key={tag} style={{ border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 8px', fontSize: 12, color: 'var(--color-steel)', background: '#FFFFFF' }}>
+                  <span key={tag} style={{ border: '1px solid var(--color-border)', borderRadius: 4, padding: '2px 7px', fontSize: 11.5, color: 'var(--color-steel)', background: 'var(--color-bg-subtle)' }}>
                     {truncateText(tag, 24)}
                   </span>
                 ))}
@@ -174,9 +179,13 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
           ) : null}
 
           {hasMoreContent && !isExpanded ? (
-            <div style={{ border: '1px dashed var(--color-border)', borderRadius: 6, padding: '10px 14px', fontSize: 12, lineHeight: 1.6, color: 'var(--color-steel)' }}>
-              还有更多原文和元信息，展开后可查看完整上下文。
-            </div>
+            <button
+              onClick={() => setIsExpanded(true)}
+              type="button"
+              style={{ width: '100%', border: '1px dashed var(--color-border)', borderRadius: 6, padding: '8px 12px', fontSize: 12, color: 'var(--color-steel)', background: 'transparent', cursor: 'pointer', textAlign: 'center' }}
+            >
+              展开查看更多内容
+            </button>
           ) : null}
         </aside>
       </div>
