@@ -29,12 +29,23 @@ class ExtractedEvidence:
     metadata: dict[str, object]
 
 
+class RequiredLLMError(RuntimeError):
+    pass
+
+
 class EvidenceService:
     def __init__(self, settings: Settings, *, llm_service: DeepSeekService | None = None) -> None:
         self.settings = settings
         self.llm = llm_service or DeepSeekService(settings)
 
-    def extract_from_parsed_document(self, parsed: ParsedDocument, *, file_name: str, file_type: str) -> ExtractedEvidence:
+    def extract_from_parsed_document(
+        self,
+        parsed: ParsedDocument,
+        *,
+        file_name: str,
+        file_type: str,
+        require_llm: bool = False,
+    ) -> ExtractedEvidence:
         source_scan = scan_for_prompt_manipulation(parsed.text)
         sanitized_parsed = ParsedDocument(
             text=source_scan.sanitized_text,
@@ -44,6 +55,8 @@ class EvidenceService:
 
         fallback = self._fallback_payload(sanitized_parsed, file_name=file_name, file_type=file_type, safety_scan=source_scan)
         llm_result = self.llm.extract_evidence(sanitized_parsed, file_name=file_name, file_type=file_type, fallback_payload=fallback)
+        if require_llm and llm_result.used_fallback:
+            raise RequiredLLMError(self._build_llm_required_error(llm_result.reason))
         payload = llm_result.payload
 
         title_scan = scan_for_prompt_manipulation(str(payload.get('title') or sanitized_parsed.title or Path(file_name).stem or 'Parsed evidence'))
@@ -86,6 +99,15 @@ class EvidenceService:
             source_type=source_type,
             metadata=metadata,
         )
+
+    def _build_llm_required_error(self, reason: str | None) -> str:
+        if reason == 'deepseek_not_configured':
+            return '当前后端尚未配置可用的 LLM，无法执行 AI 解析。请先在后端环境中配置 DEEPSEEK_API_KEY。'
+        if reason and 'rate limit' in reason.lower():
+            return '当前 LLM 解析请求过于频繁，请稍后重试。'
+        if reason:
+            return f'LLM 解析调用失败：{reason}'
+        return 'LLM 解析调用失败，请稍后重试。'
 
     def _fallback_payload(
         self,

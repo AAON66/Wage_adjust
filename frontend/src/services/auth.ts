@@ -4,6 +4,11 @@ import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterPayload
 const ACCESS_TOKEN_KEY = 'wage_adjust.access_token';
 const REFRESH_TOKEN_KEY = 'wage_adjust.refresh_token';
 const USER_KEY = 'wage_adjust.user';
+export const AUTH_SESSION_EVENT = 'wage_adjust.auth_changed';
+
+function notifyAuthSessionChanged(): void {
+  window.dispatchEvent(new Event(AUTH_SESSION_EVENT));
+}
 
 export function getStoredAccessToken(): string | null {
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -31,21 +36,25 @@ export function storeAuthSession(auth: AuthResponse): void {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, auth.tokens.access_token);
   window.localStorage.setItem(REFRESH_TOKEN_KEY, auth.tokens.refresh_token);
   window.localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
+  notifyAuthSessionChanged();
 }
 
 export function updateStoredTokens(tokens: TokenPair): void {
   window.localStorage.setItem(ACCESS_TOKEN_KEY, tokens.access_token);
   window.localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refresh_token);
+  notifyAuthSessionChanged();
 }
 
 export function updateStoredUser(user: UserProfile): void {
   window.localStorage.setItem(USER_KEY, JSON.stringify(user));
+  notifyAuthSessionChanged();
 }
 
 export function clearAuthStorage(): void {
   window.localStorage.removeItem(ACCESS_TOKEN_KEY);
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
+  notifyAuthSessionChanged();
 }
 
 export async function register(payload: RegisterPayload): Promise<AuthResponse> {

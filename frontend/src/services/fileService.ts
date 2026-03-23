@@ -1,5 +1,7 @@
 ﻿import api from './api';
-import type { EvidenceListResponse, FileDeleteResponse, UploadedFileListResponse, UploadedFileRecord } from '../types/api';
+import type { EvidenceListResponse, FileDeleteResponse, ParseResultRecord, UploadedFileListResponse, UploadedFileRecord } from '../types/api';
+
+const LONG_RUNNING_TIMEOUT = 120000;
 
 export async function fetchSubmissionFiles(submissionId: string): Promise<UploadedFileListResponse> {
   const response = await api.get<UploadedFileListResponse>(`/submissions/${submissionId}/files`);
@@ -16,7 +18,7 @@ export async function uploadSubmissionFiles(submissionId: string, files: File[])
 }
 
 export async function importGitHubSubmissionFile(submissionId: string, url: string): Promise<UploadedFileRecord> {
-  const response = await api.post<UploadedFileRecord>(`/submissions/${submissionId}/github-import`, { url });
+  const response = await api.post<UploadedFileRecord>(`/submissions/${submissionId}/github-import`, { url }, { timeout: LONG_RUNNING_TIMEOUT });
   return response.data;
 }
 
@@ -34,12 +36,13 @@ export async function deleteSubmissionFile(fileId: string): Promise<FileDeleteRe
   return response.data;
 }
 
-export async function parseFile(fileId: string): Promise<void> {
-  await api.post(`/files/${fileId}/parse`);
+export async function parseFile(fileId: string): Promise<ParseResultRecord> {
+  const response = await api.post<ParseResultRecord>(`/files/${fileId}/parse`, undefined, { timeout: LONG_RUNNING_TIMEOUT });
+  return response.data;
 }
 
 export async function parseAllSubmissionFiles(submissionId: string): Promise<UploadedFileListResponse> {
-  const response = await api.post<UploadedFileListResponse>(`/submissions/${submissionId}/parse-all`);
+  const response = await api.post<UploadedFileListResponse>(`/submissions/${submissionId}/parse-all`, undefined, { timeout: LONG_RUNNING_TIMEOUT });
   return response.data;
 }
 

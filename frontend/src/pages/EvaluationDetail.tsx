@@ -14,19 +14,18 @@ import { ReviewPanel } from '../components/review/ReviewPanel';
 import { useAuth } from '../hooks/useAuth';
 import { submitApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
-import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, submitHrReview, submitManualReview } from '../services/evaluationService';
+import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, regenerateEvaluation, submitHrReview, submitManualReview } from '../services/evaluationService';
 import {
   deleteSubmissionFile,
   fetchSubmissionEvidence,
   fetchSubmissionFiles,
   importGitHubSubmissionFile,
-  parseAllSubmissionFiles,
   parseFile,
   replaceSubmissionFile,
   uploadSubmissionFiles,
 } from '../services/fileService';
 import { fetchEmployee } from '../services/employeeService';
-import { fetchSalaryRecommendationByEvaluation, recommendSalary } from '../services/salaryService';
+import { fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
 import type {
   CycleRecord,
@@ -51,6 +50,20 @@ type ModuleTab = {
   helper: string;
 };
 
+type BatchParseItemStatus = 'queued' | 'parsing' | 'parsed' | 'failed';
+
+type BatchParseItem = {
+  fileId: string;
+  fileName: string;
+  status: BatchParseItemStatus;
+  detail: string;
+  evidenceCount: number;
+  startedAt: string | null;
+  updatedAt: string | null;
+};
+
+const MAX_PARSE_CONCURRENCY = 10;
+
 const FLOW_LABELS: Record<string, string> = {
   collecting: '收集材料',
   submitted: '材料就绪',
@@ -73,6 +86,7 @@ const EVALUATION_STATUS_LABELS: Record<string, string> = {
 
 const RECOMMENDATION_STATUS_LABELS: Record<string, string> = {
   draft: '未生成',
+  recommended: '已建议',
   pending_approval: '待审批',
   approved: '已审批',
   locked: '已锁定',
@@ -98,6 +112,13 @@ function resolveError(error: unknown): string {
 
 function formatDateTime(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+}
+
+function formatTime(value: string | null): string {
+  if (!value) {
+    return '--';
+  }
+  return new Intl.DateTimeFormat('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date(value));
 }
 
 function formatCurrency(value: string): string {
@@ -338,12 +359,21 @@ export function EvaluationDetailPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isGithubImporting, setIsGithubImporting] = useState(false);
   const [isParsingAll, setIsParsingAll] = useState(false);
+  const [batchParseTotal, setBatchParseTotal] = useState(0);
+  const [batchParseConcurrency, setBatchParseConcurrency] = useState(0);
+  const [batchParseItems, setBatchParseItems] = useState<BatchParseItem[]>([]);
+  const [lastBatchParseActivityAt, setLastBatchParseActivityAt] = useState<string | null>(null);
+  const [parseMonitorNow, setParseMonitorNow] = useState(() => Date.now());
   const [workingFileId, setWorkingFileId] = useState<string | null>(null);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
+  const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(false);
+  const [manualAdjustmentPercent, setManualAdjustmentPercent] = useState('');
+  const [manualRecommendedSalary, setManualRecommendedSalary] = useState('');
+  const [isSavingSalaryAdjustment, setIsSavingSalaryAdjustment] = useState(false);
   const [isSubmittingApproval, setIsSubmittingApproval] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -456,6 +486,30 @@ export function EvaluationDetailPage() {
     };
   }, [employeeId, selectedCycleId]);
 
+  useEffect(() => {
+    if (!isParsingAll) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setParseMonitorNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [isParsingAll]);
+
+  useEffect(() => {
+    if (!salaryRecommendation) {
+      setIsSalaryEditorOpen(false);
+      setManualAdjustmentPercent('');
+      setManualRecommendedSalary('');
+      return;
+    }
+
+    setManualAdjustmentPercent((salaryRecommendation.final_adjustment_ratio * 100).toFixed(2));
+    setManualRecommendedSalary(Number(salaryRecommendation.recommended_salary).toFixed(2));
+  }, [salaryRecommendation]);
+
   const currentCycle = useMemo(() => cycles.find((cycle) => cycle.id === selectedCycleId) ?? null, [cycles, selectedCycleId]);
   const currentStatus = useMemo(() => inferStatus(submission, files, evaluation, salaryRecommendation), [submission, files, evaluation, salaryRecommendation]);
   const activeIndex = Math.max(FLOW.indexOf(currentStatus as (typeof FLOW)[number]), 0);
@@ -468,7 +522,46 @@ export function EvaluationDetailPage() {
   const parseFailedCount = files.filter((file) => file.parse_status === 'failed').length;
   const needsBatchParse = parsePendingCount > 0 || parseFailedCount > 0;
   const parseProgressPercent = hasFiles ? Math.round(((parseCompletedCount + parseInProgressCount * 0.4) / files.length) * 100) : 0;
+  const hasBatchParseSnapshot = batchParseItems.length > 0 && batchParseTotal > 0;
+  const batchParseQueuedCount = batchParseItems.filter((item) => item.status === 'queued').length;
+  const batchParseRunningCount = batchParseItems.filter((item) => item.status === 'parsing').length;
+  const batchParseCompletedRealCount = batchParseItems.filter((item) => item.status === 'parsed').length;
+  const batchParseFailedRealCount = batchParseItems.filter((item) => item.status === 'failed').length;
+  const batchParseProcessedCount = batchParseCompletedRealCount + batchParseFailedRealCount;
+  const batchParseProgressPercent = batchParseTotal > 0
+    ? Math.min(
+        100,
+        Math.round((((batchParseProcessedCount + batchParseRunningCount * 0.35) || 0) / batchParseTotal) * 100),
+      )
+    : 0;
+  const displayedParseProgressPercent = hasBatchParseSnapshot ? batchParseProgressPercent : parseProgressPercent;
+  const displayedParseCompletedCount = hasBatchParseSnapshot ? batchParseCompletedRealCount : parseCompletedCount;
+  const displayedParseInProgressCount = hasBatchParseSnapshot ? batchParseRunningCount : parseInProgressCount;
+  const displayedParsePendingCount = hasBatchParseSnapshot ? batchParseQueuedCount : parsePendingCount;
+  const displayedParseFailedCount = hasBatchParseSnapshot ? batchParseFailedRealCount : parseFailedCount;
+  const secondsSinceLastBatchActivity = lastBatchParseActivityAt
+    ? Math.max(0, Math.floor((parseMonitorNow - new Date(lastBatchParseActivityAt).getTime()) / 1000))
+    : 0;
+  const batchParsePossiblyStalled = isParsingAll && batchParseRunningCount > 0 && secondsSinceLastBatchActivity >= 15;
+  const activeBatchItems = batchParseItems.filter((item) => item.status === 'parsing').slice(0, 6);
+  const recentBatchItems = [...batchParseItems]
+    .filter((item) => item.updatedAt)
+    .sort((left, right) => new Date(right.updatedAt ?? 0).getTime() - new Date(left.updatedAt ?? 0).getTime())
+    .slice(0, 8);
   const reviewAverage = averageDimensionScore(dimensions);
+  const canEditSalaryRecommendation = Boolean(
+    salaryRecommendation &&
+    salaryRecommendation.status !== 'pending_approval' &&
+    salaryRecommendation.status !== 'approved' &&
+    salaryRecommendation.status !== 'locked',
+  );
+  const baseSalaryAmount = salaryRecommendation ? Number(salaryRecommendation.current_salary) : 0;
+  const manualAdjustmentPercentNumber = Number(manualAdjustmentPercent);
+  const manualRecommendedSalaryNumber = Number(manualRecommendedSalary);
+  const isManualPercentValid = Number.isFinite(manualAdjustmentPercentNumber) && manualAdjustmentPercentNumber >= 0 && manualAdjustmentPercentNumber <= 100;
+  const isManualSalaryValid = Number.isFinite(manualRecommendedSalaryNumber) && manualRecommendedSalaryNumber >= baseSalaryAmount;
+  const manualAdjustmentRatio = isManualPercentValid ? manualAdjustmentPercentNumber / 100 : null;
+  const manualSalaryDelta = salaryRecommendation && isManualSalaryValid ? manualRecommendedSalaryNumber - baseSalaryAmount : null;
 
   const calibrationRows = useMemo(
     () =>
@@ -506,7 +599,7 @@ export function EvaluationDetailPage() {
   ].filter((item): item is { title: string; content: string } => Boolean(item));
 
   const parseStatusTitle = isParsingAll
-    ? 'AI 正在批量解析材料'
+    ? 'AI 正在逐份重新解析材料'
     : parseInProgressCount > 0
       ? '材料解析进行中'
       : parseFailedCount > 0
@@ -516,7 +609,7 @@ export function EvaluationDetailPage() {
           : '等待上传或导入材料';
 
   const parseStatusDescription = isParsingAll
-    ? '系统正在解析当前材料。'
+    ? `系统正在按顺序重新解析本周期的 ${batchParseTotal || files.length} 份材料，完成后会自动刷新新的证据结果。`
     : parseInProgressCount > 0
       ? '可先查看已完成内容。'
       : parseFailedCount > 0
@@ -558,6 +651,28 @@ export function EvaluationDetailPage() {
     },
   ];
 
+  const estimatedProcessedCount = hasBatchParseSnapshot
+    ? displayedParseCompletedCount + displayedParseFailedCount + displayedParseInProgressCount
+    : 0;
+  const parsePanelTitle = isParsingAll
+    ? 'AI 正在并行解析材料'
+    : parseInProgressCount > 0
+      ? '材料解析进行中'
+      : parseFailedCount > 0
+        ? '有材料等待重新解析'
+        : parseCompletedCount > 0
+          ? '证据工作区已准备就绪'
+          : '等待上传或导入材料';
+  const parsePanelDescription = isParsingAll
+    ? `当前批次共 ${batchParseTotal || files.length} 份材料，最多同时并行 ${batchParseConcurrency || 1} 份，页面会按真实完成情况逐份刷新。`
+    : parseInProgressCount > 0
+      ? '可先查看已完成内容。'
+      : parseFailedCount > 0
+        ? '先处理失败材料。'
+        : parseCompletedCount > 0
+          ? '可继续生成评分或进入复核。'
+          : '先上传材料。';
+
   const activeModuleMeta = moduleTabs.find((item) => item.key === activeModule) ?? moduleTabs[0];
 
   async function reloadCurrentCycleData() {
@@ -565,6 +680,133 @@ export function EvaluationDetailPage() {
       return;
     }
     await loadCycleSubmission(employeeId, selectedCycleId);
+  }
+
+  function resetBatchParseMonitor() {
+    setBatchParseTotal(0);
+    setBatchParseConcurrency(0);
+    setBatchParseItems([]);
+    setLastBatchParseActivityAt(null);
+  }
+
+  function updateBatchParseItem(fileId: string, patch: Partial<BatchParseItem>) {
+    setBatchParseItems((current) =>
+      current.map((item) => (item.fileId === fileId ? { ...item, ...patch } : item)),
+    );
+  }
+
+  async function parseFilesInParallel(
+    targetFiles: UploadedFileRecord[],
+    options: { showBatchProgress: boolean },
+  ): Promise<{ completed: number; failed: number; errors: string[]; total: number }> {
+    const { showBatchProgress } = options;
+    if (!targetFiles.length) {
+      return { completed: 0, failed: 0, errors: [], total: 0 };
+    }
+
+    const concurrency = Math.min(MAX_PARSE_CONCURRENCY, targetFiles.length);
+    const targetIds = new Set(targetFiles.map((file) => file.id));
+    const now = new Date().toISOString();
+
+    if (showBatchProgress) {
+      setIsParsingAll(true);
+      setBatchParseTotal(targetFiles.length);
+      setBatchParseConcurrency(concurrency);
+      setLastBatchParseActivityAt(now);
+      setBatchParseItems(
+        targetFiles.map((file) => ({
+          fileId: file.id,
+          fileName: file.file_name,
+          status: 'queued',
+          detail: '等待进入并行解析队列。',
+          evidenceCount: 0,
+          startedAt: null,
+          updatedAt: now,
+        })),
+      );
+    }
+
+    setFiles((current) =>
+      current.map((file) => (targetIds.has(file.id) ? { ...file, parse_status: 'pending' } : file)),
+    );
+
+    let nextIndex = 0;
+    let completed = 0;
+    let failed = 0;
+    const errors: string[] = [];
+
+    const worker = async () => {
+      while (nextIndex < targetFiles.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        const currentFile = targetFiles[currentIndex];
+        const startedAt = new Date().toISOString();
+
+        setLastBatchParseActivityAt(startedAt);
+        setFiles((current) =>
+          current.map((file) => (file.id === currentFile.id ? { ...file, parse_status: 'parsing' } : file)),
+        );
+
+        if (showBatchProgress) {
+          updateBatchParseItem(currentFile.id, {
+            status: 'parsing',
+            detail: '已发送 AI 解析请求，正在等待模型返回结果。',
+            startedAt,
+            updatedAt: startedAt,
+          });
+        }
+
+        try {
+          const result = await parseFile(currentFile.id);
+          const finishedAt = new Date().toISOString();
+          const nextStatus = result.parse_status === 'parsed' ? 'parsed' : 'failed';
+
+          if (nextStatus === 'parsed') {
+            completed += 1;
+          } else {
+            failed += 1;
+          }
+
+          setLastBatchParseActivityAt(finishedAt);
+          setFiles((current) =>
+            current.map((file) => (file.id === currentFile.id ? { ...file, parse_status: nextStatus } : file)),
+          );
+
+          if (showBatchProgress) {
+            updateBatchParseItem(currentFile.id, {
+              status: nextStatus,
+              detail:
+                nextStatus === 'parsed'
+                  ? `AI 解析完成，已提取 ${result.evidence_count} 条证据。`
+                  : '解析请求已返回，但当前文件未成功产出有效证据。',
+              evidenceCount: result.evidence_count,
+              updatedAt: finishedAt,
+            });
+          }
+        } catch (error) {
+          const finishedAt = new Date().toISOString();
+          const message = resolveError(error);
+          failed += 1;
+          errors.push(`${currentFile.file_name}: ${message}`);
+          setLastBatchParseActivityAt(finishedAt);
+          setFiles((current) =>
+            current.map((file) => (file.id === currentFile.id ? { ...file, parse_status: 'failed' } : file)),
+          );
+
+          if (showBatchProgress) {
+            updateBatchParseItem(currentFile.id, {
+              status: 'failed',
+              detail: message,
+              evidenceCount: 0,
+              updatedAt: finishedAt,
+            });
+          }
+        }
+      }
+    };
+
+    await Promise.all(Array.from({ length: concurrency }, () => worker()));
+    return { completed, failed, errors, total: targetFiles.length };
   }
 
   async function handleFilesSelected(selectedFiles: globalThis.FileList | null) {
@@ -577,7 +819,7 @@ export function EvaluationDetailPage() {
     setSuccessMessage(null);
     try {
       const uploadResponse = await uploadSubmissionFiles(submission.id, Array.from(selectedFiles));
-      await Promise.all(uploadResponse.items.map((file) => parseFile(file.id)));
+      const summary = await parseFilesInParallel(uploadResponse.items, { showBatchProgress: false });
       await reloadCurrentCycleData();
       setSuccessMessage('材料已上传，系统正在自动解析。');
     } catch (error) {
@@ -656,14 +898,27 @@ export function EvaluationDetailPage() {
       return;
     }
 
+    const totalFiles = files.length;
+    resetBatchParseMonitor();
     setIsParsingAll(true);
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      await parseAllSubmissionFiles(submission.id);
+      const summary = await parseFilesInParallel(files, { showBatchProgress: true });
       await reloadCurrentCycleData();
-      setSuccessMessage('已启动当前周期的批量解析。');
+      setSuccessMessage(
+        summary.failed > 0
+          ? `本次批量解析已完成，共 ${totalFiles} 份材料，成功 ${summary.completed} 份，失败 ${summary.failed} 份。`
+          : `已完成 ${totalFiles} 份材料的批量解析，材料状态和证据结果已刷新。`,
+      );
+      setSuccessMessage(`已完成 ${totalFiles} 份材料的批量重新解析，材料状态和证据结果已刷新。`);
+      setSuccessMessage(
+        summary.failed > 0
+          ? `本次批量解析已完成，共 ${totalFiles} 份材料，成功 ${summary.completed} 份，失败 ${summary.failed} 份。`
+          : `已完成 ${totalFiles} 份材料的批量解析，材料状态和证据结果已刷新。`,
+      );
     } catch (error) {
+      await reloadCurrentCycleData();
       setErrorMessage(resolveError(error));
     } finally {
       setIsParsingAll(false);
@@ -680,19 +935,28 @@ export function EvaluationDetailPage() {
     setSuccessMessage(null);
     try {
       if (needsBatchParse) {
-        await parseAllSubmissionFiles(submission.id);
+        resetBatchParseMonitor();
+        setIsParsingAll(true);
+        const summary = await parseFilesInParallel(
+          files.filter((file) => file.parse_status !== 'parsed'),
+          { showBatchProgress: true },
+        );
+        if (summary.failed > 0) {
+          throw new Error(`仍有 ${summary.failed} 份材料解析失败，请先处理失败材料后再生成 AI 评分。`);
+        }
       }
-      const nextEvaluation = await generateEvaluation(submission.id);
+      const nextEvaluation = evaluation ? await regenerateEvaluation(submission.id) : await generateEvaluation(submission.id);
       setEvaluation(nextEvaluation);
       setSalaryRecommendation(null);
       setDimensions(mapEvaluationToDrafts(nextEvaluation));
       setReviewLevel(nextEvaluation.ai_level);
       setReviewComment(localizeEvaluationNarrative(nextEvaluation.explanation));
       await reloadCurrentCycleData();
-      setSuccessMessage('AI 评分已生成，可以继续主管复核。');
+      setSuccessMessage(evaluation ? 'AI 评分已按最新材料重新生成，可以继续主管复核。' : 'AI 评分已生成，可以继续主管复核。');
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
+      setIsParsingAll(false);
       setIsGeneratingEvaluation(false);
     }
   }
@@ -781,12 +1045,75 @@ export function EvaluationDetailPage() {
     try {
       const recommendation = await recommendSalary(evaluation.id);
       setSalaryRecommendation(recommendation);
+      setIsSalaryEditorOpen(false);
       setSuccessMessage('调薪建议已生成。');
       setActiveModule('salary');
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
       setIsGeneratingSalary(false);
+    }
+  }
+
+  function handleManualPercentChange(value: string) {
+    setManualAdjustmentPercent(value);
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || !salaryRecommendation) {
+      return;
+    }
+    const nextSalary = Number(salaryRecommendation.current_salary) * (1 + numericValue / 100);
+    setManualRecommendedSalary(nextSalary.toFixed(2));
+  }
+
+  function handleManualSalaryChange(value: string) {
+    setManualRecommendedSalary(value);
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue) || !salaryRecommendation) {
+      return;
+    }
+    const currentSalary = Number(salaryRecommendation.current_salary);
+    const nextPercent = ((numericValue - currentSalary) / currentSalary) * 100;
+    setManualAdjustmentPercent(nextPercent.toFixed(2));
+  }
+
+  function handleOpenSalaryEditor() {
+    if (!salaryRecommendation) {
+      return;
+    }
+    setManualAdjustmentPercent((salaryRecommendation.final_adjustment_ratio * 100).toFixed(2));
+    setManualRecommendedSalary(Number(salaryRecommendation.recommended_salary).toFixed(2));
+    setIsSalaryEditorOpen(true);
+  }
+
+  function handleCloseSalaryEditor() {
+    setIsSalaryEditorOpen(false);
+    if (!salaryRecommendation) {
+      return;
+    }
+    setManualAdjustmentPercent((salaryRecommendation.final_adjustment_ratio * 100).toFixed(2));
+    setManualRecommendedSalary(Number(salaryRecommendation.recommended_salary).toFixed(2));
+  }
+
+  async function handleSaveSalaryAdjustment() {
+    if (!salaryRecommendation || manualAdjustmentRatio == null || !isManualSalaryValid) {
+      return;
+    }
+
+    setIsSavingSalaryAdjustment(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const updated = await updateSalaryRecommendation(salaryRecommendation.id, {
+        final_adjustment_ratio: Number(manualAdjustmentRatio.toFixed(4)),
+        status: 'adjusted',
+      });
+      setSalaryRecommendation(updated);
+      setIsSalaryEditorOpen(false);
+      setSuccessMessage('人工调薪结果已保存。');
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setIsSavingSalaryAdjustment(false);
     }
   }
 
@@ -915,7 +1242,7 @@ export function EvaluationDetailPage() {
                 <p className="mt-2 text-sm leading-6 text-steel">先解析材料。</p>
               </button>
               <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingEvaluation || !submission || !hasFiles} onClick={handleGenerateEvaluation} type="button">
-                <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '生成中...' : '生成 AI 评分'}</h3>
+                <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '生成中...' : evaluation ? '重新生成 AI 评分' : '生成 AI 评分'}</h3>
                 <p className="mt-2 text-sm leading-6 text-steel">解析后生成评分。</p>
               </button>
               <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation || evaluation.status !== 'confirmed'} onClick={handleGenerateSalary} type="button">
@@ -965,13 +1292,17 @@ export function EvaluationDetailPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="eyebrow">材料解析</p>
-                  <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">{parseStatusTitle}</h2>
-                  <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">{parseStatusDescription}</p>
+                  <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">{parsePanelTitle}</h2>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">{parsePanelDescription}</p>
                 </div>
                 <div style={{ background: '#FFFFFF', border: '1px solid var(--color-border)', borderRadius: 8, padding: '12px 16px', textAlign: 'right' }}>
                   <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>完成度</p>
-                  <p className="mt-2 text-[34px] font-semibold tracking-[-0.05em] text-ink">{parseProgressPercent}%</p>
-                  <p className="text-xs text-steel">{parseCompletedCount}/{files.length || 0} 份材料已完成解析</p>
+                  <p className="mt-2 text-[34px] font-semibold tracking-[-0.05em] text-ink">{displayedParseProgressPercent}%</p>
+                  <p className="text-xs text-steel">
+                    {isParsingAll
+                      ? `预计已处理 ${Math.min(estimatedProcessedCount, batchParseTotal || files.length)}/${batchParseTotal || files.length} 份材料`
+                      : `${parseCompletedCount}/${files.length || 0} 份材料已完成解析`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -983,16 +1314,130 @@ export function EvaluationDetailPage() {
                     height: '100%',
                     borderRadius: 4,
                     transition: 'width 0.5s',
-                    width: `${parseProgressPercent}%`,
-                    background: parseFailedCount > 0 ? 'var(--color-danger)' : 'var(--color-primary)',
+                    width: `${displayedParseProgressPercent}%`,
+                    background: displayedParseFailedCount > 0 ? 'var(--color-danger)' : 'var(--color-primary)',
                   }}
                 />
               </div>
 
+              {isParsingAll ? (
+                <div style={{ marginTop: 14, border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '14px 16px' }}>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">批量重解析进行中</p>
+                      <p className="mt-1 text-sm text-steel">系统正在重新读取文件内容、重建证据卡片，并在完成后自动刷新当前页面。</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs uppercase tracking-[0.18em] text-steel">当前进度</p>
+                      <p className="mt-1 text-lg font-semibold text-ink">{Math.min(estimatedProcessedCount, batchParseTotal || files.length)}/{batchParseTotal || files.length}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {hasBatchParseSnapshot ? (
+                <div className="mt-5 grid gap-3 lg:grid-cols-[1.2fr_0.8fr]">
+                  <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '16px' }}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-ink">逐份解析动态</p>
+                        <p className="mt-1 text-sm text-steel">每个文件完成、失败或排队状态都会在这里立即更新。</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs uppercase tracking-[0.18em] text-steel">最近活动</p>
+                        <p className="mt-1 text-sm font-semibold text-ink">{lastBatchParseActivityAt ? formatTime(lastBatchParseActivityAt) : '--'}</p>
+                      </div>
+                    </div>
+
+                    {batchParsePossiblyStalled ? (
+                      <div className="mt-4" style={{ border: '1px solid var(--color-warning)', borderRadius: 8, background: 'var(--color-warning-bg)', padding: '10px 12px', fontSize: 13, lineHeight: 1.6, color: 'var(--color-warning)' }}>
+                        当前已经 {secondsSinceLastBatchActivity} 秒没有新的完成反馈，更像是 LLM 响应较慢，不一定是真的卡死。
+                      </div>
+                    ) : null}
+
+                    <div className="mt-4 grid gap-2">
+                      {recentBatchItems.length ? (
+                        recentBatchItems.map((item) => (
+                          <div key={item.fileId} style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '12px 14px' }}>
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <p className="text-sm font-semibold text-ink">{item.fileName}</p>
+                              <span
+                                style={{
+                                  borderRadius: 999,
+                                  padding: '2px 10px',
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  background:
+                                    item.status === 'parsed'
+                                      ? 'var(--color-success-bg)'
+                                      : item.status === 'failed'
+                                        ? 'var(--color-danger-bg)'
+                                        : item.status === 'parsing'
+                                          ? 'var(--color-warning-bg)'
+                                          : 'var(--color-bg-subtle)',
+                                  color:
+                                    item.status === 'parsed'
+                                      ? 'var(--color-success)'
+                                      : item.status === 'failed'
+                                        ? 'var(--color-danger)'
+                                        : item.status === 'parsing'
+                                          ? 'var(--color-warning)'
+                                          : 'var(--color-steel)',
+                                }}
+                              >
+                                {item.status === 'queued' ? '排队中' : item.status === 'parsing' ? '解析中' : item.status === 'parsed' ? '已完成' : '失败'}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-steel">{item.detail}</p>
+                            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-steel">
+                              <span>开始: {formatTime(item.startedAt)}</span>
+                              <span>更新: {formatTime(item.updatedAt)}</span>
+                              <span>证据: {item.evidenceCount}</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-steel">当前还没有可展示的解析动态。</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '16px' }}>
+                    <p className="text-sm font-semibold text-ink">并行状态</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '12px 14px' }}>
+                        <p className="text-xs uppercase tracking-[0.18em] text-steel">并行槽位</p>
+                        <p className="mt-2 text-2xl font-semibold text-ink">{batchParseRunningCount}/{batchParseConcurrency || 1}</p>
+                      </div>
+                      <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '12px 14px' }}>
+                        <p className="text-xs uppercase tracking-[0.18em] text-steel">等待队列</p>
+                        <p className="mt-2 text-2xl font-semibold text-ink">{batchParseQueuedCount}</p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4">
+                      <p className="text-sm font-semibold text-ink">当前正在解析</p>
+                      <div className="mt-3 grid gap-2">
+                        {activeBatchItems.length ? (
+                          activeBatchItems.map((item) => (
+                            <div key={item.fileId} style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '10px 12px', fontSize: 13, color: 'var(--color-ink)' }}>
+                              <div className="font-medium">{item.fileName}</div>
+                              <div className="mt-1 text-xs text-steel">开始时间 {formatTime(item.startedAt)}</div>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-steel">{isParsingAll ? '当前没有活跃解析槽位。' : '本次批量解析已结束。'}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">已完成</p><p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--color-success)' }}>{parseCompletedCount}</p></div>
-                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">进行中</p><p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--color-warning)' }}>{isParsingAll ? Math.max(parseInProgressCount, 1) : parseInProgressCount}</p></div>
-                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">待处理</p><p className="mt-2 text-2xl font-semibold text-ink">{parsePendingCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">已完成</p><p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--color-success)' }}>{displayedParseCompletedCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">进行中</p><p className="mt-2 text-2xl font-semibold" style={{ color: 'var(--color-warning)' }}>{displayedParseInProgressCount}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">待处理</p><p className="mt-2 text-2xl font-semibold text-ink">{displayedParsePendingCount}</p></div>
                 <div className="surface-subtle px-4 py-4" style={parseFailedCount > 0 ? { borderColor: 'var(--color-danger)', background: 'var(--color-danger-bg)' } : {}}><p className="text-sm text-steel">失败</p><p className="mt-2 text-2xl font-semibold" style={{ color: parseFailedCount > 0 ? 'var(--color-danger)' : 'var(--color-ink)' }}>{parseFailedCount}</p></div>
               </div>
 
@@ -1166,6 +1611,101 @@ export function EvaluationDetailPage() {
                 <p className="mt-3 text-sm leading-7 text-steel">{salaryRecommendation.explanation}</p>
               </details>
             ) : null}
+
+            <div className="mt-5" style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '18px 20px' }}>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold text-ink">人工调整薪资窗口</p>
+                  <p className="mt-2 text-sm leading-6 text-steel">主管或 HR 可以在 AI 建议基础上手动调整最终涨幅和调整后薪资，再提交审批。</p>
+                </div>
+                <button
+                  className="action-secondary"
+                  disabled={!canEditSalaryRecommendation}
+                  onClick={isSalaryEditorOpen ? handleCloseSalaryEditor : handleOpenSalaryEditor}
+                  type="button"
+                >
+                  {isSalaryEditorOpen ? '收起调整窗口' : '打开人工调整'}
+                </button>
+              </div>
+
+              {isSalaryEditorOpen ? (
+                <div className="mt-5 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                  <div className="surface-subtle px-4 py-4">
+                    <p className="text-sm font-semibold text-ink">调整参数</p>
+                    <div className="mt-4 grid gap-4 md:grid-cols-2">
+                      <label className="text-sm text-steel">
+                        <span>人工调整比例（%）</span>
+                        <input
+                          className="toolbar-input mt-2 w-full"
+                          max={100}
+                          min={0}
+                          onChange={(event) => handleManualPercentChange(event.target.value)}
+                          step="0.01"
+                          type="number"
+                          value={manualAdjustmentPercent}
+                        />
+                      </label>
+                      <label className="text-sm text-steel">
+                        <span>调整后薪资（元）</span>
+                        <input
+                          className="toolbar-input mt-2 w-full"
+                          min={baseSalaryAmount}
+                          onChange={(event) => handleManualSalaryChange(event.target.value)}
+                          step="0.01"
+                          type="number"
+                          value={manualRecommendedSalary}
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <button
+                        className="action-primary"
+                        disabled={!isManualPercentValid || !isManualSalaryValid || isSavingSalaryAdjustment}
+                        onClick={handleSaveSalaryAdjustment}
+                        type="button"
+                      >
+                        {isSavingSalaryAdjustment ? '保存中...' : '保存人工调整'}
+                      </button>
+                      <button className="action-secondary" disabled={isSavingSalaryAdjustment} onClick={handleCloseSalaryEditor} type="button">
+                        取消
+                      </button>
+                    </div>
+
+                    {!isManualPercentValid ? <p className="mt-3 text-sm" style={{ color: 'var(--color-danger)' }}>调整比例需要填写 0 到 100 之间的数字。</p> : null}
+                    {!isManualSalaryValid ? <p className="mt-3 text-sm" style={{ color: 'var(--color-danger)' }}>调整后薪资不能低于当前薪资。</p> : null}
+                  </div>
+
+                  <div className="surface-subtle px-4 py-4">
+                    <p className="text-sm font-semibold text-ink">调整预览</p>
+                    <div className="mt-4 space-y-3 text-sm text-steel">
+                      <div className="flex items-center justify-between gap-4">
+                        <span>AI 原建议薪资</span>
+                        <span className="font-medium text-ink">{formatCurrency(salaryRecommendation.recommended_salary)}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span>人工调整后薪资</span>
+                        <span className="font-medium text-ink">{isManualSalaryValid ? formatCurrency(String(manualRecommendedSalaryNumber.toFixed(2))) : '--'}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span>人工调整比例</span>
+                        <span className="font-medium text-ink">{isManualPercentValid ? `${manualAdjustmentPercent}%` : '--'}</span>
+                      </div>
+                      <div className="flex items-center justify-between gap-4">
+                        <span>预计调薪金额</span>
+                        <span className="font-medium text-ink">{manualSalaryDelta != null ? formatCurrency(String(manualSalaryDelta.toFixed(2))) : '--'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {!canEditSalaryRecommendation ? (
+                <p className="mt-4 text-sm" style={{ color: 'var(--color-warning)' }}>
+                  当前调薪建议已进入审批或锁定状态，暂时不能再做人工调整。
+                </p>
+              ) : null}
+            </div>
 
             <div className="mt-5 flex flex-wrap gap-3">
               <button

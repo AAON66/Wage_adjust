@@ -38,9 +38,12 @@ class Settings(BaseSettings):
     deepseek_api_key: str = "your_deepseek_api_key"
     deepseek_api_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-reasoner"
+    deepseek_parsing_model: str = ""
     deepseek_timeout_seconds: int = 30
+    deepseek_parsing_timeout_seconds: int = 120
     deepseek_max_retries: int = 2
     deepseek_requests_per_minute: int = 20
+    deepseek_require_real_call_for_parsing: bool = True
 
     backend_cors_origins: list[str] = Field(
         default_factory=lambda: [

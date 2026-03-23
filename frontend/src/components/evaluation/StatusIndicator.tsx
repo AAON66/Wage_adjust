@@ -1,5 +1,7 @@
 import type React from 'react';
 
+import { formatStatusText } from '../../utils/statusText';
+
 const STATUS_LABELS: Record<string, string> = {
   collecting: '收集中',
   submitted: '已提交',
@@ -48,7 +50,7 @@ interface StatusIndicatorProps {
 
 export function StatusIndicator({ status }: StatusIndicatorProps) {
   const normalized = status.toLowerCase();
-  const label = STATUS_LABELS[normalized] ?? status;
+  const label = STATUS_LABELS[normalized] ?? formatStatusText(status, status);
   const style = STATUS_STYLES[normalized] ?? DEFAULT_STYLE;
 
   return <span className="status-pill" style={style}>{label}</span>;

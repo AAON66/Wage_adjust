@@ -27,6 +27,8 @@ class ApiDatabaseContext:
             allow_self_registration=True,
             database_url=f'sqlite+pysqlite:///{database_path}',
             storage_base_dir=uploads_path,
+            deepseek_require_real_call_for_parsing=False,
+            deepseek_api_key='your_deepseek_api_key',
         )
         load_model_modules()
         self.engine = create_db_engine(self.settings)
@@ -220,7 +222,7 @@ def test_file_api_github_import_accepts_repository_links() -> None:
         evidence_response = client.get(f'/api/v1/submissions/{submission_id}/evidence', headers=headers)
         assert evidence_response.status_code == 200
         assert evidence_response.json()['total'] == 1
-        assert 'Compressed archive' in evidence_response.json()['items'][0]['content']
+        assert 'not a valid zip file' in evidence_response.json()['items'][0]['content']
 
 
 
@@ -305,3 +307,29 @@ def test_file_service_raw_github_download_keeps_binary_accept_header() -> None:
         assert header_map['user-agent'] == 'wage-adjust-platform'
     finally:
         db.close()
+
+
+def test_file_api_parse_returns_actionable_error_when_llm_is_not_configured() -> None:
+    context = ApiDatabaseContext()
+    context.settings.deepseek_require_real_call_for_parsing = True
+    context.settings.deepseek_api_key = 'your_deepseek_api_key'
+    app = create_app(context.settings)
+    app.dependency_overrides[get_db] = context.override_get_db
+    client = TestClient(app)
+
+    with client:
+        token = register_and_login_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        submission_id = seed_submission(context)
+
+        upload_response = client.post(
+            f'/api/v1/submissions/{submission_id}/files',
+            headers=headers,
+            files=[('files', ('notes.md', b'# Impact\nCreated reusable AI workflows.', 'text/markdown'))],
+        )
+        assert upload_response.status_code == 201
+        file_id = upload_response.json()['items'][0]['id']
+
+        parse_response = client.post(f'/api/v1/files/{file_id}/parse', headers=headers)
+        assert parse_response.status_code == 503
+        assert 'DEEPSEEK_API_KEY' in parse_response.json()['message']

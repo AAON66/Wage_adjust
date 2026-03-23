@@ -146,6 +146,12 @@ export interface FileDeleteResponse {
   deleted_file_id: string;
 }
 
+export interface ParseResultRecord {
+  file_id: string;
+  parse_status: 'pending' | 'parsing' | 'parsed' | 'failed';
+  evidence_count: number;
+}
+
 export interface EvidenceRecord {
   id: string;
   submission_id: string;

@@ -7,6 +7,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AppShell } from "./components/layout/AppShell";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ApprovalsPage } from "./pages/Approvals";
+import { ApiDocsPage } from "./pages/ApiDocs";
 import { CreateCyclePage } from "./pages/CreateCycle";
 import { DashboardPage } from "./pages/Dashboard";
 import { EmployeesPage } from "./pages/Employees";
@@ -121,7 +122,7 @@ function HomePage() {
             <p className="mt-2 text-sm text-steel">企业内部评估与调薪运营入口</p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link className="chip-button" to="/login">账号登录</Link>
+            <Link className="action-secondary" to="/login">账号登录</Link>
             <Link className="action-primary" to={isAuthenticated ? getRoleHomePath(user?.role) : "/login"}>
               {isAuthenticated ? "进入工作区" : "进入系统"}
             </Link>
@@ -269,17 +270,20 @@ function HomePage() {
           </div>
         </section>
 
-        <section className="surface animate-fade-up px-6 py-5 lg:px-7" style={{ animationDelay: "420ms" }}>
+        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: "380ms" }}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="eyebrow">快速进入</p>
-              <h3 className="mt-2 text-[22px] font-semibold tracking-[-0.03em] text-ink">首页先保持简洁，需要时再展开。</h3>
+              <p className="eyebrow">开发者支持</p>
+              <h3 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">API 文档</h3>
+              <p className="mt-2 text-sm leading-6 text-steel">按模块查看接口路径、鉴权方式和请求说明。</p>
             </div>
-            <button className="action-secondary" onClick={() => revealDetails("modules")} type="button">
-              查看模块入口
-            </button>
+            <div className="flex flex-wrap gap-3">
+              <Link className="action-secondary" to="/login">进入系统</Link>
+              <Link className="action-primary" to="/api-docs">查看 API 文档</Link>
+            </div>
           </div>
         </section>
+
       </div>
     </main>
   );
@@ -406,6 +410,7 @@ export default function App() {
       <ErrorBoundary>
         <Routes>
           <Route element={<HomePage />} path="/" />
+          <Route element={<ApiDocsPage />} path="/api-docs" />
           <Route element={<LoginPage />} path="/login" />
           <Route element={<Navigate replace to="/login" />} path="/register" />
 

@@ -17,6 +17,7 @@ from backend.app.schemas.file import (
     UploadedFileListResponse,
     UploadedFileRead,
 )
+from backend.app.services.evidence_service import RequiredLLMError
 from backend.app.services.file_service import FileService
 from backend.app.services.parse_service import ParseService
 
@@ -125,7 +126,10 @@ def parse_single_file(
     file_record = file_service.get_file(file_id)
     if file_record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='File not found.')
-    updated_file, evidence_count = parse_service.parse_file(file_record)
+    try:
+        updated_file, evidence_count = parse_service.parse_file(file_record)
+    except RequiredLLMError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     return ParseResultResponse(file_id=updated_file.id, parse_status=updated_file.parse_status, evidence_count=evidence_count)
 
 
@@ -141,7 +145,10 @@ def parse_all_submission_files(
     files = file_service.list_files(submission_id)
     if not files:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='No files found for submission.')
-    updated_files, _ = parse_service.parse_submission_files(files)
+    try:
+        updated_files, _ = parse_service.parse_submission_files(files)
+    except RequiredLLMError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in updated_files], total=len(updated_files))
 
 

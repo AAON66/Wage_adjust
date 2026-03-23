@@ -7,6 +7,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
 import { decideApproval, fetchApprovals } from '../services/approvalService';
 import type { ApprovalRecord } from '../types/api';
+import { formatAiLevel } from '../utils/statusText';
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -79,7 +80,7 @@ export function ApprovalsPage() {
       employeeName: item.employee_name,
       department: item.department,
       cycleName: item.cycle_name,
-      aiLevel: item.ai_level,
+      aiLevel: formatAiLevel(item.ai_level),
       recommendedIncrease: formatIncrease(item.final_adjustment_ratio),
       approver: item.approver_email,
       status: item.decision,

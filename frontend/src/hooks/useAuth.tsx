@@ -2,6 +2,7 @@
 
 import type { LoginPayload, RegisterPayload, UserProfile } from '../types/api';
 import {
+  AUTH_SESSION_EVENT,
   clearAuthStorage,
   fetchCurrentUser,
   getStoredAccessToken,
@@ -85,6 +86,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void bootstrap();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    function syncAuthState() {
+      setUser(getStoredUser());
+      setAccessToken(getStoredAccessToken());
+    }
+
+    window.addEventListener(AUTH_SESSION_EVENT, syncAuthState);
+    return () => {
+      window.removeEventListener(AUTH_SESSION_EVENT, syncAuthState);
     };
   }, []);
 

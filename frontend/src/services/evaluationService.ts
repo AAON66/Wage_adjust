@@ -1,13 +1,15 @@
 ﻿import api from './api';
 import type { EvaluationRecord } from '../types/api';
 
+const LONG_RUNNING_TIMEOUT = 120000;
+
 export async function generateEvaluation(submissionId: string): Promise<EvaluationRecord> {
-  const response = await api.post<EvaluationRecord>('/evaluations/generate', { submission_id: submissionId });
+  const response = await api.post<EvaluationRecord>('/evaluations/generate', { submission_id: submissionId }, { timeout: LONG_RUNNING_TIMEOUT });
   return response.data;
 }
 
 export async function regenerateEvaluation(submissionId: string): Promise<EvaluationRecord> {
-  const response = await api.post<EvaluationRecord>('/evaluations/regenerate', { submission_id: submissionId });
+  const response = await api.post<EvaluationRecord>('/evaluations/regenerate', { submission_id: submissionId }, { timeout: LONG_RUNNING_TIMEOUT });
   return response.data;
 }
 

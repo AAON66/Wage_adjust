@@ -1,6 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from pathlib import Path
+from posixpath import basename
+import re
 
 from sqlalchemy.orm import Session
 
@@ -11,7 +13,11 @@ from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
 from backend.app.parsers import CodeParser, DocumentParser, ImageParser, PPTParser
 from backend.app.parsers.base_parser import BaseParser
-from backend.app.services.evidence_service import EvidenceService
+from backend.app.services.evidence_service import EvidenceService, RequiredLLMError
+
+
+ARCHIVE_SECTION_PATTERN = re.compile(r'(^|\n\n)File:\s(?P<path>[^\n]+)\n', re.MULTILINE)
+MAX_ARCHIVE_EVIDENCE_ITEMS = 8
 
 
 class ParseService:
@@ -33,33 +39,78 @@ class ParseService:
                 return parser
         return None
 
-    def _upsert_evidence(self, file_record: UploadedFile, *, path: Path, parsed) -> EvidenceItem:
+    def _remove_existing_evidence(self, file_record: UploadedFile) -> None:
+        submission = self.db.get(EmployeeSubmission, file_record.submission_id)
+        if submission is None:
+            return
+
+        for item in list(submission.evidence_items):
+            metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+            if metadata.get('file_id') == file_record.id:
+                self.db.delete(item)
+
+    def _build_parsed_units(self, parsed) -> list:
+        if not parsed.metadata.get('compressed'):
+            return [parsed]
+
+        matches = list(ARCHIVE_SECTION_PATTERN.finditer(parsed.text))
+        if not matches:
+            return [parsed]
+
+        parsed_units = []
+        total_matches = len(matches)
+        for index, match in enumerate(matches[:MAX_ARCHIVE_EVIDENCE_ITEMS]):
+            start = match.end()
+            end = matches[index + 1].start() if index + 1 < total_matches else len(parsed.text)
+            content = parsed.text[start:end].strip()
+            member_path = match.group('path').strip()
+            if not content:
+                continue
+            parsed_units.append(
+                type(parsed)(
+                    text=content,
+                    title=basename(member_path) or member_path,
+                    metadata={
+                        **parsed.metadata,
+                        'archive_member_path': member_path,
+                        'archive_section_index': index + 1,
+                        'archive_section_total': min(total_matches, MAX_ARCHIVE_EVIDENCE_ITEMS),
+                    },
+                )
+            )
+
+        return parsed_units or [parsed]
+
+    def _upsert_evidence(self, file_record: UploadedFile, *, path: Path, parsed) -> list[EvidenceItem]:
         submission = self.db.get(EmployeeSubmission, file_record.submission_id)
         assert submission is not None
 
-        for item in list(submission.evidence_items):
-            if item.metadata_json.get('file_id') == file_record.id:
-                self.db.delete(item)
-
-        extracted = self.evidence_service.extract_from_parsed_document(
-            parsed,
-            file_name=file_record.file_name,
-            file_type=path.suffix.lower().lstrip('.'),
-        )
-        evidence = EvidenceItem(
-            submission_id=file_record.submission_id,
-            source_type=extracted.source_type,
-            title=extracted.title,
-            content=extracted.content,
-            confidence_score=extracted.confidence_score,
-            metadata_json={**extracted.metadata, 'file_id': file_record.id, 'storage_key': file_record.storage_key},
-        )
-        self.db.add(evidence)
-        return evidence
+        evidence_items: list[EvidenceItem] = []
+        for parsed_unit in self._build_parsed_units(parsed):
+            extracted = self.evidence_service.extract_from_parsed_document(
+                parsed_unit,
+                file_name=file_record.file_name,
+                file_type=path.suffix.lower().lstrip('.'),
+                require_llm=self.settings.deepseek_require_real_call_for_parsing,
+            )
+            evidence = EvidenceItem(
+                submission_id=file_record.submission_id,
+                source_type=extracted.source_type,
+                title=extracted.title,
+                content=extracted.content,
+                confidence_score=extracted.confidence_score,
+                metadata_json={**extracted.metadata, 'file_id': file_record.id, 'storage_key': file_record.storage_key},
+            )
+            self.db.add(evidence)
+            evidence_items.append(evidence)
+        return evidence_items
 
     def parse_file(self, file_record: UploadedFile) -> tuple[UploadedFile, int]:
         path = self.storage.resolve_path(file_record.storage_key)
         parser = self._pick_parser(path)
+
+        self._remove_existing_evidence(file_record)
+
         if parser is None:
             file_record.parse_status = 'failed'
             self.db.add(file_record)
@@ -74,7 +125,7 @@ class ParseService:
 
         try:
             parsed = parser.parse(path)
-            self._upsert_evidence(file_record, path=path, parsed=parsed)
+            evidence_items = self._upsert_evidence(file_record, path=path, parsed=parsed)
             file_record.parse_status = 'parsed'
             submission = self.db.get(EmployeeSubmission, file_record.submission_id)
             if submission is not None:
@@ -83,7 +134,13 @@ class ParseService:
             self.db.add(file_record)
             self.db.commit()
             self.db.refresh(file_record)
-            return file_record, 1
+            return file_record, len(evidence_items)
+        except RequiredLLMError:
+            file_record.parse_status = 'failed'
+            self.db.add(file_record)
+            self.db.commit()
+            self.db.refresh(file_record)
+            raise
         except Exception:
             file_record.parse_status = 'failed'
             self.db.add(file_record)

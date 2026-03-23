@@ -7,6 +7,7 @@ import { BudgetSimulationPanel } from '../components/salary/BudgetSimulationPane
 import { fetchCycles } from '../services/cycleService';
 import { simulateSalary } from '../services/salaryService';
 import type { CycleRecord, SalarySimulationResponse } from '../types/api';
+import { formatAiLevel, formatCycleStatus } from '../utils/statusText';
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -136,7 +137,7 @@ export function SalarySimulatorPage() {
           <div className="surface-subtle px-4 py-4">
             <span className="text-sm text-steel">周期信息</span>
             <p className="mt-3 text-lg font-semibold text-ink">{selectedCycle?.review_period ?? '未选择周期'}</p>
-            <p className="mt-2 text-sm text-steel">状态：{selectedCycle?.status ?? '无'}</p>
+            <p className="mt-2 text-sm text-steel">状态：{formatCycleStatus(selectedCycle?.status)}</p>
           </div>
         </div>
       </section>
@@ -181,7 +182,7 @@ export function SalarySimulatorPage() {
                   </span>
                 </div>
                 <dl className="mt-5 space-y-3 text-sm text-steel">
-                  <div className="flex justify-between gap-4"><dt>AI 等级</dt><dd className="text-ink">{item.ai_level}</dd></div>
+                  <div className="flex justify-between gap-4"><dt>AI 等级</dt><dd className="text-ink">{formatAiLevel(item.ai_level)}</dd></div>
                   <div className="flex justify-between gap-4"><dt>当前薪资</dt><dd className="text-ink">{formatCurrency(currentSalary)}</dd></div>
                   <div className="flex justify-between gap-4"><dt>建议涨幅金额</dt><dd className="text-ink">{formatCurrency(increaseAmount)}</dd></div>
                   <div className="flex justify-between gap-4"><dt>调整后薪资</dt><dd className="text-ink">{formatCurrency(projectedSalary)}</dd></div>
