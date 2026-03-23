@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import base64
+import json
 from pathlib import Path
+import time
 from urllib.error import HTTPError, URLError
-from urllib.parse import unquote, urlparse
+from urllib.parse import quote, unquote, urlparse
 from urllib.request import Request, urlopen
 
 from fastapi import UploadFile
@@ -18,6 +21,9 @@ from backend.app.models.uploaded_file import UploadedFile
 ALLOWED_EXTENSIONS = {
     '.ppt', '.pptx', '.pdf', '.png', '.jpg', '.jpeg', '.zip', '.md', '.xlsx', '.xls', '.py', '.ts', '.tsx', '.js', '.json', '.txt', '.yml', '.yaml'
 }
+GITHUB_DOWNLOAD_TIMEOUT_SECONDS = 30
+GITHUB_DOWNLOAD_CHUNK_SIZE = 64 * 1024
+EXTENSIONLESS_TEXT_NAMES = {'readme', 'license', 'dockerfile', 'makefile', 'procfile', 'notice', 'changelog'}
 
 
 class FileService:
@@ -41,25 +47,65 @@ class FileService:
         return self.db.get(UploadedFile, file_id)
 
     def _validate_file_name_and_content(self, file_name: str, content: bytes) -> None:
-        extension = Path(file_name).suffix.lower()
-        if extension not in ALLOWED_EXTENSIONS:
+        extension = self._allowed_extension(file_name, content)
+        if extension is None:
             raise ValueError('Unsupported file type.')
         if len(content) > self.settings.max_upload_size_mb * 1024 * 1024:
             raise ValueError('File exceeds maximum allowed size.')
+
+    def _allowed_extension(self, file_name: str, content: bytes) -> str | None:
+        extension = Path(file_name).suffix.lower()
+        if extension in ALLOWED_EXTENSIONS:
+            return extension
+        if extension:
+            return None
+        stem = Path(file_name).name.lower()
+        if stem in EXTENSIONLESS_TEXT_NAMES and self._looks_like_text_content(content):
+            return '.txt'
+        return None
+
+    def _looks_like_text_content(self, content: bytes) -> bool:
+        if not content:
+            return True
+        if b'\x00' in content[:4096]:
+            return False
+        sample = content[:4096]
+        try:
+            decoded = sample.decode('utf-8')
+        except UnicodeDecodeError:
+            decoded = sample.decode('utf-8', errors='ignore')
+        if not decoded:
+            return False
+        printable = sum(1 for char in decoded if char.isprintable() or char in '\r\n\t')
+        return printable / max(len(decoded), 1) >= 0.85
+
+    def _infer_file_type(self, file_name: str, content: bytes) -> str:
+        allowed_extension = self._allowed_extension(file_name, content)
+        if allowed_extension is not None:
+            return allowed_extension.lstrip('.')
+        return Path(file_name).suffix.lower().lstrip('.') or 'bin'
+
+    def _storage_file_name(self, file_name: str, content: bytes) -> str:
+        if Path(file_name).suffix:
+            return file_name
+        if self._allowed_extension(file_name, content) == '.txt':
+            return f'{file_name}.txt'
+        return file_name
 
     def validate_upload(self, upload: UploadFile, content: bytes) -> None:
         self._validate_file_name_and_content(upload.filename or 'upload.bin', content)
 
     def _create_file_record(self, *, submission_id: str, file_name: str, content: bytes) -> UploadedFile:
+        storage_file_name = self._storage_file_name(file_name, content)
         storage_key = self.storage.save_bytes(
             submission_id=submission_id,
-            file_name=file_name,
+            file_name=storage_file_name,
             content=content,
         )
         file_record = UploadedFile(
             submission_id=submission_id,
             file_name=file_name,
-            file_type=Path(file_name).suffix.lower().lstrip('.') or 'bin',
+            file_type=self._infer_file_type(file_name, content),
             storage_key=storage_key,
             parse_status='pending',
         )
@@ -95,16 +141,29 @@ class FileService:
     def _github_archive_url(self, owner: str, repo: str, ref: str | None = None) -> tuple[str, str]:
         archive_url = f'https://api.github.com/repos/{owner}/{repo}/zipball'
         if ref:
-            archive_url = f'{archive_url}/{ref}'
+            archive_url = f'{archive_url}/{quote(ref, safe="")}'
         safe_ref = ref.replace('/', '-') if ref else None
         file_name = f'{repo}-{safe_ref}.zip' if safe_ref else f'{repo}.zip'
         return archive_url, file_name
 
-    def _build_remote_request(self, remote_url: str) -> Request:
+    def _github_contents_url(self, owner: str, repo: str, ref: str, file_path: str) -> tuple[str, str]:
+        normalized_path = '/'.join(part for part in file_path.split('/') if part)
+        if not normalized_path:
+            raise ValueError('Unsupported GitHub file URL.')
+        encoded_path = quote(normalized_path, safe='/')
+        encoded_ref = quote(ref, safe='')
+        return f'https://api.github.com/repos/{owner}/{repo}/contents/{encoded_path}?ref={encoded_ref}', unquote(Path(normalized_path).name)
+
+    def _build_remote_request(self, remote_url: str, *, use_api_json_accept: bool = True) -> Request:
         headers = {'User-Agent': 'wage-adjust-platform'}
-        host = urlparse(remote_url).netloc.lower()
+        parsed = urlparse(remote_url)
+        host = parsed.netloc.lower()
+        path = parsed.path.lower()
         if host == 'api.github.com':
-            headers['Accept'] = 'application/vnd.github+json'
+            if '/contents/' in path:
+                headers['Accept'] = 'application/vnd.github+json'
+            elif use_api_json_accept:
+                headers['Accept'] = 'application/vnd.github+json'
         elif host == 'raw.githubusercontent.com':
             headers['Accept'] = 'application/octet-stream'
         return Request(remote_url, headers=headers)
@@ -126,7 +185,8 @@ class FileService:
         if host == 'raw.githubusercontent.com':
             if len(parts) < 4:
                 raise ValueError('Unsupported GitHub file URL.')
-            return url, parts[-1]
+            owner, repo, ref = parts[0], parts[1], parts[2]
+            return self._github_contents_url(owner, repo, ref, '/'.join(parts[3:]))
 
         if host in {'github.com', 'www.github.com'}:
             if len(parts) < 2:
@@ -141,9 +201,7 @@ class FileService:
                 file_parts = parts[4:]
                 if not file_parts:
                     raise ValueError('Unsupported GitHub file URL.')
-                file_path = '/'.join(file_parts)
-                raw_url = f'https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{file_path}'
-                return raw_url, unquote(file_parts[-1])
+                return self._github_contents_url(owner, repo, ref, '/'.join(file_parts))
 
             if len(parts) >= 4 and parts[2] == 'tree':
                 ref = parts[3]
@@ -154,18 +212,67 @@ class FileService:
         raise ValueError('Only GitHub repository, branch, folder, or file links are supported.')
 
     def _download_remote_file(self, raw_url: str) -> bytes:
-        request = self._build_remote_request(raw_url)
+        last_network_error: Exception | None = None
+        for attempt in range(2):
+            try:
+                return self._download_remote_file_once(raw_url, use_api_json_accept=True)
+            except HTTPError as exc:
+                if exc.code == 400 and urlparse(raw_url).netloc.lower() == 'api.github.com':
+                    try:
+                        return self._download_remote_file_once(raw_url, use_api_json_accept=False)
+                    except HTTPError as retry_exc:
+                        exc = retry_exc
+                if exc.code in {401, 403, 404}:
+                    raise ValueError('Unable to download from GitHub. Please confirm the link is correct and the repository is public.') from exc
+                raise ValueError(f'GitHub returned HTTP {exc.code} while downloading the link.') from exc
+            except (URLError, TimeoutError) as exc:
+                last_network_error = exc
+                if attempt == 1:
+                    break
+                time.sleep(0.2)
+        if isinstance(last_network_error, TimeoutError):
+            raise ValueError('Timed out while downloading from GitHub. Please try again later.') from last_network_error
+        raise ValueError('Unable to reach GitHub right now. Please try again later.')
+
+    def _download_remote_file_once(self, raw_url: str, *, use_api_json_accept: bool) -> bytes:
+        request = self._build_remote_request(raw_url, use_api_json_accept=use_api_json_accept)
+        with urlopen(request, timeout=GITHUB_DOWNLOAD_TIMEOUT_SECONDS) as response:
+            if '/contents/' in urlparse(raw_url).path.lower():
+                return self._read_github_contents_payload(response)
+            return self._read_binary_response(response)
+
+    def _read_binary_response(self, response) -> bytes:
+        chunks: list[bytes] = []
+        total = 0
+        max_bytes = self.settings.max_upload_size_mb * 1024 * 1024
+        while True:
+            chunk = response.read(GITHUB_DOWNLOAD_CHUNK_SIZE)
+            if not chunk:
+                break
+            total += len(chunk)
+            if total > max_bytes:
+                raise ValueError('File exceeds maximum allowed size.')
+            chunks.append(chunk)
+        return b''.join(chunks)
+
+    def _read_github_contents_payload(self, response) -> bytes:
+        payload = json.loads(response.read().decode('utf-8'))
+        if not isinstance(payload, dict):
+            raise ValueError('Unexpected GitHub contents response.')
+
+        encoded_content = str(payload.get('content') or '')
+        if not encoded_content:
+            raise ValueError('GitHub file content is empty.')
+
+        normalized_content = ''.join(encoded_content.splitlines())
         try:
-            with urlopen(request, timeout=15) as response:
-                return response.read()
-        except HTTPError as exc:
-            if exc.code in {401, 403, 404}:
-                raise ValueError('Unable to download from GitHub. Please confirm the link is correct and the repository is public.') from exc
-            raise ValueError(f'GitHub returned HTTP {exc.code} while downloading the link.') from exc
-        except URLError as exc:
-            raise ValueError('Unable to reach GitHub right now. Please try again later.') from exc
-        except TimeoutError as exc:
-            raise ValueError('Timed out while downloading from GitHub. Please try again later.') from exc
+            decoded = base64.b64decode(normalized_content)
+        except ValueError as exc:
+            raise ValueError('Unable to decode GitHub file content.') from exc
+
+        if len(decoded) > self.settings.max_upload_size_mb * 1024 * 1024:
+            raise ValueError('File exceeds maximum allowed size.')
+        return decoded
 
     def import_github_file(self, submission_id: str, url: str) -> UploadedFile:
         submission = self.get_submission(submission_id)
@@ -200,13 +307,14 @@ class FileService:
         if submission is None:
             raise ValueError('Submission not found.')
 
+        next_file_name = upload.filename or file_record.file_name
         new_storage_key = self.storage.save_bytes(
             submission_id=file_record.submission_id,
-            file_name=upload.filename or file_record.file_name,
+            file_name=self._storage_file_name(next_file_name, content),
             content=content,
         )
-        file_record.file_name = upload.filename or file_record.file_name
-        file_record.file_type = Path(upload.filename or file_record.file_name).suffix.lower().lstrip('.') or 'bin'
+        file_record.file_name = next_file_name
+        file_record.file_type = self._infer_file_type(next_file_name, content)
         file_record.storage_key = new_storage_key
         file_record.parse_status = 'pending'
         self._mark_submission_uploaded(submission)

@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
 from pathlib import Path
+import base64
+import json
 from urllib.error import HTTPError
 from unittest.mock import patch
 from uuid import uuid4
@@ -46,9 +48,17 @@ class ApiDatabaseContext:
 class MockUrlOpenResponse:
     def __init__(self, payload: bytes) -> None:
         self.payload = payload
+        self.offset = 0
 
-    def read(self) -> bytes:
-        return self.payload
+    def read(self, size: int = -1) -> bytes:
+        if size is None or size < 0:
+            chunk = self.payload[self.offset:]
+            self.offset = len(self.payload)
+            return chunk
+        next_offset = min(len(self.payload), self.offset + size)
+        chunk = self.payload[self.offset:next_offset]
+        self.offset = next_offset
+        return chunk
 
     def __enter__(self) -> 'MockUrlOpenResponse':
         return self
@@ -179,7 +189,14 @@ def test_file_api_github_import_parses_blob_link_immediately() -> None:
 
         with patch(
             'backend.app.services.file_service.urlopen',
-            return_value=MockUrlOpenResponse(b'# README\nShipped GitHub based enablement notes.'),
+            return_value=MockUrlOpenResponse(
+                json.dumps(
+                    {
+                        'content': base64.b64encode(b'# README\nShipped GitHub based enablement notes.').decode('ascii'),
+                        'encoding': 'base64',
+                    }
+                ).encode('utf-8')
+            ),
         ):
             import_response = client.post(
                 f'/api/v1/submissions/{submission_id}/github-import',
@@ -249,6 +266,20 @@ def test_file_api_github_import_accepts_clone_links() -> None:
         assert request.full_url == 'https://api.github.com/repos/openai/platform/zipball'
 
 
+def test_file_api_github_import_encodes_branch_names_with_slashes() -> None:
+    context = ApiDatabaseContext()
+    db = context.session_factory()
+    try:
+        from backend.app.services.file_service import FileService
+
+        service = FileService(db, context.settings)
+        archive_url, file_name = service._github_archive_url('openai', 'platform', 'feature/github-import')
+        assert archive_url == 'https://api.github.com/repos/openai/platform/zipball/feature%2Fgithub-import'
+        assert file_name == 'platform-feature-github-import.zip'
+    finally:
+        db.close()
+
+
 
 def test_file_api_github_import_returns_actionable_error_for_missing_repository() -> None:
     client, context = build_client()
@@ -277,6 +308,38 @@ def test_file_api_github_import_returns_actionable_error_for_missing_repository(
         assert import_response.json()['message'] == 'Unable to download from GitHub. Please confirm the link is correct and the repository is public.'
 
 
+def test_file_service_github_download_retries_without_json_accept_after_400() -> None:
+    context = ApiDatabaseContext()
+    db = context.session_factory()
+    try:
+        from backend.app.services.file_service import FileService
+
+        service = FileService(db, context.settings)
+        calls: list[dict[str, str]] = []
+
+        def fake_urlopen(request, timeout=15):
+            header_map = {key.lower(): value for key, value in request.header_items()}
+            calls.append(header_map)
+            if len(calls) == 1:
+                raise HTTPError(
+                    url=request.full_url,
+                    code=400,
+                    msg='Bad Request',
+                    hdrs=None,
+                    fp=None,
+                )
+            return MockUrlOpenResponse(b'PK\x03\x04repo-archive')
+
+        with patch('backend.app.services.file_service.urlopen', side_effect=fake_urlopen):
+            payload = service._download_remote_file('https://api.github.com/repos/openai/platform/zipball')
+
+        assert payload.startswith(b'PK\x03\x04')
+        assert calls[0]['accept'] == 'application/vnd.github+json'
+        assert 'accept' not in calls[1]
+    finally:
+        db.close()
+
+
 
 def test_file_service_github_archive_uses_github_api_accept_header() -> None:
     context = ApiDatabaseContext()
@@ -301,9 +364,12 @@ def test_file_service_raw_github_download_keeps_binary_accept_header() -> None:
         from backend.app.services.file_service import FileService
 
         service = FileService(db, context.settings)
-        request = service._build_remote_request('https://raw.githubusercontent.com/openai/platform/main/README.md')
+        normalized_url, file_name = service._normalize_github_raw_url('https://raw.githubusercontent.com/openai/platform/main/README.md')
+        assert normalized_url == 'https://api.github.com/repos/openai/platform/contents/README.md?ref=main'
+        assert file_name == 'README.md'
+        request = service._build_remote_request(normalized_url)
         header_map = {key.lower(): value for key, value in request.header_items()}
-        assert header_map['accept'] == 'application/octet-stream'
+        assert header_map['accept'] == 'application/vnd.github+json'
         assert header_map['user-agent'] == 'wage-adjust-platform'
     finally:
         db.close()
