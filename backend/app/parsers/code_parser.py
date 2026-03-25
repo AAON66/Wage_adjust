@@ -3,11 +3,16 @@ from __future__ import annotations
 from pathlib import Path, PurePosixPath
 from zipfile import BadZipFile, ZipFile
 
+from backend.app.core.config import Settings
 from backend.app.parsers.base_parser import BaseParser, ParsedDocument
 
 
 class CodeParser(BaseParser):
     supported_extensions = ('.py', '.js', '.ts', '.tsx', '.json', '.yml', '.yaml', '.zip')
+    default_max_archive_files = 36
+    default_max_archive_member_bytes = 160_000
+    default_max_archive_snippet_chars = 6_000
+    default_max_archive_text_chars = 72_000
 
     archive_text_extensions = {
         '.c',
@@ -60,29 +65,37 @@ class CodeParser(BaseParser):
         'target',
         'venv',
     }
-    max_archive_files = 24
-    max_archive_member_bytes = 120_000
-    max_archive_snippet_chars = 4_000
-    max_archive_text_chars = 24_000
     archive_priority_keywords = {
-        'readme': 80,
-        'impact': 70,
-        'result': 60,
-        'summary': 50,
-        'overview': 45,
-        'backend': 35,
-        'frontend': 35,
-        'src': 30,
-        'service': 30,
-        'api': 25,
-        'controller': 20,
-        'component': 20,
-        'page': 18,
-        'prompt': 18,
+        'readme': 90,
+        'impact': 80,
+        'result': 72,
+        'outcome': 72,
+        'achievement': 70,
+        'summary': 58,
+        'overview': 54,
+        'architecture': 48,
+        'design': 44,
+        'backend': 40,
+        'frontend': 40,
+        'service': 38,
+        'api': 34,
+        'controller': 28,
+        'model': 22,
+        'repository': 20,
+        'component': 26,
+        'page': 24,
+        'prompt': 30,
+        'agent': 28,
+        'automation': 28,
+        'llm': 28,
+        'workflow': 24,
         'evaluation': 18,
         'salary': 18,
-        'workflow': 16,
         'feature': 14,
+        'config': 16,
+        'settings': 16,
+        'deploy': 14,
+        'infra': 12,
         'docs': 12,
     }
     archive_penalty_keywords = {
@@ -99,8 +112,74 @@ class CodeParser(BaseParser):
         'coverage': -20,
         'test': -12,
         'spec': -12,
+        'fixture': -10,
         '__init__': -8,
     }
+    archive_category_priority = ('overview', 'outcome', 'backend', 'frontend', 'workflow', 'config')
+    archive_category_bonus = {
+        'overview': 140,
+        'outcome': 125,
+        'backend': 96,
+        'frontend': 88,
+        'workflow': 84,
+        'config': 64,
+        'test': -24,
+        'other': 0,
+    }
+    archive_primary_extensions = {'.md', '.py', '.ts', '.tsx', '.js', '.jsx', '.json', '.yaml', '.yml', '.toml'}
+    archive_key_files = {
+        'readme.md': 220,
+        'package.json': 88,
+        'pyproject.toml': 82,
+        'requirements.txt': 78,
+        'dockerfile': 76,
+        'docker-compose.yml': 76,
+        'docker-compose.yaml': 76,
+        '.env.example': 68,
+        'settings.py': 66,
+        'config.yaml': 62,
+        'config.yml': 62,
+    }
+    archive_root_dirs = {
+        'backend',
+        'client',
+        'config',
+        'configs',
+        'docs',
+        'frontend',
+        'infra',
+        'ops',
+        'packages',
+        'prompt',
+        'prompts',
+        'scripts',
+        'server',
+        'services',
+        'src',
+        'web',
+    }
+
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.max_archive_files = self._resolve_limit(
+            settings,
+            'archive_parser_max_files',
+            self.default_max_archive_files,
+        )
+        self.max_archive_member_bytes = self._resolve_limit(
+            settings,
+            'archive_parser_max_member_bytes',
+            self.default_max_archive_member_bytes,
+        )
+        self.max_archive_snippet_chars = self._resolve_limit(
+            settings,
+            'archive_parser_max_snippet_chars',
+            self.default_max_archive_snippet_chars,
+        )
+        self.max_archive_text_chars = self._resolve_limit(
+            settings,
+            'archive_parser_max_text_chars',
+            self.default_max_archive_text_chars,
+        )
 
     def parse(self, path: Path) -> ParsedDocument:
         if path.suffix.lower() == '.zip':
@@ -187,13 +266,53 @@ class CodeParser(BaseParser):
                 continue
             candidates.append(member_path)
 
-        candidates.sort(key=self._archive_priority, reverse=True)
-        return [member_path.as_posix() for member_path in candidates]
+        ranked_candidates = sorted(candidates, key=self._archive_priority, reverse=True)
+        return [member_path.as_posix() for member_path in self._balance_archive_candidates(ranked_candidates)]
+
+    def _balance_archive_candidates(self, candidates: list[PurePosixPath]) -> list[PurePosixPath]:
+        selected: list[PurePosixPath] = []
+        used_paths: set[str] = set()
+        used_buckets: set[str] = set()
+
+        for category in self.archive_category_priority:
+            for member_path in candidates:
+                path_key = member_path.as_posix()
+                if path_key in used_paths or self._archive_category(member_path) != category:
+                    continue
+                selected.append(member_path)
+                used_paths.add(path_key)
+                used_buckets.add(self._archive_directory_bucket(member_path))
+                break
+
+        for member_path in candidates:
+            if len(selected) >= self.max_archive_files:
+                break
+            path_key = member_path.as_posix()
+            if path_key in used_paths:
+                continue
+            bucket = self._archive_directory_bucket(member_path)
+            if bucket in used_buckets:
+                continue
+            selected.append(member_path)
+            used_paths.add(path_key)
+            used_buckets.add(bucket)
+
+        for member_path in candidates:
+            if len(selected) >= self.max_archive_files:
+                break
+            path_key = member_path.as_posix()
+            if path_key in used_paths:
+                continue
+            selected.append(member_path)
+            used_paths.add(path_key)
+
+        return selected
 
     def _archive_priority(self, member_path: PurePosixPath) -> tuple[int, int, int, str]:
         lowered = member_path.as_posix().lower()
         file_name = member_path.name.lower()
-        score = 0
+        category = self._archive_category(member_path)
+        score = self.archive_category_bonus.get(category, 0)
 
         for keyword, weight in self.archive_priority_keywords.items():
             if keyword in lowered or keyword in file_name:
@@ -203,12 +322,60 @@ class CodeParser(BaseParser):
             if keyword in lowered or keyword in file_name:
                 score += penalty
 
-        if file_name == 'readme.md':
+        if file_name in self.archive_key_files:
+            score += self.archive_key_files[file_name]
+        elif file_name == 'readme.md':
             score += 120
         elif file_name.startswith('readme'):
             score += 90
 
-        if member_path.suffix.lower() in {'.md', '.py', '.ts', '.tsx', '.js', '.jsx'}:
+        if member_path.suffix.lower() in self.archive_primary_extensions:
             score += 12
 
+        bucket = self._archive_directory_bucket(member_path)
+        if bucket in {'backend', 'frontend', 'docs', 'prompts', 'config', 'server', 'services'}:
+            score += 8
+
         return (score, -len(member_path.parts), -len(lowered), lowered)
+
+    def _archive_category(self, member_path: PurePosixPath) -> str:
+        lowered = member_path.as_posix().lower()
+        file_name = member_path.name.lower()
+
+        if file_name == 'readme.md' or file_name.startswith('readme') or any(
+            keyword in lowered for keyword in ('overview', 'summary', 'architecture', 'design', 'roadmap')
+        ):
+            return 'overview'
+        if any(keyword in lowered for keyword in ('impact', 'result', 'outcome', 'achievement', 'deliverable', 'metric')):
+            return 'outcome'
+        if any(keyword in lowered for keyword in ('backend', 'service', 'api', 'controller', 'model', 'repository', 'server')):
+            return 'backend'
+        if any(keyword in lowered for keyword in ('frontend', 'component', 'page', 'view', 'ui', 'client', 'web')):
+            return 'frontend'
+        if any(keyword in lowered for keyword in ('prompt', 'workflow', 'agent', 'automation', 'llm', 'ai')):
+            return 'workflow'
+        if file_name in self.archive_key_files or any(
+            keyword in lowered for keyword in ('config', 'settings', 'deploy', 'infra', 'docker', 'compose', 'helm', 'terraform')
+        ):
+            return 'config'
+        if 'test' in lowered or 'spec' in lowered:
+            return 'test'
+        return 'other'
+
+    def _archive_directory_bucket(self, member_path: PurePosixPath) -> str:
+        parts = list(self._meaningful_parts(member_path))
+        if not parts:
+            return member_path.name.lower()
+        if parts[0] in {'src', 'app'} and len(parts) > 1:
+            return f'{parts[0]}/{parts[1]}'
+        return parts[0]
+
+    def _meaningful_parts(self, member_path: PurePosixPath) -> tuple[str, ...]:
+        parts = tuple(part.lower() for part in member_path.parts[:-1])
+        if len(parts) > 1 and parts[0] not in self.archive_root_dirs:
+            return parts[1:]
+        return parts
+
+    def _resolve_limit(self, settings: Settings | None, field_name: str, default: int) -> int:
+        value = getattr(settings, field_name, default) if settings is not None else default
+        return max(int(value), 1)

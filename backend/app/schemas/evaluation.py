@@ -12,8 +12,11 @@ class DimensionScoreRead(BaseModel):
     id: str
     dimension_code: str
     weight: float
+    ai_raw_score: float
+    ai_weighted_score: float
     raw_score: float
     weighted_score: float
+    ai_rationale: str
     rationale: str
     created_at: datetime
 

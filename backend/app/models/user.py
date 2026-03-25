@@ -13,6 +13,7 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    id_card_no: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True, index=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default='0')
     employee_id: Mapped[str | None] = mapped_column(ForeignKey('employees.id'), nullable=True, unique=True, index=True)
 
@@ -20,6 +21,7 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     approval_records = relationship('ApprovalRecord', back_populates='approver')
     audit_logs = relationship('AuditLog', back_populates='operator')
     uploaded_handbooks = relationship('EmployeeHandbook', back_populates='uploaded_by')
+    departments = relationship('Department', secondary='user_department_links', back_populates='users')
 
     @property
     def employee_name(self) -> str | None:

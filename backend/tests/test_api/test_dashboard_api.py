@@ -10,11 +10,13 @@ from backend.app.core.database import create_db_engine, create_session_factory, 
 from backend.app.dependencies import get_db
 from backend.app.main import create_app
 from backend.app.models import load_model_modules
+from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evaluation_cycle import EvaluationCycle
 from backend.app.models.salary_recommendation import SalaryRecommendation
 from backend.app.models.submission import EmployeeSubmission
+from backend.app.models.user import User
 
 
 class ApiDatabaseContext:
@@ -50,6 +52,34 @@ def register_and_login_admin(client: TestClient) -> str:
     )
     assert register_response.status_code == 201
     return register_response.json()['tokens']['access_token']
+
+
+def register_user(client: TestClient, *, email: str, role: str) -> str:
+    response = client.post(
+        '/api/v1/auth/register',
+        json={'email': email, 'password': 'Password123', 'role': role},
+    )
+    assert response.status_code == 201
+    return response.json()['tokens']['access_token']
+
+
+def bind_user_departments(context: ApiDatabaseContext, *, email: str, department_names: list[str]) -> None:
+    db = context.session_factory()
+    try:
+        user = db.query(User).filter(User.email == email).one()
+        departments: list[Department] = []
+        for name in department_names:
+            department = db.query(Department).filter(Department.name == name).one_or_none()
+            if department is None:
+                department = Department(name=name, description=f'{name} scope', status='active')
+                db.add(department)
+                db.flush()
+            departments.append(department)
+        user.departments = departments
+        db.add(user)
+        db.commit()
+    finally:
+        db.close()
 
 
 def seed_dashboard_data(context: ApiDatabaseContext) -> str:
@@ -90,11 +120,15 @@ def test_dashboard_snapshot_and_child_endpoints() -> None:
         snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
         assert snapshot_response.status_code == 200
         body = snapshot_response.json()
+        assert body['cycle_summary']['cycle_id'] == cycle_id
         assert body['overview']['items'][0]['label'] == '覆盖员工数'
         assert body['overview']['items'][0]['value'] == '1'
         assert body['ai_level_distribution']['total'] == 1
         assert body['heatmap']['total'] == 1
         assert body['roi_distribution']['total'] == 1
+        assert body['department_insights'][0]['department'] == 'Engineering'
+        assert body['top_talents'][0]['employee_name'] == 'Dana'
+        assert body['action_items'][0]['title'] == '待人工复核'
 
         overview_response = client.get(f'/api/v1/dashboard/overview?cycle_id={cycle_id}', headers=headers)
         assert overview_response.status_code == 200
@@ -111,4 +145,22 @@ def test_dashboard_snapshot_and_child_endpoints() -> None:
         roi_response = client.get(f'/api/v1/dashboard/roi-distribution?cycle_id={cycle_id}', headers=headers)
         assert roi_response.status_code == 200
         assert roi_response.json()['total'] == 1
+
+
+def test_dashboard_is_scoped_by_bound_departments() -> None:
+    client, context = build_client()
+    with client:
+        manager_token = register_user(client, email='manager@example.com', role='manager')
+        bind_user_departments(context, email='manager@example.com', department_names=['Sales'])
+        headers = {'Authorization': f'Bearer {manager_token}'}
+        cycle_id = seed_dashboard_data(context)
+
+        snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
+        assert snapshot_response.status_code == 200
+        body = snapshot_response.json()
+        assert body['overview']['items'][0]['value'] == '0'
+        assert body['ai_level_distribution']['total'] == 0
+        assert body['heatmap']['total'] == 0
+        assert body['department_insights'] == []
+        assert body['top_talents'] == []
 

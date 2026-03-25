@@ -8,11 +8,39 @@ export interface UserProfile {
   id: string;
   email: string;
   role: string;
+  id_card_no: string | null;
   must_change_password: boolean;
   employee_id: string | null;
   employee_name: string | null;
   employee_no: string | null;
+  departments: DepartmentRecord[];
   created_at: string;
+}
+
+export interface DepartmentRecord {
+  id: string;
+  name: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentListResponse {
+  items: DepartmentRecord[];
+  total: number;
+}
+
+export interface DepartmentCreatePayload {
+  name: string;
+  description?: string;
+  status: string;
+}
+
+export interface DepartmentUpdatePayload {
+  name?: string;
+  description?: string | null;
+  status?: string;
 }
 
 export interface TokenPair {
@@ -33,6 +61,7 @@ export interface LoginPayload {
 
 export interface RegisterPayload extends LoginPayload {
   role: string;
+  id_card_no?: string | null;
 }
 
 export interface ChangePasswordPayload {
@@ -44,7 +73,9 @@ export interface EmployeeRecord {
   id: string;
   employee_no: string;
   name: string;
+  id_card_no: string | null;
   department: string;
+  sub_department: string | null;
   job_family: string;
   job_level: string;
   manager_id: string | null;
@@ -58,11 +89,25 @@ export interface EmployeeRecord {
 export interface EmployeeCreatePayload {
   employee_no: string;
   name: string;
+  id_card_no: string | null;
   department: string;
+  sub_department: string | null;
   job_family: string;
   job_level: string;
   manager_id: string | null;
   status: string;
+}
+
+export interface EmployeeUpdatePayload {
+  employee_no?: string;
+  name?: string;
+  id_card_no?: string | null;
+  department?: string;
+  sub_department?: string | null;
+  job_family?: string;
+  job_level?: string;
+  manager_id?: string | null;
+  status?: string;
 }
 
 export interface EmployeeListResponse {
@@ -86,6 +131,7 @@ export interface CycleRecord {
   review_period: string;
   budget_amount: string;
   status: string;
+  department_budgets: CycleDepartmentBudgetRecord[];
   created_at: string;
   updated_at: string;
 }
@@ -100,6 +146,7 @@ export interface CycleCreatePayload {
   review_period: string;
   budget_amount: string;
   status: string;
+  department_budgets: CycleDepartmentBudgetPayload[];
 }
 
 export interface CycleUpdatePayload {
@@ -107,6 +154,21 @@ export interface CycleUpdatePayload {
   review_period?: string;
   budget_amount?: string;
   status?: string;
+  department_budgets?: CycleDepartmentBudgetPayload[];
+}
+
+export interface CycleDepartmentBudgetRecord {
+  id: string;
+  department_id: string;
+  department_name: string;
+  budget_amount: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CycleDepartmentBudgetPayload {
+  department_id: string;
+  budget_amount: string;
 }
 
 export interface SubmissionRecord {
@@ -173,8 +235,11 @@ export interface DimensionScoreRecord {
   id: string;
   dimension_code: string;
   weight: number;
+  ai_raw_score: number;
+  ai_weighted_score: number;
   raw_score: number;
   weighted_score: number;
+  ai_rationale: string;
   rationale: string;
   created_at: string;
 }
@@ -216,6 +281,29 @@ export interface SalaryRecommendationRecord {
   explanation?: string | null;
 }
 
+export interface SalaryHistoryRecord {
+  recommendation_id: string;
+  evaluation_id: string;
+  submission_id: string;
+  cycle_id: string;
+  cycle_name: string;
+  review_period: string;
+  current_salary: string;
+  recommended_salary: string;
+  recommended_ratio: number;
+  final_adjustment_ratio: number;
+  adjustment_amount: string;
+  ai_level: string;
+  overall_score: number;
+  status: string;
+  created_at: string;
+}
+
+export interface SalaryHistoryResponse {
+  items: SalaryHistoryRecord[];
+  total: number;
+}
+
 export interface SalarySimulationItem {
   employee_id: string;
   employee_name: string;
@@ -254,10 +342,15 @@ export interface ApprovalRecord {
   approver_email: string;
   approver_role: string;
   step_name: string;
-  decision: 'pending' | 'approved' | 'rejected';
+  step_order: number;
+  is_current_step: boolean;
+  decision: 'pending' | 'approved' | 'rejected' | 'deferred';
   comment: string | null;
   decided_at: string | null;
   created_at: string;
+  defer_until: string | null;
+  defer_target_score: number | null;
+  defer_reason: string | null;
 }
 
 export interface ApprovalListResponse {
@@ -265,11 +358,41 @@ export interface ApprovalListResponse {
   total: number;
 }
 
+export interface ApprovalCandidateRecord {
+  recommendation_id: string;
+  evaluation_id: string;
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  cycle_id: string;
+  cycle_name: string;
+  ai_level: string;
+  current_salary: string;
+  recommended_salary: string;
+  final_adjustment_ratio: number;
+  recommendation_status: string;
+  route_preview: string[];
+  route_error: string | null;
+  can_edit_route: boolean;
+  route_edit_error: string | null;
+  defer_until: string | null;
+  defer_target_score: number | null;
+  defer_reason: string | null;
+}
+
+export interface ApprovalCandidateListResponse {
+  items: ApprovalCandidateRecord[];
+  total: number;
+}
+
 export interface ApprovalStatusResponse {
   approval_id: string;
   recommendation_id: string;
-  decision: 'approved' | 'rejected';
+  decision: 'approved' | 'rejected' | 'deferred';
   recommendation_status: string;
+  defer_until: string | null;
+  defer_target_score: number | null;
+  defer_reason: string | null;
 }
 
 export interface ApprovalStepPayload {
@@ -309,11 +432,90 @@ export interface DashboardHeatmapResponse {
   total: number;
 }
 
+export interface DashboardCycleSummary {
+  cycle_id: string | null;
+  cycle_name: string;
+  review_period: string;
+  status: string;
+  budget_amount: string;
+}
+
+export interface DashboardDepartmentInsight {
+  department: string;
+  employee_count: number;
+  avg_score: number;
+  high_potential_count: number;
+  pending_review_count: number;
+  approved_count: number;
+  budget_used: string;
+  avg_increase_ratio: number;
+}
+
+export interface DashboardTalentSpotlight {
+  employee_id: string;
+  employee_name: string;
+  department: string;
+  ai_level: string;
+  overall_score: number;
+  recommendation_status: string | null;
+  final_adjustment_ratio: number | null;
+}
+
+export interface DashboardActionItem {
+  title: string;
+  value: string;
+  note: string;
+  severity: string;
+}
+
 export interface DashboardSnapshotResponse {
+  cycle_summary: DashboardCycleSummary | null;
   overview: DashboardOverviewResponse;
   ai_level_distribution: DashboardDistributionResponse;
   roi_distribution: DashboardDistributionResponse;
   heatmap: DashboardHeatmapResponse;
+  department_insights: DashboardDepartmentInsight[];
+  top_talents: DashboardTalentSpotlight[];
+  action_items: DashboardActionItem[];
+}
+
+export interface PublicDimensionScoreRecord {
+  dimension_code: string;
+  display_score: number;
+  raw_score: number;
+  weighted_contribution: number;
+  weighted_score: number;
+  rationale: string;
+}
+
+export interface PublicSalaryRecommendationRecord {
+  recommendation_id: string;
+  status: string;
+  current_salary: string;
+  recommended_salary: string;
+  final_adjustment_ratio: number;
+}
+
+export interface PublicLatestEvaluationRecord {
+  employee_id: string;
+  employee_no: string;
+  employee_name: string;
+  department: string;
+  job_family: string;
+  job_level: string;
+  cycle_id: string;
+  cycle_name: string;
+  cycle_status: string;
+  submission_id: string;
+  evaluation_id: string;
+  evaluation_status: string;
+  ai_level: string;
+  overall_score: number;
+  confidence_score: number;
+  explanation: string;
+  evaluated_at: string;
+  dimension_scores: PublicDimensionScoreRecord[];
+  salary_recommendation: PublicSalaryRecommendationRecord | null;
 }
 
 export interface ImportJobRecord {
@@ -351,6 +553,8 @@ export interface AdminUserCreatePayload {
   email: string;
   password: string;
   role: string;
+  id_card_no?: string | null;
+  department_ids?: string[];
 }
 
 export interface EmployeeHandbookRecord {

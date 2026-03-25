@@ -33,14 +33,21 @@ class Settings(BaseSettings):
     storage_secret_key: str = "your_secret_key"
     storage_bucket_name: str = "wage-adjust-files"
     storage_base_dir: str = "uploads"
-    max_upload_size_mb: int = 10
+    max_upload_size_mb: int = 200
+    archive_max_evidence_items: int = 24
+    archive_parser_max_files: int = 36
+    archive_parser_max_member_bytes: int = 160_000
+    archive_parser_max_snippet_chars: int = 6_000
+    archive_parser_max_text_chars: int = 72_000
 
     deepseek_api_key: str = "your_deepseek_api_key"
     deepseek_api_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-reasoner"
     deepseek_parsing_model: str = ""
+    deepseek_evaluation_model: str = ""
     deepseek_timeout_seconds: int = 30
     deepseek_parsing_timeout_seconds: int = 120
+    deepseek_evaluation_timeout_seconds: int = 120
     deepseek_max_retries: int = 2
     deepseek_requests_per_minute: int = 20
     deepseek_require_real_call_for_parsing: bool = True

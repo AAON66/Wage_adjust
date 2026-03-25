@@ -12,7 +12,9 @@ class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
 
     employee_no: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    id_card_no: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True, index=True)
     department: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    sub_department: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     job_family: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     job_level: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     manager_id: Mapped[str | None] = mapped_column(ForeignKey("employees.id"), nullable=True, index=True)

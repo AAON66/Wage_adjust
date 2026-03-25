@@ -21,15 +21,26 @@ JOB_LEVEL_ADJUSTMENTS = {
 
 DEPARTMENT_ADJUSTMENTS = {
     'Engineering': 0.01,
+    '研发': 0.01,
+    '研发中心': 0.01,
     'Product': 0.008,
+    '产品': 0.008,
+    '产品中心': 0.008,
     'Design': 0.005,
+    '设计': 0.005,
+    '设计中心': 0.005,
 }
 
 JOB_FAMILY_ADJUSTMENTS = {
     'Platform': 0.01,
+    '平台研发': 0.01,
+    '平台': 0.01,
     'Product': 0.008,
+    '产品': 0.008,
     'Design': 0.005,
+    '设计': 0.005,
     'Operations': 0.003,
+    '运营': 0.003,
 }
 
 
@@ -45,6 +56,18 @@ class SalaryResult:
 
 
 class SalaryEngine:
+    def _resolve_adjustment(self, source: dict[str, float], key: str | None) -> float:
+        if not key:
+            return 0.0
+        normalized = key.strip()
+        if normalized in source:
+            return source[normalized]
+        lowered = normalized.casefold()
+        for candidate, value in source.items():
+            if candidate.casefold() == lowered:
+                return value
+        return 0.0
+
     def calculate(
         self,
         *,
@@ -61,18 +84,18 @@ class SalaryEngine:
         base_ratio = level_rule['base_ratio']
         score_bonus = max(0.0, min((overall_score - 60) / 450, 0.06))
         job_level_bonus = JOB_LEVEL_ADJUSTMENTS.get(job_level or '', 0.0)
-        department_bonus = DEPARTMENT_ADJUSTMENTS.get(department or '', 0.0)
-        job_family_bonus = JOB_FAMILY_ADJUSTMENTS.get(job_family or '', 0.0)
+        department_bonus = self._resolve_adjustment(DEPARTMENT_ADJUSTMENTS, department)
+        job_family_bonus = self._resolve_adjustment(JOB_FAMILY_ADJUSTMENTS, job_family)
         clamped_certification_bonus = round(max(0.0, min(certification_bonus, 0.12)), 4)
 
         raw_ratio = base_ratio + score_bonus + clamped_certification_bonus + job_level_bonus + department_bonus + job_family_bonus
         final_ratio = round(max(level_rule['floor'], min(raw_ratio, level_rule['ceiling'])), 4)
         recommended_salary = (current_salary * Decimal(str(1 + final_ratio))).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
         explanation = (
-            f'Recommendation built from {ai_level}, overall score {overall_score:.2f}, AI multiplier {ai_multiplier:.2f}, '
-            f'base ratio {base_ratio:.2%}, score bonus {score_bonus:.2%}, certification bonus {clamped_certification_bonus:.2%}, '
-            f'job level bonus {job_level_bonus:.2%}, department bonus {department_bonus:.2%}, and job family bonus {job_family_bonus:.2%}. '
-            f'The final ratio is clamped to the configured band {level_rule["floor"]:.2%} - {level_rule["ceiling"]:.2%}.'
+            f'建议基于 {ai_level}、综合评分 {overall_score:.2f}、AI 系数 {ai_multiplier:.2f} 以及'
+            f'基础比例 {base_ratio:.2%}、评分加成 {score_bonus:.2%}、认证加成 {clamped_certification_bonus:.2%}、'
+            f'职级加成 {job_level_bonus:.2%}、部门加成 {department_bonus:.2%}、序列加成 {job_family_bonus:.2%} 综合计算。'
+            f'最终调薪比例会被约束在当前等级对应的区间 {level_rule["floor"]:.2%} - {level_rule["ceiling"]:.2%} 内。'
         )
         return SalaryResult(
             current_salary=current_salary,

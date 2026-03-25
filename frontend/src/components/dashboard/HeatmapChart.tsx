@@ -1,3 +1,5 @@
+import type React from 'react';
+
 interface HeatmapCell {
   department: string;
   level: string;
@@ -25,8 +27,6 @@ function localizeLevel(level: string): string {
   }[level] ?? level;
 }
 
-import type React from 'react';
-
 export function HeatmapChart({ cells }: HeatmapChartProps) {
   return (
     <section className="surface animate-fade-up px-6 py-6 lg:px-7">
@@ -34,26 +34,25 @@ export function HeatmapChart({ cells }: HeatmapChartProps) {
         <div>
           <p className="eyebrow">热度矩阵</p>
           <h3 className="section-title">部门能力密度</h3>
+          <p className="section-note">从部门与能力等级的交叉热度判断人才集中区，帮助识别高潜与结构性短板。</p>
         </div>
-        <p className="text-sm text-steel">按部门与优势等级聚合</p>
+        <p className="dashboard-summary-inline">按部门与等级聚合</p>
       </div>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {cells.map((cell) => (
           <article
             key={`${cell.department}-${cell.level}`}
-            style={{ borderRadius: 8, padding: '14px 16px', ...intensityStyle(cell.intensity) }}
+            style={{ borderRadius: 12, padding: '16px 18px', ...intensityStyle(cell.intensity) }}
           >
-            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.10em', opacity: 0.7 }}>{localizeLevel(cell.level)}</p>
-            <h4 style={{ marginTop: 8, fontSize: 15, fontWeight: 600, lineHeight: 1.3 }}>{cell.department}</h4>
-            <div style={{ marginTop: 12, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
+            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.10em', opacity: 0.76 }}>{localizeLevel(cell.level)}</p>
+            <h4 style={{ marginTop: 8, fontSize: 15, fontWeight: 600, lineHeight: 1.35 }}>{cell.department}</h4>
+            <div style={{ marginTop: 14, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 8 }}>
               <p style={{ fontSize: 12, opacity: 0.8 }}>综合热度</p>
-              <p style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1 }}>{cell.intensity}</p>
+              <p style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1 }}>{cell.intensity}</p>
             </div>
           </article>
         ))}
-        {!cells.length ? (
-          <p style={{ fontSize: 13, color: 'var(--color-steel)', gridColumn: '1/-1' }}>暂无热度数据。</p>
-        ) : null}
+        {!cells.length ? <p style={{ fontSize: 13, color: 'var(--color-steel)', gridColumn: '1/-1' }}>暂无热度数据。</p> : null}
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_db, get_current_user, require_roles
@@ -79,3 +79,19 @@ def archive_cycle(
     if cycle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cycle not found.")
     return CycleRead.model_validate(cycle)
+
+
+@router.delete("/{cycle_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_cycle(
+    cycle_id: str,
+    db: Session = Depends(get_db),
+    _: object = Depends(require_roles("admin", "hrbp")),
+) -> Response:
+    service = CycleService(db)
+    try:
+        deleted = service.delete_cycle(cycle_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cycle not found.")
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

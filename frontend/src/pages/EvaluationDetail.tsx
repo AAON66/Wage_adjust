@@ -8,11 +8,12 @@ import { FileList } from '../components/evaluation/FileList';
 import { FileUploadPanel } from '../components/evaluation/FileUploadPanel';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
 import { AppShell } from '../components/layout/AppShell';
-import { CalibrationCompareTable } from '../components/review/CalibrationCompareTable';
+import { CalibrationCompareTable, type CalibrationCompareRow } from '../components/review/CalibrationCompareTable';
 import { DimensionScoreEditor, type DimensionScoreDraft } from '../components/review/DimensionScoreEditor';
 import { ReviewPanel } from '../components/review/ReviewPanel';
+import { SalaryHistoryPanel } from '../components/salary/SalaryHistoryPanel';
 import { useAuth } from '../hooks/useAuth';
-import { submitApproval } from '../services/approvalService';
+import { submitDefaultApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
 import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, regenerateEvaluation, submitHrReview, submitManualReview } from '../services/evaluationService';
 import {
@@ -25,13 +26,14 @@ import {
   uploadSubmissionFiles,
 } from '../services/fileService';
 import { fetchEmployee } from '../services/employeeService';
-import { fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
+import { fetchSalaryHistoryByEmployee, fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
 import type {
   CycleRecord,
   EmployeeRecord,
   EvaluationRecord,
   EvidenceRecord,
+  SalaryHistoryRecord,
   SalaryRecommendationRecord,
   SubmissionRecord,
   UploadedFileRecord,
@@ -156,11 +158,11 @@ function formatRecommendationStatus(status: string | null | undefined): string {
 
 function createInitialDimensions(): DimensionScoreDraft[] {
   return [
-    { code: 'TOOL', label: 'AI 工具掌握度', score: 70, rationale: '等待评估结果。' },
-    { code: 'DEPTH', label: 'AI 应用深度', score: 70, rationale: '等待评估结果。' },
-    { code: 'LEARN', label: 'AI 学习速度', score: 70, rationale: '等待评估结果。' },
-    { code: 'SHARE', label: '知识分享', score: 70, rationale: '等待评估结果。' },
-    { code: 'IMPACT', label: '业务影响力', score: 70, rationale: '等待评估结果。' },
+    { code: 'TOOL', label: 'AI 工具掌握度', weight: 0.15, score: 70, rationale: '等待评估结果。' },
+    { code: 'DEPTH', label: 'AI 应用深度', weight: 0.15, score: 70, rationale: '等待评估结果。' },
+    { code: 'LEARN', label: 'AI 学习速度', weight: 0.2, score: 70, rationale: '等待评估结果。' },
+    { code: 'SHARE', label: '知识分享', weight: 0.2, score: 70, rationale: '等待评估结果。' },
+    { code: 'IMPACT', label: '业务影响力', weight: 0.3, score: 70, rationale: '等待评估结果。' },
   ];
 }
 
@@ -182,6 +184,99 @@ function formatLevelLabel(level: string): string {
     'Level 4': '四级',
     'Level 5': '五级',
   }[level] ?? level;
+}
+
+const SALARY_LEVEL_RULES: Record<string, { multiplier: number; baseRatio: number; floor: number; ceiling: number }> = {
+  'Level 1': { multiplier: 1.0, baseRatio: 0.0, floor: 0.0, ceiling: 0.04 },
+  'Level 2': { multiplier: 1.04, baseRatio: 0.03, floor: 0.02, ceiling: 0.08 },
+  'Level 3': { multiplier: 1.08, baseRatio: 0.06, floor: 0.04, ceiling: 0.12 },
+  'Level 4': { multiplier: 1.13, baseRatio: 0.1, floor: 0.07, ceiling: 0.18 },
+  'Level 5': { multiplier: 1.18, baseRatio: 0.14, floor: 0.1, ceiling: 0.22 },
+};
+
+const SALARY_JOB_LEVEL_ADJUSTMENTS: Record<string, number> = {
+  P4: 0,
+  P5: 0.01,
+  P6: 0.02,
+  P7: 0.03,
+};
+
+const SALARY_DEPARTMENT_ADJUSTMENTS: Record<string, number> = {
+  Engineering: 0.01,
+  研发: 0.01,
+  研发中心: 0.01,
+  Product: 0.008,
+  产品: 0.008,
+  产品中心: 0.008,
+  Design: 0.005,
+  设计: 0.005,
+  设计中心: 0.005,
+};
+
+const SALARY_JOB_FAMILY_ADJUSTMENTS: Record<string, number> = {
+  Platform: 0.01,
+  平台: 0.01,
+  平台研发: 0.01,
+  Product: 0.008,
+  产品: 0.008,
+  Design: 0.005,
+  设计: 0.005,
+  Operations: 0.003,
+  运营: 0.003,
+};
+
+function estimateCurrentSalary(jobLevel: string): number {
+  return {
+    P4: 35000,
+    P5: 45000,
+    P6: 60000,
+    P7: 80000,
+  }[jobLevel] ?? 30000;
+}
+
+function resolveSalaryAdjustment(source: Record<string, number>, value: string | null | undefined): number {
+  if (!value) {
+    return 0;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 0;
+  }
+  if (trimmed in source) {
+    return source[trimmed];
+  }
+  const lowered = trimmed.toLowerCase();
+  const matchedKey = Object.keys(source).find((item) => item.toLowerCase() === lowered);
+  return matchedKey ? source[matchedKey] : 0;
+}
+
+function calculateSalaryPreview(params: {
+  aiLevel: string;
+  overallScore: number;
+  currentSalary: number;
+  certificationBonus: number;
+  jobLevel: string;
+  department: string;
+  jobFamily: string;
+}) {
+  const rule = SALARY_LEVEL_RULES[params.aiLevel] ?? SALARY_LEVEL_RULES['Level 1'];
+  const scoreBonus = Math.max(0, Math.min((params.overallScore - 60) / 450, 0.06));
+  const jobLevelBonus = SALARY_JOB_LEVEL_ADJUSTMENTS[params.jobLevel] ?? 0;
+  const departmentBonus = resolveSalaryAdjustment(SALARY_DEPARTMENT_ADJUSTMENTS, params.department);
+  const jobFamilyBonus = resolveSalaryAdjustment(SALARY_JOB_FAMILY_ADJUSTMENTS, params.jobFamily);
+  const certificationBonus = Math.max(0, Math.min(params.certificationBonus, 0.12));
+  const rawRatio = rule.baseRatio + scoreBonus + certificationBonus + jobLevelBonus + departmentBonus + jobFamilyBonus;
+  const finalAdjustmentRatio = Math.max(rule.floor, Math.min(rawRatio, rule.ceiling));
+  const recommendedRatio = rule.baseRatio + scoreBonus;
+  const recommendedSalary = params.currentSalary * (1 + finalAdjustmentRatio);
+
+  return {
+    aiMultiplier: rule.multiplier,
+    recommendedRatio,
+    certificationBonus,
+    finalAdjustmentRatio,
+    recommendedSalary,
+  };
 }
 
 function hasChineseText(value: string): boolean {
@@ -252,11 +347,18 @@ function mapEvaluationToDrafts(evaluation: EvaluationRecord | null): DimensionSc
   if (!evaluation?.dimension_scores.length) {
     return createInitialDimensions();
   }
+  const hasManualReview = evaluation.manager_score != null;
   return evaluation.dimension_scores.map((dimension) => ({
     code: dimension.dimension_code,
     label: formatDimensionLabel(dimension.dimension_code),
-    score: dimension.raw_score,
-    rationale: localizeDimensionRationale(dimension.dimension_code, dimension.rationale),
+    weight: dimension.weight,
+    aiScore: dimension.ai_raw_score,
+    aiRationale: localizeDimensionRationale(dimension.dimension_code, dimension.ai_rationale || dimension.rationale),
+    score: hasManualReview ? dimension.raw_score : dimension.ai_raw_score,
+    rationale: localizeDimensionRationale(
+      dimension.dimension_code,
+      hasManualReview ? dimension.rationale : (dimension.ai_rationale || dimension.rationale),
+    ),
   }));
 }
 
@@ -290,10 +392,11 @@ function mapEvidence(item: EvidenceRecord): EvidenceRecord {
 }
 
 function averageDimensionScore(dimensions: DimensionScoreDraft[]): number {
-  if (!dimensions.length) {
+  const totalWeight = dimensions.reduce((sum, dimension) => sum + dimension.weight, 0);
+  if (!totalWeight) {
     return 0;
   }
-  return Number((dimensions.reduce((sum, dimension) => sum + dimension.score, 0) / dimensions.length).toFixed(1));
+  return Number((dimensions.reduce((sum, dimension) => sum + dimension.score * dimension.weight, 0) / totalWeight).toFixed(1));
 }
 
 function inferStatus(
@@ -343,16 +446,19 @@ export function EvaluationDetailPage() {
   const { employeeId } = useParams<{ employeeId: string }>();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const requestedCycleId = searchParams.get('cycleId');
+  const requestedTab = searchParams.get('tab');
 
   const [employee, setEmployee] = useState<EmployeeRecord | null>(null);
   const [cycles, setCycles] = useState<CycleRecord[]>([]);
   const [selectedCycleId, setSelectedCycleId] = useState('');
-  const [activeModule, setActiveModule] = useState<DetailModuleKey>(() => normalizeModuleKey(searchParams.get('tab')));
+  const [activeModule, setActiveModule] = useState<DetailModuleKey>(() => normalizeModuleKey(requestedTab));
   const [submission, setSubmission] = useState<SubmissionRecord | null>(null);
   const [files, setFiles] = useState<UploadedFileRecord[]>([]);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceRecord[]>([]);
   const [evaluation, setEvaluation] = useState<EvaluationRecord | null>(null);
   const [salaryRecommendation, setSalaryRecommendation] = useState<SalaryRecommendationRecord | null>(null);
+  const [salaryHistory, setSalaryHistory] = useState<SalaryHistoryRecord[]>([]);
   const [dimensions, setDimensions] = useState<DimensionScoreDraft[]>(() => createInitialDimensions());
   const [reviewLevel, setReviewLevel] = useState('Level 3');
   const [reviewComment, setReviewComment] = useState('请填写主管评分依据；如进入 HR 审核，请填写同意或打回原因。');
@@ -370,7 +476,8 @@ export function EvaluationDetailPage() {
   const [isReturning, setIsReturning] = useState(false);
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
-  const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(false);
+  const [isSalaryHistoryLoading, setIsSalaryHistoryLoading] = useState(false);
+  const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(true);
   const [manualAdjustmentPercent, setManualAdjustmentPercent] = useState('');
   const [manualRecommendedSalary, setManualRecommendedSalary] = useState('');
   const [isSavingSalaryAdjustment, setIsSavingSalaryAdjustment] = useState(false);
@@ -381,18 +488,57 @@ export function EvaluationDetailPage() {
 
   const canSubmitApproval = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
   const canHrReview = user?.role === 'admin' || user?.role === 'hrbp';
+  const canViewSalaryHistory = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
+
+  async function refreshSalaryHistory(targetEmployeeId: string) {
+    if (!canViewSalaryHistory) {
+      setSalaryHistory([]);
+      setIsSalaryHistoryLoading(false);
+      return;
+    }
+
+    setIsSalaryHistoryLoading(true);
+    try {
+      const historyResponse = await fetchSalaryHistoryByEmployee(targetEmployeeId);
+      setSalaryHistory(historyResponse.items);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status === 403) {
+        setSalaryHistory([]);
+        return;
+      }
+      throw error;
+    } finally {
+      setIsSalaryHistoryLoading(false);
+    }
+  }
 
   async function refreshSubmissionData(targetSubmissionId: string) {
-    const [filesResponse, evidenceResponse] = await Promise.all([
+    const [filesResponse, evidenceResponse, evaluationResult, salaryHistoryResult] = await Promise.all([
       fetchSubmissionFiles(targetSubmissionId),
       fetchSubmissionEvidence(targetSubmissionId),
+      fetchEvaluationBySubmission(targetSubmissionId)
+        .then((response) => ({ ok: true as const, response }))
+        .catch(() => ({ ok: false as const })),
+      employeeId && canViewSalaryHistory
+        ? fetchSalaryHistoryByEmployee(employeeId)
+            .then((response) => ({ ok: true as const, response }))
+            .catch((error: unknown) => ({ ok: false as const, error }))
+        : Promise.resolve({ ok: true as const, response: null }),
     ]);
 
     setFiles(filesResponse.items);
     setEvidenceItems(evidenceResponse.items.map(mapEvidence));
 
-    try {
-      const evaluationResponse = await fetchEvaluationBySubmission(targetSubmissionId);
+    if (salaryHistoryResult.ok) {
+      setSalaryHistory(salaryHistoryResult.response?.items ?? []);
+    } else if (axios.isAxiosError(salaryHistoryResult.error) && salaryHistoryResult.error.response?.status === 403) {
+      setSalaryHistory([]);
+    } else {
+      setSalaryHistory([]);
+    }
+
+    if (evaluationResult.ok) {
+      const evaluationResponse = evaluationResult.response;
       setEvaluation(evaluationResponse);
       setDimensions(mapEvaluationToDrafts(evaluationResponse));
       setReviewLevel(evaluationResponse.ai_level);
@@ -404,7 +550,7 @@ export function EvaluationDetailPage() {
       } catch {
         setSalaryRecommendation(null);
       }
-    } catch {
+    } else {
       setEvaluation(null);
       setSalaryRecommendation(null);
       setDimensions(createInitialDimensions());
@@ -439,13 +585,12 @@ export function EvaluationDetailPage() {
         setEmployee(employeeResponse);
         setCycles(cycleResponse.items);
 
-        const requestedCycleId = searchParams.get('cycleId');
         const fallbackCycleId = cycleResponse.items[0]?.id ?? '';
         const nextCycleId = requestedCycleId && cycleResponse.items.some((cycle) => cycle.id === requestedCycleId)
           ? requestedCycleId
           : fallbackCycleId;
         setSelectedCycleId(nextCycleId);
-        setActiveModule(normalizeModuleKey(searchParams.get('tab')));
+        setActiveModule(normalizeModuleKey(requestedTab));
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(resolveError(error));
@@ -461,7 +606,7 @@ export function EvaluationDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [employeeId, searchParams]);
+  }, [employeeId, requestedCycleId, requestedTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -506,9 +651,17 @@ export function EvaluationDetailPage() {
       return;
     }
 
+    setIsSalaryEditorOpen(true);
     setManualAdjustmentPercent((salaryRecommendation.final_adjustment_ratio * 100).toFixed(2));
     setManualRecommendedSalary(Number(salaryRecommendation.recommended_salary).toFixed(2));
   }, [salaryRecommendation]);
+
+  useEffect(() => {
+    if (canViewSalaryHistory || !salaryHistory.length) {
+      return;
+    }
+    setSalaryHistory([]);
+  }, [canViewSalaryHistory, salaryHistory.length]);
 
   const currentCycle = useMemo(() => cycles.find((cycle) => cycle.id === selectedCycleId) ?? null, [cycles, selectedCycleId]);
   const currentStatus = useMemo(() => inferStatus(submission, files, evaluation, salaryRecommendation), [submission, files, evaluation, salaryRecommendation]);
@@ -562,16 +715,54 @@ export function EvaluationDetailPage() {
   const isManualSalaryValid = Number.isFinite(manualRecommendedSalaryNumber) && manualRecommendedSalaryNumber >= baseSalaryAmount;
   const manualAdjustmentRatio = isManualPercentValid ? manualAdjustmentPercentNumber / 100 : null;
   const manualSalaryDelta = salaryRecommendation && isManualSalaryValid ? manualRecommendedSalaryNumber - baseSalaryAmount : null;
+  const liveSalaryPreview = useMemo(() => {
+    if (!employee || !evaluation) {
+      return null;
+    }
 
-  const calibrationRows = useMemo(
+    const currentSalary = salaryRecommendation ? Number(salaryRecommendation.current_salary) : estimateCurrentSalary(employee.job_level);
+    const certificationBonus = salaryRecommendation?.certification_bonus ?? 0;
+
+    return calculateSalaryPreview({
+      aiLevel: evaluation.ai_level,
+      overallScore: evaluation.overall_score,
+      currentSalary,
+      certificationBonus,
+      jobLevel: employee.job_level,
+      department: employee.department,
+      jobFamily: employee.job_family,
+    });
+  }, [employee, evaluation, salaryRecommendation]);
+  const recommendationNeedsRefresh = useMemo(() => {
+    if (!salaryRecommendation || !liveSalaryPreview) {
+      return false;
+    }
+
+    return (
+      Math.abs(salaryRecommendation.recommended_ratio - liveSalaryPreview.recommendedRatio) > 0.0001 ||
+      Math.abs(salaryRecommendation.ai_multiplier - liveSalaryPreview.aiMultiplier) > 0.0001 ||
+      Math.abs(salaryRecommendation.certification_bonus - liveSalaryPreview.certificationBonus) > 0.0001 ||
+      Math.abs(salaryRecommendation.final_adjustment_ratio - liveSalaryPreview.finalAdjustmentRatio) > 0.0001 ||
+      Math.abs(Number(salaryRecommendation.recommended_salary) - liveSalaryPreview.recommendedSalary) > 0.01
+    );
+  }, [liveSalaryPreview, salaryRecommendation]);
+
+  const calibrationRows = useMemo<CalibrationCompareRow[]>(
     () =>
-      dimensions.map((dimension, index) => ({
-        code: dimension.code,
-        label: dimension.label,
-        aiScore: evaluation?.dimension_scores[index]?.raw_score ?? dimension.score,
-        manualScore: dimension.score,
-        note: dimension.rationale,
-      })),
+      dimensions.map((dimension) => {
+        const evaluationDimension = evaluation?.dimension_scores.find((item) => item.dimension_code === dimension.code);
+        const hasManualComparison = Boolean(evaluation && evaluation.manager_score != null);
+        return {
+          code: dimension.code,
+          label: dimension.label,
+          aiScore: evaluationDimension?.ai_raw_score ?? evaluationDimension?.raw_score ?? dimension.score,
+          manualScore: hasManualComparison ? dimension.score : null,
+          note: hasManualComparison
+            ? dimension.rationale
+            : evaluationDimension?.ai_rationale ?? evaluationDimension?.rationale ?? '等待人工复核后显示详细对比说明。',
+          status: hasManualComparison ? 'completed' : 'waiting',
+        };
+      }),
     [dimensions, evaluation],
   );
 
@@ -819,9 +1010,14 @@ export function EvaluationDetailPage() {
     setSuccessMessage(null);
     try {
       const uploadResponse = await uploadSubmissionFiles(submission.id, Array.from(selectedFiles));
+      await reloadCurrentCycleData();
       const summary = await parseFilesInParallel(uploadResponse.items, { showBatchProgress: false });
       await reloadCurrentCycleData();
-      setSuccessMessage('材料已上传，系统正在自动解析。');
+      if (summary.failed > 0) {
+        setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击“重新解析”。`);
+      } else {
+        setSuccessMessage('材料已上传，系统正在自动解析。');
+      }
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -869,7 +1065,14 @@ export function EvaluationDetailPage() {
     setSuccessMessage(null);
     try {
       const updated = await replaceSubmissionFile(fileId, nextFile);
-      await parseFile(updated.id);
+      await reloadCurrentCycleData();
+      try {
+        await parseFile(updated.id);
+      } catch (error) {
+        await reloadCurrentCycleData();
+        setErrorMessage(`文件已替换，但重新解析失败：${resolveError(error)}`);
+        return;
+      }
       await reloadCurrentCycleData();
       setSuccessMessage('文件已替换，并重新进入解析。');
     } catch (error) {
@@ -983,8 +1186,12 @@ export function EvaluationDetailPage() {
       setEvaluation(reviewed);
       setDimensions(mapEvaluationToDrafts(reviewed));
       setReviewComment(localizeEvaluationNarrative(reviewed.manager_comment ?? reviewed.explanation));
-      setSuccessMessage('主管评分已提交。');
-      setActiveModule('review');
+      if (reviewed.status === 'confirmed') {
+        await syncSalaryRecommendationByEvaluation(reviewed.id, '评分已确认，调薪建议已同步到最新复核结果。');
+      } else {
+        setSuccessMessage('主管评分已提交。');
+        setActiveModule('review');
+      }
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -1001,13 +1208,15 @@ export function EvaluationDetailPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
+      let confirmedEvaluationId = evaluation.id;
       if (evaluation.status === 'pending_hr') {
-        await submitHrReview(evaluation.id, { decision: 'approved', comment: reviewComment });
+        const reviewed = await submitHrReview(evaluation.id, { decision: 'approved', comment: reviewComment });
+        confirmedEvaluationId = reviewed.id;
       } else {
         await confirmEvaluation(evaluation.id);
       }
+      await syncSalaryRecommendationByEvaluation(confirmedEvaluationId, '最终审核已确认，调薪建议已按最终评分刷新。');
       await reloadCurrentCycleData();
-      setSuccessMessage('评估结果已确认。');
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -1034,6 +1243,19 @@ export function EvaluationDetailPage() {
     }
   }
 
+  async function syncSalaryRecommendationByEvaluation(evaluationId: string, successText: string) {
+    const recommendation = await recommendSalary(evaluationId);
+    setSalaryRecommendation(recommendation);
+    if (employeeId) {
+      await refreshSalaryHistory(employeeId);
+    }
+    setManualAdjustmentPercent((recommendation.final_adjustment_ratio * 100).toFixed(2));
+    setManualRecommendedSalary(Number(recommendation.recommended_salary).toFixed(2));
+    setSuccessMessage(successText);
+    setActiveModule('salary');
+    return recommendation;
+  }
+
   async function handleGenerateSalary() {
     if (!evaluation) {
       return;
@@ -1043,11 +1265,7 @@ export function EvaluationDetailPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      const recommendation = await recommendSalary(evaluation.id);
-      setSalaryRecommendation(recommendation);
-      setIsSalaryEditorOpen(false);
-      setSuccessMessage('调薪建议已生成。');
-      setActiveModule('salary');
+      await syncSalaryRecommendationByEvaluation(evaluation.id, '调薪建议已按当前评分结果更新。');
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -1076,17 +1294,7 @@ export function EvaluationDetailPage() {
     setManualAdjustmentPercent(nextPercent.toFixed(2));
   }
 
-  function handleOpenSalaryEditor() {
-    if (!salaryRecommendation) {
-      return;
-    }
-    setManualAdjustmentPercent((salaryRecommendation.final_adjustment_ratio * 100).toFixed(2));
-    setManualRecommendedSalary(Number(salaryRecommendation.recommended_salary).toFixed(2));
-    setIsSalaryEditorOpen(true);
-  }
-
   function handleCloseSalaryEditor() {
-    setIsSalaryEditorOpen(false);
     if (!salaryRecommendation) {
       return;
     }
@@ -1108,7 +1316,9 @@ export function EvaluationDetailPage() {
         status: 'adjusted',
       });
       setSalaryRecommendation(updated);
-      setIsSalaryEditorOpen(false);
+      if (employeeId) {
+        await refreshSalaryHistory(employeeId);
+      }
       setSuccessMessage('人工调薪结果已保存。');
     } catch (error) {
       setErrorMessage(resolveError(error));
@@ -1126,18 +1336,12 @@ export function EvaluationDetailPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      await submitApproval({
-        recommendationId: salaryRecommendation.id,
-        steps: [
-          {
-            step_name: '发起审批',
-            approver_id: user.id,
-            comment: '从员工评估详情页提交审批。',
-          },
-        ],
-      });
+      await submitDefaultApproval(salaryRecommendation.id);
       setSalaryRecommendation((current) => (current ? { ...current, status: 'pending_approval' } : current));
-      setSuccessMessage('调薪建议已提交审批。');
+      if (employeeId) {
+        await refreshSalaryHistory(employeeId);
+      }
+      setSuccessMessage('调薪建议已按默认审批路线提交。');
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -1475,11 +1679,7 @@ export function EvaluationDetailPage() {
                 <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">提取出的证据卡片</h2>
                 <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">左侧总览，右侧单条证据。</p>
               </div>
-              <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '10px 16px', textAlign: 'right' }}>
-                <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>阅读方式</p>
-                <p className="mt-2 text-sm font-medium text-ink">先看总览，再看单条证据</p>
               </div>
-            </div>
           </div>
 
           <div className="grid gap-0 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -1605,6 +1805,37 @@ export function EvaluationDetailPage() {
               <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">认证加成</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.certification_bonus, 2)}</p></div>
             </div>
 
+            {liveSalaryPreview ? (
+              <div className="mt-5">
+                <div className="flex flex-wrap items-start justify-between gap-3 rounded-[8px] border px-4 py-4" style={{ borderColor: recommendationNeedsRefresh ? 'var(--color-warning)' : 'var(--color-border)', background: recommendationNeedsRefresh ? 'var(--color-warning-bg)' : 'var(--color-bg-subtle)' }}>
+                  <div>
+                    <p className="text-sm font-semibold text-ink">最新复核分联动预览</p>
+                    <p className="mt-2 text-sm leading-6 text-steel">这里显示的是按当前最终评分、等级和员工档案重新推算后的建议结果。</p>
+                  </div>
+                  <button
+                    className="action-secondary"
+                    disabled={isGeneratingSalary || !evaluation || evaluation.status !== 'confirmed'}
+                    onClick={handleGenerateSalary}
+                    type="button"
+                  >
+                    {isGeneratingSalary ? '联动中...' : '按最新评分联动'}
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">最新复核分</p><p className="mt-2 text-lg font-semibold text-ink">{evaluation?.overall_score.toFixed(1) ?? '--'}</p></div>
+                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">最新等级</p><p className="mt-2 text-lg font-semibold text-ink">{formatLevelLabel(evaluation?.ai_level ?? 'Level 1')}</p></div>
+                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">联动后建议涨幅</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(liveSalaryPreview.recommendedRatio, 2)}</p></div>
+                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">联动后最终比例</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(liveSalaryPreview.finalAdjustmentRatio, 2)}</p></div>
+                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">联动后建议薪资</p><p className="mt-2 text-lg font-semibold text-ink">{formatCurrency(String(liveSalaryPreview.recommendedSalary.toFixed(2)))}</p></div>
+                </div>
+                {recommendationNeedsRefresh ? (
+                  <p className="mt-3 text-sm" style={{ color: 'var(--color-warning)' }}>
+                    当前页面展示的“建议涨幅 / AI 系数 / 认证加成 / 最终调整比例”还没有跟最新复核分同步，点击上面的“按最新评分联动”就会刷新。
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+
             {salaryRecommendation.explanation ? (
               <details className="mt-5" style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '12px 16px' }}>
                 <summary className="cursor-pointer text-sm font-semibold text-ink">查看建议说明</summary>
@@ -1621,10 +1852,10 @@ export function EvaluationDetailPage() {
                 <button
                   className="action-secondary"
                   disabled={!canEditSalaryRecommendation}
-                  onClick={isSalaryEditorOpen ? handleCloseSalaryEditor : handleOpenSalaryEditor}
+                  onClick={handleCloseSalaryEditor}
                   type="button"
                 >
-                  {isSalaryEditorOpen ? '收起调整窗口' : '打开人工调整'}
+                  恢复当前建议
                 </button>
               </div>
 
@@ -1734,6 +1965,16 @@ export function EvaluationDetailPage() {
             当前评估还没有生成调薪建议。先确认评估结果，再使用上方动作或切回概览模块生成建议。
           </div>
         )}
+        {canViewSalaryHistory ? (
+          <div className="mt-5">
+            <SalaryHistoryPanel
+              currentCycleId={selectedCycleId}
+              employeeName={employee?.name}
+              history={salaryHistory}
+              isLoading={isSalaryHistoryLoading}
+            />
+          </div>
+        ) : null}
       </section>
     );
   })();
@@ -1795,10 +2036,9 @@ export function EvaluationDetailPage() {
 
               <div style={{ marginTop: 20, border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '16px' }}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold text-ink">模块切换</p>
-                    <p className="mt-1 text-sm text-steel">切换后只显示当前模块。</p>
-                  </div>
+                    <div>
+                      <p className="text-sm font-semibold text-ink">模块切换</p>
+                    </div>
                   <div className="cursor-help text-xs text-steel" style={{ border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 12px' }} title={activeModuleMeta.helper}>模块说明</div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">

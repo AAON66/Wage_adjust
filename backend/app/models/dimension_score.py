@@ -14,8 +14,11 @@ class DimensionScore(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     evaluation_id: Mapped[str] = mapped_column(ForeignKey("ai_evaluations.id"), nullable=False, index=True)
     dimension_code: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     weight: Mapped[float] = mapped_column(Float, nullable=False)
+    ai_raw_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    ai_weighted_score: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     raw_score: Mapped[float] = mapped_column(Float, nullable=False)
     weighted_score: Mapped[float] = mapped_column(Float, nullable=False)
+    ai_rationale: Mapped[str] = mapped_column(Text, nullable=False, default='')
     rationale: Mapped[str] = mapped_column(Text, nullable=False)
 
     evaluation = relationship("AIEvaluation", back_populates="dimension_scores")

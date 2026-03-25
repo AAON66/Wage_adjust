@@ -3,9 +3,11 @@
 from pathlib import Path
 import base64
 import json
+from io import BytesIO
 from urllib.error import HTTPError
 from unittest.mock import patch
 from uuid import uuid4
+from zipfile import ZipFile
 
 from fastapi.testclient import TestClient
 
@@ -112,6 +114,38 @@ def seed_submission(context: ApiDatabaseContext) -> str:
         db.close()
 
 
+def build_minimal_docx_bytes(text: str) -> bytes:
+    buffer = BytesIO()
+    with ZipFile(buffer, 'w') as archive:
+        archive.writestr(
+            '[Content_Types].xml',
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+            '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+            '<Default Extension="xml" ContentType="application/xml"/>'
+            '<Override PartName="/word/document.xml" '
+            'ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+            '</Types>',
+        )
+        archive.writestr(
+            '_rels/.rels',
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            '<Relationship Id="rId1" '
+            'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" '
+            'Target="word/document.xml"/>'
+            '</Relationships>',
+        )
+        archive.writestr(
+            'word/document.xml',
+            '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            f'<w:body><w:p><w:r><w:t>{text}</w:t></w:r></w:p></w:body>'
+            '</w:document>',
+        )
+    return buffer.getvalue()
+
+
 
 def test_file_api_upload_replace_parse_preview_and_delete_flow() -> None:
     client, context = build_client()
@@ -177,6 +211,32 @@ def test_file_api_upload_replace_parse_preview_and_delete_flow() -> None:
         evidence_after_delete = client.get(f'/api/v1/submissions/{submission_id}/evidence', headers=headers)
         assert evidence_after_delete.status_code == 200
         assert evidence_after_delete.json()['total'] == 0
+
+
+def test_file_api_upload_and_parse_docx_file() -> None:
+    client, context = build_client()
+    with client:
+        token = register_and_login_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        submission_id = seed_submission(context)
+
+        upload_response = client.post(
+            f'/api/v1/submissions/{submission_id}/files',
+            headers=headers,
+            files=[('files', ('notes.docx', build_minimal_docx_bytes('Built reusable salary review workflow.'), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))],
+        )
+        assert upload_response.status_code == 201
+        file_id = upload_response.json()['items'][0]['id']
+
+        parse_response = client.post(f'/api/v1/files/{file_id}/parse', headers=headers)
+        assert parse_response.status_code == 200
+        assert parse_response.json()['parse_status'] == 'parsed'
+        assert parse_response.json()['evidence_count'] == 1
+
+        evidence_response = client.get(f'/api/v1/submissions/{submission_id}/evidence', headers=headers)
+        assert evidence_response.status_code == 200
+        assert evidence_response.json()['total'] == 1
+        assert 'Built reusable salary review workflow.' in evidence_response.json()['items'][0]['content']
 
 
 

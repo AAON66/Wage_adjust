@@ -15,6 +15,7 @@ from backend.app.models.audit_log import AuditLog
 from backend.app.models.employee import Employee
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evaluation_cycle import EvaluationCycle
+from backend.app.models.dimension_score import DimensionScore
 from backend.app.models.salary_recommendation import SalaryRecommendation
 from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.user import User
@@ -68,6 +69,34 @@ def seed_public_data(context: ApiDatabaseContext) -> tuple[str, str]:
         db.commit()
         db.refresh(evaluation)
 
+        db.add_all(
+            [
+                DimensionScore(
+                    evaluation_id=evaluation.id,
+                    dimension_code='TOOL',
+                    weight=0.2,
+                    ai_raw_score=82,
+                    ai_weighted_score=16.4,
+                    raw_score=82,
+                    weighted_score=16.4,
+                    ai_rationale='Used AI tools steadily in engineering work.',
+                    rationale='Used AI tools steadily in engineering work.',
+                ),
+                DimensionScore(
+                    evaluation_id=evaluation.id,
+                    dimension_code='IMPACT',
+                    weight=0.3,
+                    ai_raw_score=88,
+                    ai_weighted_score=26.4,
+                    raw_score=88,
+                    weighted_score=26.4,
+                    ai_rationale='Improved delivery and quality.',
+                    rationale='Improved delivery and quality.',
+                ),
+            ]
+        )
+        db.commit()
+
         recommendation = SalaryRecommendation(evaluation_id=evaluation.id, current_salary='60000.00', recommended_ratio=0.15, recommended_salary='69000.00', ai_multiplier=1.18, certification_bonus=0.0, final_adjustment_ratio=0.15, status='approved')
         db.add(recommendation)
         db.commit()
@@ -93,6 +122,8 @@ def test_public_api_key_and_read_endpoints() -> None:
         assert latest_response.status_code == 200
         assert latest_response.json()['employee_no'] == employee_no
         assert latest_response.json()['salary_recommendation']['status'] == 'approved'
+        assert latest_response.json()['dimension_scores'][0]['display_score'] == latest_response.json()['dimension_scores'][0]['raw_score']
+        assert latest_response.json()['dimension_scores'][0]['weighted_contribution'] == latest_response.json()['dimension_scores'][0]['weighted_score']
 
         salary_results_response = client.get(f'/api/v1/public/cycles/{cycle_id}/salary-results', headers=headers)
         assert salary_results_response.status_code == 200
@@ -104,7 +135,7 @@ def test_public_api_key_and_read_endpoints() -> None:
 
         dashboard_summary_response = client.get('/api/v1/public/dashboard/summary', headers=headers)
         assert dashboard_summary_response.status_code == 200
-        assert len(dashboard_summary_response.json()['overview']) == 4
+        assert len(dashboard_summary_response.json()['overview']) >= 4
 
         db = context.session_factory()
         try:

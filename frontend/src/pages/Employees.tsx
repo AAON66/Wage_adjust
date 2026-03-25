@@ -1,11 +1,13 @@
 import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
 
-import { AppShell } from '../components/layout/AppShell';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
+import { AppShell } from '../components/layout/AppShell';
+import { useAuth } from '../hooks/useAuth';
 import { fetchEmployees } from '../services/employeeService';
 import type { EmployeeListResponse } from '../types/api';
+import { canAccessDepartment, getScopedDepartmentNames, isDepartmentScopedRole } from '../utils/departmentScope';
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -15,6 +17,7 @@ function resolveError(error: unknown): string {
 }
 
 export function EmployeesPage() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<EmployeeListResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -23,6 +26,17 @@ export function EmployeesPage() {
   const department = searchParams.get('department') ?? '';
   const jobFamily = searchParams.get('job_family') ?? '';
   const status = searchParams.get('status') ?? '';
+  const isDepartmentScoped = isDepartmentScopedRole(user?.role);
+  const scopedDepartments = useMemo(() => getScopedDepartmentNames(user), [user]);
+
+  useEffect(() => {
+    if (!isDepartmentScoped || canAccessDepartment(user, department)) {
+      return;
+    }
+    const next = new URLSearchParams(searchParams);
+    next.delete('department');
+    setSearchParams(next, { replace: true });
+  }, [department, isDepartmentScoped, searchParams, setSearchParams, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,21 +88,45 @@ export function EmployeesPage() {
       description="筛选员工并进入评估详情。"
       actions={
         <>
-          <Link className="chip-button" to="/workspace">返回工作台</Link>
-          <Link className="action-primary" to="/cycles/create">创建周期</Link>
+          <Link className="chip-button" to="/workspace">
+            返回工作台
+          </Link>
+          <Link className="action-primary" to="/cycles/create">
+            创建周期
+          </Link>
         </>
       }
     >
       <section className="surface" style={{ padding: '16px 20px' }}>
         <div className="grid gap-3 md:grid-cols-3">
-          <input className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} placeholder="按部门筛选" value={department} />
+          {isDepartmentScoped ? (
+            <select className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} value={department}>
+              <option value="">全部可见部门</option>
+              {scopedDepartments.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} placeholder="按部门筛选" value={department} />
+          )}
           <input className="toolbar-input" onChange={(event) => updateFilter('job_family', event.target.value)} placeholder="按岗位族筛选" value={jobFamily} />
           <input className="toolbar-input" onChange={(event) => updateFilter('status', event.target.value)} placeholder="按状态筛选" value={status} />
         </div>
+        {isDepartmentScoped ? (
+          <p className="mt-3 text-sm text-steel">
+            当前仅显示你已绑定的部门范围：{scopedDepartments.length ? scopedDepartments.join('、') : '暂无可见部门'}
+          </p>
+        ) : null}
       </section>
 
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载员工列表...</p> : null}
-      {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
+      {errorMessage ? (
+        <p className="surface px-5 py-4 text-sm" style={{ color: 'var(--color-danger)' }}>
+          {errorMessage}
+        </p>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {(data?.items ?? []).map((employee, index) => (
@@ -101,9 +139,18 @@ export function EmployeesPage() {
               <StatusIndicator status={employee.status} />
             </div>
             <dl className="mt-5 space-y-3 text-sm text-steel">
-              <div className="flex justify-between gap-4"><dt>部门</dt><dd className="text-ink">{employee.department}</dd></div>
-              <div className="flex justify-between gap-4"><dt>岗位族</dt><dd className="text-ink">{employee.job_family}</dd></div>
-              <div className="flex justify-between gap-4"><dt>岗位级别</dt><dd className="text-ink">{employee.job_level}</dd></div>
+              <div className="flex justify-between gap-4">
+                <dt>部门</dt>
+                <dd className="text-ink">{employee.department}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>岗位族</dt>
+                <dd className="text-ink">{employee.job_family}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt>岗位级别</dt>
+                <dd className="text-ink">{employee.job_level}</dd>
+              </div>
             </dl>
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--color-border)', fontSize: 13, color: 'var(--color-primary)' }}>进入详情并继续处理</div>
           </Link>

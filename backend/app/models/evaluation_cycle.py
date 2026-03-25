@@ -18,3 +18,4 @@ class EvaluationCycle(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
 
     submissions = relationship("EmployeeSubmission", back_populates="cycle")
+    department_budgets = relationship("CycleDepartmentBudget", back_populates="cycle", cascade="all, delete-orphan")

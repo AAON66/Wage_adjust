@@ -161,8 +161,13 @@ export function MyReviewPage() {
     setErrorMessage(null);
     try {
       const uploadResponse = await uploadSubmissionFiles(currentSubmission.id, Array.from(selectedFiles));
-      await Promise.all(uploadResponse.items.map((file) => parseFile(file.id)));
       await refreshCurrentWorkspace();
+      const parseResults = await Promise.allSettled(uploadResponse.items.map((file) => parseFile(file.id)));
+      await refreshCurrentWorkspace();
+      const failedCount = parseResults.filter((result) => result.status === 'rejected').length;
+      if (failedCount > 0) {
+        setErrorMessage(`文件已上传，但有 ${failedCount} 个文件解析失败，可在列表中点击“重新解析”。`);
+      }
     } catch (error) {
       setErrorMessage(resolveError(error));
     } finally {
@@ -205,7 +210,14 @@ export function MyReviewPage() {
     setErrorMessage(null);
     try {
       const updated = await replaceSubmissionFile(fileId, nextFile);
-      await parseFile(updated.id);
+      await refreshCurrentWorkspace();
+      try {
+        await parseFile(updated.id);
+      } catch (error) {
+        await refreshCurrentWorkspace();
+        setErrorMessage(`文件已替换，但重新解析失败：${resolveError(error)}`);
+        return;
+      }
       await refreshCurrentWorkspace();
     } catch (error) {
       setErrorMessage(resolveError(error));

@@ -1,6 +1,9 @@
-﻿export interface DimensionScoreDraft {
+export interface DimensionScoreDraft {
   code: string;
   label: string;
+  weight: number;
+  aiScore?: number;
+  aiRationale?: string;
   score: number;
   rationale: string;
 }
@@ -40,9 +43,10 @@ export function DimensionScoreEditor({ dimensions, onChange }: DimensionScoreEdi
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-steel">{dimension.code}</p>
                 <h4 className="mt-2 text-lg font-semibold text-ink">{dimension.label}</h4>
+                <p className="mt-2 text-sm text-steel">AI 原始分: {dimension.aiScore ?? dimension.score}</p>
               </div>
               <label className="flex items-center gap-3 text-sm text-steel">
-                <span>分数</span>
+                <span>复核分</span>
                 <input
                   className="toolbar-input h-10 w-24 px-3 text-right"
                   max={100}

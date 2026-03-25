@@ -3,11 +3,13 @@
 from collections.abc import Callable, Generator
 
 from fastapi import Depends, Header, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.orm import Session, selectinload
 
 from backend.app.core.config import Settings, get_settings
 from backend.app.core.database import get_db_session
 from backend.app.core.security import TokenValidationError, decode_token, oauth2_scheme
+from backend.app.models.department import Department
 from backend.app.models.user import User
 
 
@@ -39,7 +41,7 @@ def get_current_user(
     except TokenValidationError as exc:
         raise credentials_error from exc
 
-    user = db.get(User, payload["sub"])
+    user = db.scalar(select(User).options(selectinload(User.departments)).where(User.id == payload["sub"]))
     if user is None:
         raise credentials_error
     return user

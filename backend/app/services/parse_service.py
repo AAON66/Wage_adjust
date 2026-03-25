@@ -17,7 +17,7 @@ from backend.app.services.evidence_service import EvidenceService, RequiredLLMEr
 
 
 ARCHIVE_SECTION_PATTERN = re.compile(r'(^|\n\n)File:\s(?P<path>[^\n]+)\n', re.MULTILINE)
-MAX_ARCHIVE_EVIDENCE_ITEMS = 8
+DEFAULT_ARCHIVE_EVIDENCE_ITEMS = 24
 
 
 class ParseService:
@@ -29,7 +29,7 @@ class ParseService:
         self.parsers: list[BaseParser] = [
             PPTParser(),
             ImageParser(),
-            CodeParser(),
+            CodeParser(settings),
             DocumentParser(),
         ]
 
@@ -59,7 +59,8 @@ class ParseService:
 
         parsed_units = []
         total_matches = len(matches)
-        for index, match in enumerate(matches[:MAX_ARCHIVE_EVIDENCE_ITEMS]):
+        archive_evidence_limit = self._resolve_archive_evidence_limit(parsed, total_matches)
+        for index, match in enumerate(matches[:archive_evidence_limit]):
             start = match.end()
             end = matches[index + 1].start() if index + 1 < total_matches else len(parsed.text)
             content = parsed.text[start:end].strip()
@@ -74,12 +75,20 @@ class ParseService:
                         **parsed.metadata,
                         'archive_member_path': member_path,
                         'archive_section_index': index + 1,
-                        'archive_section_total': min(total_matches, MAX_ARCHIVE_EVIDENCE_ITEMS),
+                        'archive_section_total': archive_evidence_limit,
+                        'archive_section_available_total': total_matches,
                     },
                 )
             )
 
         return parsed_units or [parsed]
+
+    def _resolve_archive_evidence_limit(self, parsed, total_matches: int) -> int:
+        configured_limit = max(getattr(self.settings, 'archive_max_evidence_items', DEFAULT_ARCHIVE_EVIDENCE_ITEMS), 1)
+        sampled_file_count = parsed.metadata.get('archive_sampled_file_count')
+        if isinstance(sampled_file_count, int) and sampled_file_count > 0:
+            configured_limit = min(configured_limit, sampled_file_count)
+        return max(1, min(total_matches, configured_limit))
 
     def _upsert_evidence(self, file_record: UploadedFile, *, path: Path, parsed) -> list[EvidenceItem]:
         submission = self.db.get(EmployeeSubmission, file_record.submission_id)

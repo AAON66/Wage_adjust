@@ -20,9 +20,13 @@ interface ReviewPanelProps {
   onReturnEvaluation?: () => void;
 }
 
-function averageScore(dimensions: DimensionScoreDraft[]): number {
-  const total = dimensions.reduce((sum, dimension) => sum + dimension.score, 0);
-  return dimensions.length ? Number((total / dimensions.length).toFixed(1)) : 0;
+function weightedReviewScore(dimensions: DimensionScoreDraft[]): number {
+  const totalWeight = dimensions.reduce((sum, dimension) => sum + dimension.weight, 0);
+  if (!totalWeight) {
+    return 0;
+  }
+  const weightedTotal = dimensions.reduce((sum, dimension) => sum + dimension.score * dimension.weight, 0);
+  return Number((weightedTotal / totalWeight).toFixed(1));
 }
 
 function formatLevelLabel(level: string): string {
@@ -99,16 +103,15 @@ export function ReviewPanel({
   onConfirmEvaluation,
   onReturnEvaluation,
 }: ReviewPanelProps) {
-  const average = averageScore(dimensions);
+  const reviewedScore = weightedReviewScore(dimensions);
   const isPendingHr = status === 'pending_hr';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Score overview */}
       <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(2, 1fr)' }} className="xl:grid-cols-4">
         {[
-          { label: 'AI 初评得分', value: aiScore?.toFixed(1) ?? '--' },
-          { label: '主管提交得分', value: managerScore?.toFixed(1) ?? '--' },
+          { label: 'AI 初评分数', value: aiScore?.toFixed(1) ?? '--' },
+          { label: '主管提交分数', value: managerScore?.toFixed(1) ?? '--' },
           { label: '评分差值', value: scoreGap != null ? (scoreGap > 0 ? `+${scoreGap.toFixed(1)}` : scoreGap.toFixed(1)) : '--' },
           { label: 'AI 建议等级', value: formatLevelLabel(aiLevel) },
         ].map((item) => (
@@ -119,15 +122,14 @@ export function ReviewPanel({
         ))}
       </div>
 
-      {/* Status + level + average */}
       <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(3, 1fr)' }}>
         <div style={{ background: statusBg(status), border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px' }}>
           <p style={{ fontSize: 11.5, color: 'var(--color-steel)', fontWeight: 500 }}>当前流程状态</p>
           <p style={{ marginTop: 5, fontSize: 14, fontWeight: 600, color: statusColor(status) }}>{formatStatusLabel(status)}</p>
         </div>
         <div style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px' }}>
-          <p style={{ fontSize: 11.5, color: 'var(--color-steel)', fontWeight: 500 }}>当前复核均分</p>
-          <p style={{ marginTop: 5, fontSize: 20, fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.02em' }}>{average}</p>
+          <p style={{ fontSize: 11.5, color: 'var(--color-steel)', fontWeight: 500 }}>当前复核总分</p>
+          <p style={{ marginTop: 5, fontSize: 20, fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.02em' }}>{reviewedScore}</p>
         </div>
         <label style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px', display: 'block' }}>
           <span style={{ fontSize: 11.5, color: 'var(--color-steel)', fontWeight: 500 }}>主管复核等级</span>
@@ -144,7 +146,6 @@ export function ReviewPanel({
         </label>
       </div>
 
-      {/* Comment */}
       <textarea
         className="toolbar-textarea"
         style={{ width: '100%' }}
@@ -153,7 +154,6 @@ export function ReviewPanel({
         value={reviewComment}
       />
 
-      {/* Actions */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         <button className="action-primary" disabled={isSubmitting || isPendingHr} onClick={onSubmitReview} type="button">
           {isSubmitting ? '提交中...' : '提交主管评分'}

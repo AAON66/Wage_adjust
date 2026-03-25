@@ -10,8 +10,10 @@ from fastapi.responses import JSONResponse
 
 from backend.app.api.v1 import api_router
 from backend.app.core.config import Settings, get_settings
+from backend.app.core.database import init_database
 from backend.app.core.logging import configure_logging
 from backend.app.dependencies import get_app_settings
+from backend.app.models import load_model_modules
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,8 @@ def build_error_response(
 async def lifespan(_: FastAPI):
     settings = get_settings()
     configure_logging(settings)
+    load_model_modules()
+    init_database()
     logger.info('Starting %s v%s', settings.app_name, settings.app_version)
     yield
     logger.info('Stopping %s', settings.app_name)

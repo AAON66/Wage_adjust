@@ -123,6 +123,53 @@ def seed_submission_with_zip_file() -> tuple[Settings, object, EmployeeSubmissio
     return settings, db, submission, uploaded_file, target_file
 
 
+def seed_submission_with_large_zip_file(file_count: int = 12) -> tuple[Settings, object, EmployeeSubmission, UploadedFile, Path]:
+    settings, session_factory = build_context()
+    db = session_factory()
+    employee = Employee(
+        employee_no='EMP-2003',
+        name='Archive Scale User',
+        department='Engineering',
+        job_family='Platform',
+        job_level='P5',
+        status='active',
+    )
+    cycle = EvaluationCycle(name='2026 Review', review_period='2026', budget_amount='1000.00', status='draft')
+    db.add_all([employee, cycle])
+    db.commit()
+    db.refresh(employee)
+    db.refresh(cycle)
+
+    submission = EmployeeSubmission(employee_id=employee.id, cycle_id=cycle.id, status='submitted')
+    db.add(submission)
+    db.commit()
+    db.refresh(submission)
+
+    storage_dir = Path(settings.storage_base_dir).resolve()
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    submission_dir = storage_dir / submission.id
+    submission_dir.mkdir(parents=True, exist_ok=True)
+    target_file = submission_dir / 'repo-large.zip'
+    with ZipFile(target_file, 'w') as archive:
+        for index in range(file_count):
+            archive.writestr(
+                f'Wage_adjust-main/docs/impact-{index + 1:02d}.md',
+                f'# Project {index + 1}\nAI automation outcome {index + 1} improved review efficiency and delivery quality.\n',
+            )
+
+    uploaded_file = UploadedFile(
+        submission_id=submission.id,
+        file_name='repo-large.zip',
+        file_type='zip',
+        storage_key=f'{submission.id}/repo-large.zip',
+        parse_status='pending',
+    )
+    db.add(uploaded_file)
+    db.commit()
+    db.refresh(uploaded_file)
+    return settings, db, submission, uploaded_file, target_file
+
+
 def test_parse_service_extracts_evidence_from_markdown_file() -> None:
     settings, db, submission, uploaded_file, _ = seed_submission_with_file()
     try:
@@ -227,5 +274,21 @@ def test_parse_service_reparse_refreshes_zip_repository_evidence() -> None:
         contents = [item.content for item in refreshed_submission.evidence_items]
         assert any('archive parsing' in content for content in contents)
         assert not any('salary review efficiency' in content for content in contents)
+    finally:
+        db.close()
+
+
+def test_parse_service_extracts_more_than_eight_repository_sections_from_zip_file() -> None:
+    settings, db, submission, uploaded_file, _ = seed_submission_with_large_zip_file(file_count=12)
+    try:
+        service = ParseService(db, settings)
+        parsed_file, evidence_count = service.parse_file(uploaded_file)
+
+        db.refresh(submission)
+        assert parsed_file.parse_status == 'parsed'
+        assert evidence_count == 12
+        assert len(submission.evidence_items) == 12
+        assert {item.metadata_json['archive_section_total'] for item in submission.evidence_items} == {12}
+        assert {item.metadata_json['archive_section_available_total'] for item in submission.evidence_items} == {12}
     finally:
         db.close()

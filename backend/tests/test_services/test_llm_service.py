@@ -59,6 +59,30 @@ def test_llm_service_parses_json_response_with_retry() -> None:
     assert calls['count'] == 2
 
 
+def test_evidence_prompt_includes_summary_template_guidance() -> None:
+    messages = DeepSeekPromptLibrary().build_evidence_messages(
+        ParsedDocument(
+            text='智能质检流程上线并缩短人工复核时间。',
+            title='impact-summary.md',
+            metadata={
+                'evidence_kind': 'project_outcome',
+                'summary_template': '按项目成果摘要输出',
+                'summary_focus': ['项目事项', '交付结果', '业务影响'],
+            },
+        ),
+        file_name='repo.zip',
+        file_type='zip',
+    )
+    system_prompt = messages[0]['content']
+    user_payload = json.loads(messages[1]['content'])
+
+    assert 'metadata.evidence_kind' in system_prompt
+    assert 'project_outcome' in system_prompt
+    assert 'implementation_detail' in system_prompt
+    assert user_payload['metadata']['summary_template'] == '按项目成果摘要输出'
+    assert user_payload['metadata']['summary_focus'] == ['项目事项', '交付结果', '业务影响']
+
+
 def test_evaluation_generation_keeps_primary_model() -> None:
     seen_models: list[str] = []
 
@@ -95,7 +119,7 @@ def test_evaluation_generation_keeps_primary_model() -> None:
         fallback_payload={'overall_score': 70, 'ai_level': 'Level 3', 'confidence_score': 0.5, 'dimensions': []},
     )
     assert result.used_fallback is False
-    assert seen_models == ['deepseek-reasoner']
+    assert seen_models == ['deepseek-chat']
 
 
 def test_parsing_timeout_prefers_parsing_specific_timeout() -> None:
@@ -111,8 +135,56 @@ def test_parsing_timeout_prefers_parsing_specific_timeout() -> None:
     assert service._resolve_model_name('evidence_extraction') == 'deepseek-chat'
 
 
-def test_evaluation_prompt_requires_chinese_output() -> None:
-    messages = DeepSeekPromptLibrary().build_evaluation_messages({'name': '寮犱笁'}, [{'summary': '椤圭洰鎴愭灉'}])
+def test_evaluation_timeout_prefers_evaluation_specific_timeout() -> None:
+    settings = Settings(
+        deepseek_api_key='test-key',
+        deepseek_model='deepseek-reasoner',
+        deepseek_timeout_seconds=30,
+        deepseek_evaluation_timeout_seconds=120,
+    )
+    service = DeepSeekService(settings)
+    timeout = service._resolve_timeout('evaluation_generation')
+    assert timeout.read == 120
+    assert service._resolve_model_name('evaluation_generation') == 'deepseek-chat'
+
+
+def test_evaluation_prompt_includes_manager_style_examples() -> None:
+    messages = DeepSeekPromptLibrary().build_evaluation_messages(
+        {
+            'name': '李四',
+            'department_scoring_context': {
+                'profile_label': '研发与技术画像',
+                'profile_summary': '重点关注工程效率与稳定性。',
+                'reasoning_style': {
+                    'tone': '使用真实主管复核口吻。',
+                    'rules': ['不要照抄示例语料。'],
+                },
+                'score_policy': {
+                    'default_expectation': '只要证据能说明员工已稳定、真实地在本岗位使用 AI 并形成产出，单维度通常应落在 68-85 分区间。',
+                    'low_score_rule': '只有在证据明显不足或能力未达标时，才应低于 60 分。',
+                },
+            },
+            'dimension_specs': [
+                {
+                    'code': 'DEPTH',
+                    'label': 'AI 应用深度',
+                    'weight': 0.25,
+                    'focus': '重点看 AI 是否进入架构和发布链路。',
+                    'manager_examples': {
+                        'meets_expectation': ['AI 已进入研发主流程，如开发、测试、发布或问题处理。'],
+                        'strong_performance': ['AI 已嵌入架构设计、发布链路或稳定性治理。'],
+                    },
+                },
+            ],
+        },
+        [{'summary': '构建了发布流水线自动化'}],
+    )
     system_prompt = messages[0]['content']
-    assert 'Chinese-speaking managers and HR reviewers' in system_prompt
-    assert 'Simplified Chinese' in system_prompt
+    user_payload = json.loads(messages[1]['content'])
+
+    assert 'manager_examples' in system_prompt
+    assert 'realistic manager review tone' in system_prompt
+    assert '68-85 range' in system_prompt
+    assert user_payload['department_scoring_context']['reasoning_style']['tone'] == '使用真实主管复核口吻。'
+    assert user_payload['dimension_specs'][0]['manager_examples']['meets_expectation']
+    assert user_payload['dimension_specs'][0]['manager_examples']['strong_performance']

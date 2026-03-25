@@ -18,7 +18,7 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
           <p className="eyebrow">材料上传</p>
           <h3 className="section-title">上传员工材料</h3>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-steel">
-            支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除。
+            支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除，当前单文件上限为 200MB。
           </p>
         </div>
         <label className={isUploading ? 'action-secondary cursor-pointer' : 'action-primary cursor-pointer'} htmlFor={inputId}>
@@ -26,11 +26,14 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
         </label>
       </div>
       <input
-        accept=".ppt,.pptx,.pdf,.png,.jpg,.jpeg,.zip,.md,.xlsx,.xls,.py,.ts,.tsx,.js,.json,.txt,.yml,.yaml"
+        accept=".ppt,.pptx,.pdf,.docx,.png,.jpg,.jpeg,.zip,.md,.xlsx,.xls,.py,.ts,.tsx,.js,.json,.txt,.yml,.yaml"
         className="sr-only"
         id={inputId}
         multiple
-        onChange={(event) => onFilesSelected(event.target.files)}
+        onChange={(event) => {
+          onFilesSelected(event.target.files);
+          event.currentTarget.value = '';
+        }}
         type="file"
       />
       <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
@@ -54,12 +57,15 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
         </button>
       </div>
       <div className="mt-5 flex flex-wrap gap-2 text-xs text-steel">
-        {['PPT', 'PDF', 'PNG', 'JPG', 'ZIP', 'Markdown', 'Excel', '代码', 'GitHub 仓库/目录/文件'].map((item) => (
+        {['PPT', 'PDF', 'DOCX', 'PNG', 'JPG', 'ZIP', 'Markdown', 'Excel', '代码', 'GitHub 仓库/目录/文件'].map((item) => (
           <span key={item} className="chip-button px-3 py-1 text-xs">
             {item}
           </span>
         ))}
       </div>
+      <p className="mt-4 text-xs leading-6 text-steel">
+        如果仍然提示超限，请先压缩图片、精简导出页数，或把大型项目材料拆分成多个文件上传。
+      </p>
     </section>
   );
 }

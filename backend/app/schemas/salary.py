@@ -22,6 +22,29 @@ class SalaryRecommendationRead(BaseModel):
     explanation: str | None = None
 
 
+class SalaryHistoryItemRead(BaseModel):
+    recommendation_id: str
+    evaluation_id: str
+    submission_id: str
+    cycle_id: str
+    cycle_name: str
+    review_period: str
+    current_salary: Decimal
+    recommended_salary: Decimal
+    recommended_ratio: float
+    final_adjustment_ratio: float
+    adjustment_amount: Decimal
+    ai_level: str
+    overall_score: float
+    status: str
+    created_at: datetime
+
+
+class SalaryHistoryResponse(BaseModel):
+    items: list[SalaryHistoryItemRead]
+    total: int
+
+
 class SalaryRecommendRequest(BaseModel):
     evaluation_id: str
 

@@ -8,7 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class EmployeeBase(BaseModel):
     employee_no: str = Field(min_length=1, max_length=64)
     name: str = Field(min_length=1, max_length=255)
+    id_card_no: str | None = Field(default=None, max_length=32)
     department: str = Field(min_length=1, max_length=128)
+    sub_department: str | None = Field(default=None, max_length=128)
     job_family: str = Field(min_length=1, max_length=128)
     job_level: str = Field(min_length=1, max_length=64)
     manager_id: str | None = None
@@ -17,6 +19,18 @@ class EmployeeBase(BaseModel):
 
 class EmployeeCreate(EmployeeBase):
     pass
+
+
+class EmployeeUpdate(BaseModel):
+    employee_no: str | None = Field(default=None, min_length=1, max_length=64)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    id_card_no: str | None = Field(default=None, max_length=32)
+    department: str | None = Field(default=None, min_length=1, max_length=128)
+    sub_department: str | None = Field(default=None, max_length=128)
+    job_family: str | None = Field(default=None, min_length=1, max_length=128)
+    job_level: str | None = Field(default=None, min_length=1, max_length=64)
+    manager_id: str | None = None
+    status: str | None = Field(default=None, min_length=1, max_length=32)
 
 
 class EmployeeRead(EmployeeBase):

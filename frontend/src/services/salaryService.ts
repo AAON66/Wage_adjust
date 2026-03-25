@@ -1,5 +1,5 @@
 ﻿import api from './api';
-import type { SalaryRecommendationRecord, SalarySimulationResponse } from '../types/api';
+import type { SalaryHistoryResponse, SalaryRecommendationRecord, SalarySimulationResponse } from '../types/api';
 
 const LONG_RUNNING_TIMEOUT = 120000;
 
@@ -15,6 +15,11 @@ export async function fetchSalaryRecommendationByEvaluation(evaluationId: string
 
 export async function fetchSalaryRecommendation(recommendationId: string): Promise<SalaryRecommendationRecord> {
   const response = await api.get<SalaryRecommendationRecord>(`/salary/${recommendationId}`);
+  return response.data;
+}
+
+export async function fetchSalaryHistoryByEmployee(employeeId: string): Promise<SalaryHistoryResponse> {
+  const response = await api.get<SalaryHistoryResponse>(`/salary/history/by-employee/${employeeId}`);
   return response.data;
 }
 

@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
+from backend.app.schemas.department import DepartmentRead
+
 
 ROLE_OPTIONS = ('admin', 'hrbp', 'manager', 'employee')
 
@@ -14,10 +16,12 @@ class UserRead(BaseModel):
     id: str
     email: EmailStr
     role: str
+    id_card_no: str | None = None
     must_change_password: bool = False
     employee_id: str | None = None
     employee_name: str | None = None
     employee_no: str | None = None
+    departments: list[DepartmentRead] = []
     created_at: datetime
 
 
@@ -25,6 +29,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     role: str = Field(default='employee', min_length=2, max_length=50)
+    id_card_no: str | None = Field(default=None, max_length=32)
 
 
 class UserEmployeeBindingUpdate(BaseModel):
@@ -61,7 +66,11 @@ class AuthResponse(BaseModel):
 
 
 class UserAdminCreate(UserCreate):
-    pass
+    department_ids: list[str] = Field(default_factory=list, max_length=50)
+
+
+class UserDepartmentBindingUpdate(BaseModel):
+    department_ids: list[str] = Field(default_factory=list, max_length=50)
 
 
 class UserListResponse(BaseModel):

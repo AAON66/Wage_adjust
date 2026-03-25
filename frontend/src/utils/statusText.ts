@@ -20,7 +20,7 @@ const STATUS_TEXT: Record<string, string> = {
   rejected: '已驳回',
   locked: '已锁定',
   published: '已发布',
-  archived: '已下架',
+  archived: '已归档',
   active: '启用',
   inactive: '停用',
   completed: '已完成',
@@ -41,7 +41,7 @@ export function formatStatusText(status: string | null | undefined, fallback = '
 }
 
 export function formatCycleStatus(status: string | null | undefined): string {
-  return formatStatusText(status, '无');
+  return formatStatusText(status, '未知');
 }
 
 export function formatAiLevel(level: string | null | undefined): string {

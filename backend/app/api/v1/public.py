@@ -70,7 +70,9 @@ def get_latest_employee_evaluation(
         dimension_scores=[
             PublicDimensionScoreRead(
                 dimension_code=item.dimension_code,
+                display_score=item.raw_score,
                 raw_score=item.raw_score,
+                weighted_contribution=item.weighted_score,
                 weighted_score=item.weighted_score,
                 rationale=item.rationale,
             )

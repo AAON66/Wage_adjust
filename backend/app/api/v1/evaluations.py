@@ -3,7 +3,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.app.core.config import Settings
 from backend.app.dependencies import get_db, get_current_user, require_roles
+from backend.app.dependencies import get_app_settings
+from backend.app.models.user import User
 from backend.app.schemas.evaluation import (
     EvaluationConfirmResponse,
     EvaluationGenerateRequest,
@@ -12,6 +15,7 @@ from backend.app.schemas.evaluation import (
     EvaluationRead,
 )
 from backend.app.services.evaluation_service import EvaluationService
+from backend.app.services.access_scope_service import AccessScopeService
 
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
 
@@ -66,9 +70,16 @@ def serialize_evaluation(evaluation) -> EvaluationRead:
 def generate_evaluation(
     payload: EvaluationGenerateRequest,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
 ) -> EvaluationRead:
-    service = EvaluationService(db)
+    try:
+        submission = AccessScopeService(db).ensure_submission_access(current_user, payload.submission_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Submission not found.')
+    service = EvaluationService(db, settings)
     try:
         evaluation = service.generate_evaluation(payload.submission_id)
     except ValueError as exc:
@@ -83,9 +94,16 @@ def generate_evaluation(
 def regenerate_evaluation(
     payload: EvaluationGenerateRequest,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
 ) -> EvaluationRead:
-    service = EvaluationService(db)
+    try:
+        submission = AccessScopeService(db).ensure_submission_access(current_user, payload.submission_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if submission is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Submission not found.')
+    service = EvaluationService(db, settings)
     try:
         evaluation = service.generate_evaluation(payload.submission_id, force=True)
     except ValueError as exc:
@@ -100,12 +118,17 @@ def regenerate_evaluation(
 def get_evaluation_by_submission(
     submission_id: str,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
 ) -> EvaluationRead:
-    service = EvaluationService(db)
-    evaluation = service.get_evaluation_by_submission(submission_id)
+    try:
+        evaluation = AccessScopeService(db).ensure_evaluation_access_by_submission(current_user, submission_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     if evaluation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
+    service = EvaluationService(db, settings)
+    evaluation = service.get_evaluation_by_submission(submission_id)
     return serialize_evaluation(evaluation)
 
 
@@ -113,9 +136,16 @@ def get_evaluation_by_submission(
 def get_evaluation(
     evaluation_id: str,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
 ) -> EvaluationRead:
-    service = EvaluationService(db)
+    try:
+        scoped_evaluation = AccessScopeService(db).ensure_evaluation_access(current_user, evaluation_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if scoped_evaluation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
+    service = EvaluationService(db, settings)
     evaluation = service.get_evaluation(evaluation_id)
     if evaluation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
@@ -127,9 +157,16 @@ def manual_review_evaluation(
     evaluation_id: str,
     payload: EvaluationManualReviewRequest,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
 ) -> EvaluationRead:
-    service = EvaluationService(db)
+    try:
+        scoped_evaluation = AccessScopeService(db).ensure_evaluation_access(current_user, evaluation_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if scoped_evaluation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
+    service = EvaluationService(db, settings)
     try:
         evaluation = service.manual_review(
             evaluation_id,
@@ -150,9 +187,16 @@ def hr_review_evaluation(
     evaluation_id: str,
     payload: EvaluationHrReviewRequest,
     db: Session = Depends(get_db),
-    _: object = Depends(require_roles('admin', 'hrbp')),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(require_roles('admin', 'hrbp')),
 ) -> EvaluationRead:
-    service = EvaluationService(db)
+    try:
+        scoped_evaluation = AccessScopeService(db).ensure_evaluation_access(current_user, evaluation_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if scoped_evaluation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
+    service = EvaluationService(db, settings)
     try:
         evaluation = service.hr_review(
             evaluation_id,
@@ -173,9 +217,16 @@ def hr_review_evaluation(
 def confirm_evaluation(
     evaluation_id: str,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
 ) -> EvaluationConfirmResponse:
-    service = EvaluationService(db)
+    try:
+        scoped_evaluation = AccessScopeService(db).ensure_evaluation_access(current_user, evaluation_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if scoped_evaluation is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
+    service = EvaluationService(db, settings)
     evaluation = service.confirm_evaluation(evaluation_id)
     if evaluation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')

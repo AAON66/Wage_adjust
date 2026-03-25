@@ -7,7 +7,9 @@ from pydantic import BaseModel
 
 class PublicDimensionScoreRead(BaseModel):
     dimension_code: str
+    display_score: float
     raw_score: float
+    weighted_contribution: float
     weighted_score: float
     rationale: str
 

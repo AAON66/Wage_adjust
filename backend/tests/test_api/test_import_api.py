@@ -10,6 +10,7 @@ from backend.app.core.database import create_db_engine, create_session_factory, 
 from backend.app.dependencies import get_db
 from backend.app.main import create_app
 from backend.app.models import load_model_modules
+from backend.app.models.department import Department
 
 
 class ApiDatabaseContext:
@@ -47,15 +48,26 @@ def register_and_login_admin(client: TestClient) -> str:
     return register_response.json()['tokens']['access_token']
 
 
+def seed_departments(context: ApiDatabaseContext, *names: str) -> None:
+    db = context.session_factory()
+    try:
+        for name in names:
+            db.add(Department(name=name, description=f'{name} scope', status='active'))
+        db.commit()
+    finally:
+        db.close()
+
+
 def test_import_api_flow() -> None:
-    client, _ = build_client()
+    client, context = build_client()
     with client:
         token = register_and_login_admin(client)
         headers = {'Authorization': f'Bearer {token}'}
+        seed_departments(context, 'Engineering')
 
         employee_csv = '\n'.join([
-            'employee_no,name,department,job_family,job_level,status,manager_employee_no',
-            'EMP-2001,Alice Zhang,Engineering,Platform,P5,active,',
+            'employee_no,name,id_card_no,department,sub_department,job_family,job_level,status,manager_employee_no',
+            'EMP-2001,Alice Zhang,310101199001010123,Engineering,Backend Platform,Platform,P5,active,',
         ]).encode('utf-8')
         create_response = client.post(
             '/api/v1/imports/jobs?import_type=employees',
@@ -77,11 +89,13 @@ def test_import_api_flow() -> None:
         template_response = client.get('/api/v1/imports/templates/employees', headers=headers)
         assert template_response.status_code == 200
         assert 'attachment; filename=employees_template.csv' in template_response.headers['content-disposition']
+        assert '员工工号' in template_response.content.decode('utf-8-sig')
+        assert '身份证号' in template_response.content.decode('utf-8-sig')
 
         export_response = client.get(f'/api/v1/imports/jobs/{job_id}/export', headers=headers)
         assert export_response.status_code == 200
         assert 'attachment;' in export_response.headers['content-disposition']
-        assert 'Employee imported.' in export_response.text
+        assert '导入成功。' in export_response.text
 
         xlsx_response = client.post(
             '/api/v1/imports/jobs?import_type=employees',
@@ -90,27 +104,29 @@ def test_import_api_flow() -> None:
         )
         assert xlsx_response.status_code == 201
         assert xlsx_response.json()['status'] == 'failed'
+        assert '暂不支持直接读取 Excel' in xlsx_response.json()['result_summary']['error']
 
 
 def test_import_api_supports_delete_and_bulk_delete() -> None:
-    client, _ = build_client()
+    client, context = build_client()
     with client:
         token = register_and_login_admin(client)
         headers = {'Authorization': f'Bearer {token}'}
+        seed_departments(context, 'Engineering', 'Product')
 
         first_job = client.post(
             '/api/v1/imports/jobs?import_type=employees',
             files={'file': ('employees.csv', '\n'.join([
-                'employee_no,name,department,job_family,job_level,status,manager_employee_no',
-                'EMP-3001,Alice Zhang,Engineering,Platform,P5,active,',
+                'employee_no,name,id_card_no,department,sub_department,job_family,job_level,status,manager_employee_no',
+                'EMP-3001,Alice Zhang,310101199001010124,Engineering,Backend Platform,Platform,P5,active,',
             ]).encode('utf-8'), 'text/csv')},
             headers=headers,
         )
         second_job = client.post(
             '/api/v1/imports/jobs?import_type=employees',
             files={'file': ('employees2.csv', '\n'.join([
-                'employee_no,name,department,job_family,job_level,status,manager_employee_no',
-                'EMP-3002,Bob Li,Product,Product,P4,active,',
+                'employee_no,name,id_card_no,department,sub_department,job_family,job_level,status,manager_employee_no',
+                'EMP-3002,Bob Li,310101199001010125,Product,Product Strategy,Product,P4,active,',
             ]).encode('utf-8'), 'text/csv')},
             headers=headers,
         )

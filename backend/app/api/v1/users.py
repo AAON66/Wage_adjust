@@ -13,6 +13,7 @@ from backend.app.schemas.user import (
     BulkUserDeleteResponse,
     BulkUserFailure,
     UserAdminCreate,
+    UserDepartmentBindingUpdate,
     UserEmployeeBindingUpdate,
     UserListResponse,
     UserRead,
@@ -105,6 +106,23 @@ def update_user_password(
         status_code = status.HTTP_404_NOT_FOUND if message == 'User not found.' else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
     return {'updated_user_id': updated_user_id, 'message': 'Password updated successfully.'}
+
+
+@router.patch('/{user_id}/departments', response_model=UserRead)
+def update_user_departments(
+    user_id: str,
+    payload: UserDepartmentBindingUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> UserRead:
+    service = UserAdminService(db)
+    try:
+        user = service.update_user_departments(user_id, department_ids=payload.department_ids, operator=current_user)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = status.HTTP_404_NOT_FOUND if message in {'User not found.', 'One or more departments were not found.'} else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    return UserRead.model_validate(user)
 
 
 @router.delete('/{user_id}', response_model=dict[str, str])

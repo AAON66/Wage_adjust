@@ -4,7 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_db, get_current_user, require_roles
-from backend.app.schemas.employee import EmployeeCreate, EmployeeListResponse, EmployeeRead
+from backend.app.models.user import User
+from backend.app.schemas.employee import EmployeeCreate, EmployeeListResponse, EmployeeRead, EmployeeUpdate
+from backend.app.services.access_scope_service import AccessScopeService
 from backend.app.services.employee_service import EmployeeService
 
 router = APIRouter(prefix="/employees", tags=["employees"])
@@ -20,7 +22,9 @@ def create_employee(
     try:
         employee = service.create_employee(payload)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        message = str(exc)
+        status_code = status.HTTP_409_CONFLICT if message == 'Employee number already exists.' else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
     return EmployeeRead.model_validate(employee)
 
 
@@ -32,10 +36,11 @@ def list_employees(
     job_family: str | None = Query(default=None),
     status_filter: str | None = Query(default=None, alias="status"),
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> EmployeeListResponse:
     service = EmployeeService(db)
     items, total = service.get_employees(
+        current_user=current_user,
         page=page,
         page_size=page_size,
         department=department,
@@ -54,10 +59,38 @@ def list_employees(
 def get_employee(
     employee_id: str,
     db: Session = Depends(get_db),
-    _: object = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> EmployeeRead:
+    try:
+        employee = AccessScopeService(db).ensure_employee_access(current_user, employee_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if employee is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found.")
+    return EmployeeRead.model_validate(employee)
+
+
+@router.patch("/{employee_id}", response_model=EmployeeRead)
+def update_employee(
+    employee_id: str,
+    payload: EmployeeUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles("admin", "hrbp", "manager")),
+) -> EmployeeRead:
+    try:
+        accessible_employee = AccessScopeService(db).ensure_employee_access(current_user, employee_id)
+    except PermissionError as exc:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+    if accessible_employee is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found.")
+
     service = EmployeeService(db)
-    employee = service.get_employee(employee_id)
+    try:
+        employee = service.update_employee(employee_id, payload)
+    except ValueError as exc:
+        message = str(exc)
+        status_code = status.HTTP_409_CONFLICT if message == 'Employee number already exists.' else status.HTTP_400_BAD_REQUEST
+        raise HTTPException(status_code=status_code, detail=message) from exc
     if employee is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found.")
     return EmployeeRead.model_validate(employee)

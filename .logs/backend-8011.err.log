@@ -1,0 +1,313 @@
+INFO:     Started server process [25172]
+INFO:     Waiting for application startup.
+2026-03-24 10:34:15,555 INFO [backend.app.main] Starting Wage Adjust Platform v1.0.0
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8011 (Press CTRL+C to quit)
+2026-03-24 10:43:28,909 ERROR [backend.app.main] Unhandled application error
+Traceback (most recent call last):
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "D:\wage_adjust\backend\app\api\v1\salary.py", line 138, in simulate_salary
+    items, budget_amount, total_recommended_amount, over_budget = service.simulate_cycle(
+                                                                  ~~~~~~~~~~~~~~~~~~~~~~^
+        current_user=current_user,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        budget_amount=payload.budget_amount,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 260, in simulate_cycle
+    recommendation = self.get_recommendation_by_evaluation(evaluation.id) or self.recommend_salary(evaluation.id)
+                                                                             ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 154, in recommend_salary
+    raise ValueError('Evaluation is not ready for salary recommendation.')
+ValueError: Evaluation is not ready for salary recommendation.
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "D:\wage_adjust\.venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 401, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\errors.py", line 187, in __call__
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "D:\wage_adjust\backend\app\api\v1\salary.py", line 138, in simulate_salary
+    items, budget_amount, total_recommended_amount, over_budget = service.simulate_cycle(
+                                                                  ~~~~~~~~~~~~~~~~~~~~~~^
+        current_user=current_user,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        budget_amount=payload.budget_amount,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 260, in simulate_cycle
+    recommendation = self.get_recommendation_by_evaluation(evaluation.id) or self.recommend_salary(evaluation.id)
+                                                                             ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 154, in recommend_salary
+    raise ValueError('Evaluation is not ready for salary recommendation.')
+ValueError: Evaluation is not ready for salary recommendation.
+2026-03-24 10:43:29,886 ERROR [backend.app.main] Unhandled application error
+Traceback (most recent call last):
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "D:\wage_adjust\backend\app\api\v1\salary.py", line 138, in simulate_salary
+    items, budget_amount, total_recommended_amount, over_budget = service.simulate_cycle(
+                                                                  ~~~~~~~~~~~~~~~~~~~~~~^
+        current_user=current_user,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        budget_amount=payload.budget_amount,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 260, in simulate_cycle
+    recommendation = self.get_recommendation_by_evaluation(evaluation.id) or self.recommend_salary(evaluation.id)
+                                                                             ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 154, in recommend_salary
+    raise ValueError('Evaluation is not ready for salary recommendation.')
+ValueError: Evaluation is not ready for salary recommendation.
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "D:\wage_adjust\.venv\Lib\site-packages\uvicorn\protocols\http\httptools_impl.py", line 401, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        self.scope, self.receive, self.send
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\uvicorn\middleware\proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\applications.py", line 1054, in __call__
+    await super().__call__(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\errors.py", line 187, in __call__
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\errors.py", line 165, in __call__
+    await self.app(scope, receive, _send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\middleware\exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\fastapi\routing.py", line 214, in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\starlette\concurrency.py", line 39, in run_in_threadpool
+    return await anyio.to_thread.run_sync(func, *args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\to_thread.py", line 63, in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        func, args, abandon_on_cancel=abandon_on_cancel, limiter=limiter
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2502, in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+  File "D:\wage_adjust\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 986, in run
+    result = context.run(func, *args)
+  File "D:\wage_adjust\backend\app\api\v1\salary.py", line 138, in simulate_salary
+    items, budget_amount, total_recommended_amount, over_budget = service.simulate_cycle(
+                                                                  ~~~~~~~~~~~~~~~~~~~~~~^
+        current_user=current_user,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<3 lines>...
+        budget_amount=payload.budget_amount,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 260, in simulate_cycle
+    recommendation = self.get_recommendation_by_evaluation(evaluation.id) or self.recommend_salary(evaluation.id)
+                                                                             ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "D:\wage_adjust\backend\app\services\salary_service.py", line 154, in recommend_salary
+    raise ValueError('Evaluation is not ready for salary recommendation.')
+ValueError: Evaluation is not ready for salary recommendation.

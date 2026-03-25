@@ -6,11 +6,28 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class CycleDepartmentBudgetInput(BaseModel):
+    department_id: str = Field(min_length=1)
+    budget_amount: Decimal = Field(default=Decimal('0.00'), ge=0)
+
+
+class CycleDepartmentBudgetRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    department_id: str
+    department_name: str
+    budget_amount: Decimal
+    created_at: datetime
+    updated_at: datetime
+
+
 class CycleBase(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     review_period: str = Field(min_length=1, max_length=128)
     budget_amount: Decimal = Field(default=Decimal("0.00"), ge=0)
     status: str = Field(default="draft", min_length=1, max_length=32)
+    department_budgets: list[CycleDepartmentBudgetInput] = Field(default_factory=list)
 
 
 class CycleCreate(CycleBase):
@@ -22,12 +39,14 @@ class CycleUpdate(BaseModel):
     review_period: str | None = Field(default=None, min_length=1, max_length=128)
     budget_amount: Decimal | None = Field(default=None, ge=0)
     status: str | None = Field(default=None, min_length=1, max_length=32)
+    department_budgets: list[CycleDepartmentBudgetInput] | None = None
 
 
 class CycleRead(CycleBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    department_budgets: list[CycleDepartmentBudgetRead] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

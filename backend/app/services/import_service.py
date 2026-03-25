@@ -9,8 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.models.certification import Certification
+from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.import_job import ImportJob
+from backend.app.services.identity_binding_service import IdentityBindingService
 
 
 class ImportService:
@@ -19,9 +21,84 @@ class ImportService:
         'employees': ['employee_no', 'name', 'department', 'job_family', 'job_level'],
         'certifications': ['employee_no', 'certification_type', 'certification_stage', 'bonus_rate', 'issued_at'],
     }
+    COLUMN_ALIASES = {
+        'employees': {
+            '员工工号': 'employee_no',
+            '员工姓名': 'name',
+            '身份证号': 'id_card_no',
+            '所属部门': 'department',
+            '下属部门': 'sub_department',
+            '岗位族': 'job_family',
+            '岗位级别': 'job_level',
+            '在职状态': 'status',
+            '直属上级工号': 'manager_employee_no',
+        },
+        'certifications': {
+            '员工工号': 'employee_no',
+            '认证类型': 'certification_type',
+            '认证阶段': 'certification_stage',
+            '补贴比例': 'bonus_rate',
+            '发证时间': 'issued_at',
+            '到期时间': 'expires_at',
+        },
+    }
+    COLUMN_LABELS = {
+        'employee_no': '员工工号',
+        'name': '员工姓名',
+        'id_card_no': '身份证号',
+        'department': '所属部门',
+        'sub_department': '下属部门',
+        'job_family': '岗位族',
+        'job_level': '岗位级别',
+        'status': '在职状态',
+        'manager_employee_no': '直属上级工号',
+        'certification_type': '认证类型',
+        'certification_stage': '认证阶段',
+        'bonus_rate': '补贴比例',
+        'issued_at': '发证时间',
+        'expires_at': '到期时间',
+    }
 
     def __init__(self, db: Session):
         self.db = db
+
+    def _label_for_column(self, column_name: str) -> str:
+        return self.COLUMN_LABELS.get(column_name, column_name)
+
+    def _localize_error_message(self, message: str) -> str:
+        mapping = {
+            'Unsupported import type.': '暂不支持这个导入类型。',
+            'Uploaded file is empty.': '上传文件为空，请重新选择文件后再导入。',
+            'Import job not found.': '未找到这条导入任务记录。',
+            'Unsupported file format. Please upload CSV for now.': '当前只支持导入 CSV 文件，请先把文件另存为 CSV 后再试。',
+            'Excel import requires openpyxl in the current environment. Please upload CSV for now.': '当前环境暂不支持直接读取 Excel，请先另存为 CSV 后再导入。',
+            'CSV 文件读取失败。': '文件读取失败，请检查文件内容后重试。',
+            'Required employee fields cannot be empty.': '员工工号、员工姓名、所属部门、岗位族、岗位级别不能为空。',
+            'Employee imported.': '导入成功。',
+            'Certification imported.': '认证信息导入成功。',
+            'Invalid certification date or bonus rate.': '认证信息格式不正确，请检查发证时间、到期时间或补贴比例。',
+            'This ID card number is already used by another employee profile.': '该身份证号已被其他员工档案占用。',
+            'This ID card number is already used by another account.': '该身份证号已被其他平台账号占用。',
+            'This employee profile is already bound to another account.': '该员工档案已绑定其他平台账号。',
+        }
+        if message in mapping:
+            return mapping[message]
+        if message.startswith('Department ') and message.endswith(' was not found.'):
+            department_name = message[len('Department '):-len(' was not found.')]
+            return f'部门“{department_name}”未创建，请先到部门管理中新增。'
+        if message.startswith('Department ') and message.endswith(' is inactive.'):
+            department_name = message[len('Department '):-len(' is inactive.')]
+            return f'部门“{department_name}”已停用，请启用后再导入。'
+        return message
+
+    def _resolve_department_name(self, department_name: str) -> str:
+        normalized_name = department_name.strip()
+        department = self.db.scalar(select(Department).where(Department.name == normalized_name))
+        if department is None:
+            raise ValueError(f'Department {normalized_name} was not found.')
+        if department.status != 'active':
+            raise ValueError(f'Department {normalized_name} is inactive.')
+        return department.name
 
     def list_jobs(self) -> list[ImportJob]:
         query = select(ImportJob).order_by(ImportJob.created_at.desc())
@@ -52,11 +129,11 @@ class ImportService:
     def run_import(self, *, import_type: str, upload: UploadFile) -> ImportJob:
         normalized_type = import_type.strip().lower()
         if normalized_type not in self.SUPPORTED_TYPES:
-            raise ValueError('Unsupported import type.')
+            raise ValueError(self._localize_error_message('Unsupported import type.'))
         file_name = upload.filename or f'{normalized_type}.csv'
         raw_bytes = upload.file.read()
         if not raw_bytes:
-            raise ValueError('Uploaded file is empty.')
+            raise ValueError(self._localize_error_message('Uploaded file is empty.'))
 
         job = ImportJob(
             file_name=file_name,
@@ -86,7 +163,7 @@ class ImportService:
             job.status = 'failed'
             job.result_summary = {
                 'rows': [],
-                'error': str(exc),
+                'error': self._localize_error_message(str(exc)),
                 'supported_types': sorted(self.SUPPORTED_TYPES),
             }
         self.db.add(job)
@@ -97,81 +174,128 @@ class ImportService:
     def build_template(self, import_type: str) -> tuple[str, bytes, str]:
         normalized_type = import_type.strip().lower()
         if normalized_type not in self.SUPPORTED_TYPES:
-            raise ValueError('Unsupported import type.')
+            raise ValueError(self._localize_error_message('Unsupported import type.'))
         output = io.StringIO()
         writer = csv.writer(output)
         if normalized_type == 'employees':
-            writer.writerow(['employee_no', 'name', 'department', 'job_family', 'job_level', 'status', 'manager_employee_no'])
-            writer.writerow(['EMP-1001', 'Alice Zhang', 'Engineering', 'Platform', 'P5', 'active', ''])
+            writer.writerow(['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '岗位族', '岗位级别', '在职状态', '直属上级工号'])
+            writer.writerow(['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '平台研发', 'P5', 'active', ''])
         else:
-            writer.writerow(['employee_no', 'certification_type', 'certification_stage', 'bonus_rate', 'issued_at', 'expires_at'])
+            writer.writerow(['员工工号', '认证类型', '认证阶段', '补贴比例', '发证时间', '到期时间'])
             writer.writerow(['EMP-1001', 'ai_skill', 'advanced', '0.02', '2026-01-15T00:00:00+00:00', ''])
-        content = output.getvalue().encode('utf-8')
+        # UTF-8 BOM helps Excel on Windows open Chinese CSVs correctly.
+        content = output.getvalue().encode('utf-8-sig')
         return f'{normalized_type}_template.csv', content, 'text/csv; charset=utf-8'
 
     def build_export_report(self, job: ImportJob) -> tuple[str, bytes, str]:
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(['row_index', 'status', 'message'])
+        writer.writerow(['行号', '结果', '提示'])
         rows = job.result_summary.get('rows', []) if isinstance(job.result_summary, dict) else []
         for item in rows:
             writer.writerow([item.get('row_index', ''), item.get('status', ''), item.get('message', '')])
         if not rows:
-            writer.writerow(['', 'failed', job.result_summary.get('error', 'No row details available.') if isinstance(job.result_summary, dict) else 'No row details available.'])
-        content = output.getvalue().encode('utf-8')
+            writer.writerow([
+                '',
+                'failed',
+                job.result_summary.get('error', '当前没有可导出的行级结果。') if isinstance(job.result_summary, dict) else '当前没有可导出的行级结果。',
+            ])
+        content = output.getvalue().encode('utf-8-sig')
         return f'{job.import_type}_{job.id}_report.csv', content, 'text/csv; charset=utf-8'
 
     def _load_table(self, file_name: str, raw_bytes: bytes) -> pd.DataFrame:
         suffix = file_name.lower().rsplit('.', 1)[-1] if '.' in file_name else ''
         if suffix == 'csv':
-            return pd.read_csv(io.BytesIO(raw_bytes)).fillna('')
+            last_error: Exception | None = None
+            for encoding in ('utf-8-sig', 'utf-8', 'gb18030', 'gbk'):
+                try:
+                    return pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding).fillna('')
+                except UnicodeDecodeError as exc:
+                    last_error = exc
+            if last_error is not None:
+                raise ValueError('CSV 文件编码格式不正确，请使用“CSV UTF-8”或 GBK/GB18030 编码重新保存后再导入。') from last_error
+            raise ValueError(self._localize_error_message('CSV 文件读取失败。'))
         if suffix in {'xlsx', 'xls'}:
-            raise ValueError('Excel import requires openpyxl in the current environment. Please upload CSV for now.')
-        raise ValueError('Unsupported file format. Please upload CSV for now.')
+            raise ValueError(self._localize_error_message('Excel import requires openpyxl in the current environment. Please upload CSV for now.'))
+        raise ValueError(self._localize_error_message('Unsupported file format. Please upload CSV for now.'))
 
     def _dispatch_import(self, import_type: str, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+        dataframe = self._normalize_columns(import_type, dataframe)
         required = self.REQUIRED_COLUMNS[import_type]
         missing = [column for column in required if column not in dataframe.columns]
         if missing:
-            raise ValueError(f'Missing required columns: {", ".join(missing)}')
+            missing_labels = '、'.join(self._label_for_column(column) for column in missing)
+            raise ValueError(f'缺少必填列：{missing_labels}。请重新下载最新模板后填写。')
         if import_type == 'employees':
             return self._import_employees(dataframe)
         return self._import_certifications(dataframe)
 
+    def _normalize_columns(self, import_type: str, dataframe: pd.DataFrame) -> pd.DataFrame:
+        alias_map = self.COLUMN_ALIASES.get(import_type, {})
+        normalized_columns: dict[str, str] = {}
+        for column in dataframe.columns:
+            stripped = str(column).strip()
+            normalized_columns[column] = alias_map.get(stripped, stripped)
+        return dataframe.rename(columns=normalized_columns)
+
     def _import_employees(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
         results: list[dict[str, object]] = []
         staged_rows: list[tuple[Employee, str | None]] = []
+        identity_service = IdentityBindingService(self.db)
         for index, row in dataframe.iterrows():
             employee_no = str(row['employee_no']).strip()
             name = str(row['name']).strip()
+            id_card_no = str(row['id_card_no']).strip() if 'id_card_no' in dataframe.columns else ''
             department = str(row['department']).strip()
+            sub_department = str(row['sub_department']).strip() if 'sub_department' in dataframe.columns else ''
             job_family = str(row['job_family']).strip()
             job_level = str(row['job_level']).strip()
             status = str(row['status']).strip() or 'active'
             manager_no = str(row['manager_employee_no']).strip() if 'manager_employee_no' in dataframe.columns else ''
             if not all([employee_no, name, department, job_family, job_level]):
-                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': 'Required employee fields cannot be empty.'})
+                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': self._localize_error_message('Required employee fields cannot be empty.')})
                 continue
             employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
+            try:
+                department = self._resolve_department_name(department)
+                normalized_id_card_no = identity_service.ensure_employee_id_card_available(
+                    id_card_no or None,
+                    employee_id=employee.id if employee is not None else None,
+                )
+            except ValueError as exc:
+                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': self._localize_error_message(str(exc))})
+                continue
             if employee is None:
                 employee = Employee(
                     employee_no=employee_no,
                     name=name,
+                    id_card_no=normalized_id_card_no,
                     department=department,
+                    sub_department=sub_department or None,
                     job_family=job_family,
                     job_level=job_level,
                     status=status,
                 )
             else:
                 employee.name = name
+                employee.id_card_no = normalized_id_card_no
                 employee.department = department
+                employee.sub_department = sub_department or None
                 employee.job_family = job_family
                 employee.job_level = job_level
                 employee.status = status
             self.db.add(employee)
             self.db.flush()
+            bind_warning: str | None = None
+            try:
+                identity_service.auto_bind_user_and_employee(employee=employee)
+            except ValueError as exc:
+                bind_warning = self._localize_error_message(str(exc))
             staged_rows.append((employee, manager_no or None))
-            results.append({'row_index': int(index) + 1, 'status': 'success', 'message': 'Employee imported.'})
+            success_message = self._localize_error_message('Employee imported.')
+            if bind_warning:
+                success_message = f'{success_message} 但自动绑定账号失败：{bind_warning}'
+            results.append({'row_index': int(index) + 1, 'status': 'success', 'message': success_message})
 
         for employee, manager_no in staged_rows:
             if not manager_no:
@@ -181,7 +305,7 @@ class ImportService:
             manager = self.db.scalar(select(Employee).where(Employee.employee_no == manager_no))
             if manager is None:
                 employee.manager_id = None
-                results.append({'row_index': None, 'status': 'failed', 'message': f'Manager {manager_no} was not found for {employee.employee_no}.'})
+                results.append({'row_index': None, 'status': 'failed', 'message': f'未找到直属上级工号“{manager_no}”，员工 {employee.employee_no} 已跳过上级绑定。'})
                 continue
             employee.manager_id = manager.id
             self.db.add(employee)
@@ -194,7 +318,7 @@ class ImportService:
             employee_no = str(row['employee_no']).strip()
             employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
             if employee is None:
-                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': f'Employee {employee_no} was not found.'})
+                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': f'未找到员工工号“{employee_no}”，请先导入员工档案。'})
                 continue
             try:
                 issued_at = pd.to_datetime(row['issued_at'], utc=True).to_pydatetime()
@@ -202,7 +326,7 @@ class ImportService:
                 expires_at = pd.to_datetime(expires_value, utc=True).to_pydatetime() if expires_value else None
                 bonus_rate = float(row['bonus_rate'])
             except Exception:
-                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': 'Invalid certification date or bonus rate.'})
+                results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': self._localize_error_message('Invalid certification date or bonus rate.')})
                 continue
             certification = Certification(
                 employee_id=employee.id,
@@ -213,6 +337,6 @@ class ImportService:
                 expires_at=expires_at,
             )
             self.db.add(certification)
-            results.append({'row_index': int(index) + 1, 'status': 'success', 'message': 'Certification imported.'})
+            results.append({'row_index': int(index) + 1, 'status': 'success', 'message': self._localize_error_message('Certification imported.')})
         self.db.commit()
         return results

@@ -25,3 +25,7 @@ export async function archiveCycle(cycleId: string): Promise<CycleRecord> {
   const response = await api.post<CycleRecord>(`/cycles/${cycleId}/archive`);
   return response.data;
 }
+
+export async function deleteCycle(cycleId: string): Promise<void> {
+  await api.delete(`/cycles/${cycleId}`);
+}

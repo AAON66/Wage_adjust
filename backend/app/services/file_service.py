@@ -19,7 +19,7 @@ from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
 
 ALLOWED_EXTENSIONS = {
-    '.ppt', '.pptx', '.pdf', '.png', '.jpg', '.jpeg', '.zip', '.md', '.xlsx', '.xls', '.py', '.ts', '.tsx', '.js', '.json', '.txt', '.yml', '.yaml'
+    '.ppt', '.pptx', '.pdf', '.docx', '.png', '.jpg', '.jpeg', '.zip', '.md', '.xlsx', '.xls', '.py', '.ts', '.tsx', '.js', '.json', '.txt', '.yml', '.yaml'
 }
 GITHUB_DOWNLOAD_TIMEOUT_SECONDS = 30
 GITHUB_DOWNLOAD_CHUNK_SIZE = 64 * 1024
@@ -51,7 +51,7 @@ class FileService:
         if extension is None:
             raise ValueError('Unsupported file type.')
         if len(content) > self.settings.max_upload_size_mb * 1024 * 1024:
-            raise ValueError('File exceeds maximum allowed size.')
+            raise ValueError(f'文件超过大小限制，当前单文件最大支持 {self.settings.max_upload_size_mb}MB。')
 
     def _allowed_extension(self, file_name: str, content: bytes) -> str | None:
         extension = Path(file_name).suffix.lower()
@@ -251,7 +251,7 @@ class FileService:
                 break
             total += len(chunk)
             if total > max_bytes:
-                raise ValueError('File exceeds maximum allowed size.')
+                raise ValueError(f'文件超过大小限制，当前单文件最大支持 {self.settings.max_upload_size_mb}MB。')
             chunks.append(chunk)
         return b''.join(chunks)
 
@@ -271,7 +271,7 @@ class FileService:
             raise ValueError('Unable to decode GitHub file content.') from exc
 
         if len(decoded) > self.settings.max_upload_size_mb * 1024 * 1024:
-            raise ValueError('File exceeds maximum allowed size.')
+            raise ValueError(f'文件超过大小限制，当前单文件最大支持 {self.settings.max_upload_size_mb}MB。')
         return decoded
 
     def import_github_file(self, submission_id: str, url: str) -> UploadedFile:

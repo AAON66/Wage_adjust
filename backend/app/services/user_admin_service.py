@@ -3,14 +3,16 @@
 from dataclasses import dataclass
 
 from sqlalchemy import func, or_, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from backend.app.core.security import get_password_hash
 from backend.app.models.approval import ApprovalRecord
 from backend.app.models.audit_log import AuditLog
+from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.user import User
 from backend.app.schemas.user import ROLE_OPTIONS, UserAdminCreate
+from backend.app.services.identity_binding_service import IdentityBindingService
 
 ROLE_PRIORITY = {
     'employee': 1,
@@ -29,6 +31,25 @@ class BulkFailure:
 class UserAdminService:
     def __init__(self, db: Session):
         self.db = db
+
+    def _normalize_department_ids(self, department_ids: list[str] | None) -> list[str]:
+        return list(dict.fromkeys([department_id for department_id in (department_ids or []) if department_id]))
+
+    def _resolve_departments(self, department_ids: list[str] | None) -> list[Department]:
+        normalized_ids = self._normalize_department_ids(department_ids)
+        if not normalized_ids:
+            return []
+        departments = list(self.db.scalars(select(Department).where(Department.id.in_(normalized_ids)).order_by(Department.name.asc())))
+        if len(departments) != len(normalized_ids):
+            raise ValueError('One or more departments were not found.')
+        department_by_id = {department.id: department for department in departments}
+        return [department_by_id[department_id] for department_id in normalized_ids]
+
+    def _validate_department_scope(self, role: str, departments: list[Department]) -> None:
+        if role in {'hrbp', 'manager'} and not departments:
+            raise ValueError('HRBP and manager accounts must be bound to at least one department.')
+        if role not in {'hrbp', 'manager'} and departments:
+            raise ValueError('Only HRBP and manager accounts can be bound to departments.')
 
     def _normalize_email(self, email: str) -> str:
         return email.strip().lower()
@@ -89,9 +110,14 @@ class UserAdminService:
             filters.append(User.role == normalized_role)
         if keyword:
             normalized_keyword = f"%{keyword.strip().lower()}%"
-            filters.append(func.lower(User.email).like(normalized_keyword))
+            filters.append(
+                or_(
+                    func.lower(User.email).like(normalized_keyword),
+                    func.lower(func.coalesce(User.id_card_no, '')).like(normalized_keyword),
+                )
+            )
 
-        base_query = select(User)
+        base_query = select(User).options(selectinload(User.departments))
         count_query = select(func.count()).select_from(User)
         for condition in filters:
             base_query = base_query.where(condition)
@@ -105,6 +131,9 @@ class UserAdminService:
     def create_user(self, payload: UserAdminCreate, *, operator: User) -> User:
         normalized_email = self._normalize_email(str(payload.email))
         normalized_role = self._ensure_role_assignable(operator, payload.role)
+        departments = self._resolve_departments(payload.department_ids)
+        self._validate_department_scope(normalized_role, departments)
+        identity_service = IdentityBindingService(self.db)
 
         existing_user = self.db.scalar(select(User).where(User.email == normalized_email))
         if existing_user is not None:
@@ -114,15 +143,24 @@ class UserAdminService:
             email=normalized_email,
             hashed_password=get_password_hash(payload.password),
             role=normalized_role,
+            id_card_no=identity_service.ensure_user_id_card_available(payload.id_card_no),
             must_change_password=True,
         )
+        user.departments = departments
         self.db.add(user)
         self.db.flush()
+        identity_service.auto_bind_user_and_employee(user=user)
         self._log_action(
             operator_id=operator.id,
             action='admin.user.create',
             target_id=user.id,
-            detail={'email': user.email, 'role': user.role, 'must_change_password': user.must_change_password},
+            detail={
+                'email': user.email,
+                'role': user.role,
+                'id_card_no': user.id_card_no,
+                'must_change_password': user.must_change_password,
+                'department_ids': [department.id for department in departments],
+            },
         )
         self.db.commit()
         self.db.refresh(user)
@@ -198,6 +236,31 @@ class UserAdminService:
         )
         self.db.commit()
         return user.id
+
+    def update_user_departments(self, user_id: str, *, department_ids: list[str], operator: User) -> User:
+        user = self.db.get(User, user_id)
+        if user is None:
+            raise ValueError('User not found.')
+        self._ensure_manageable(operator, user)
+
+        departments = self._resolve_departments(department_ids)
+        self._validate_department_scope(user.role, departments)
+        user.departments = departments
+        self.db.add(user)
+        self._log_action(
+            operator_id=operator.id,
+            action='admin.user.update_departments',
+            target_id=user.id,
+            detail={
+                'email': user.email,
+                'role': user.role,
+                'department_ids': [department.id for department in departments],
+                'department_names': [department.name for department in departments],
+            },
+        )
+        self.db.commit()
+        self.db.refresh(user)
+        return user
 
     def delete_user(self, user_id: str, *, operator: User) -> str:
         user = self.db.get(User, user_id)

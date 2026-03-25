@@ -23,6 +23,7 @@ from backend.app.schemas.user import (
     UserLogin,
     UserRead,
 )
+from backend.app.services.identity_binding_service import IdentityBindingService
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 
@@ -50,13 +51,25 @@ def register_user(
     if existing_user is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='Email already registered.')
 
+    identity_service = IdentityBindingService(db)
+    try:
+        normalized_id_card_no = identity_service.ensure_user_id_card_available(payload.id_card_no)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
     user = User(
         email=payload.email,
         hashed_password=get_password_hash(payload.password),
         role=payload.role,
+        id_card_no=normalized_id_card_no,
         must_change_password=False,
     )
     db.add(user)
+    db.flush()
+    try:
+        identity_service.auto_bind_user_and_employee(user=user)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     db.refresh(user)
     return _build_auth_response(user, settings)
