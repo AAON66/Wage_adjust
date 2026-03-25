@@ -384,3 +384,281 @@ black .
 8. 完成任务前必须测试，未测试不得标记完成
 9. 遇到外部依赖阻塞时，记录清楚后停止，不要伪造结果
 10. 所有重要变更都要让后续代理能看懂并接手
+
+<!-- GSD:project-start source:PROJECT.md -->
+## Project
+
+**Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)**
+<!-- GSD:project-end -->
+
+<!-- GSD:stack-start source:codebase/STACK.md -->
+## Technology Stack
+
+## Summary
+## Languages
+- Python 3.x (implied by `from __future__ import annotations` and `match` style patterns) - Backend API, engines, parsers, services
+- TypeScript 5.8.3 - Frontend React application (`frontend/tsconfig.json` targets ES2020)
+- HTML/CSS - Frontend markup and Tailwind utility classes
+## Runtime
+- Python virtual environment (`.venv/`)
+- ASGI server: `uvicorn[standard]` 0.32.0
+- Start command: `uvicorn backend.app.main:app --reload`
+- Node.js (version not pinned; no `.nvmrc` found)
+- Dev server: Vite 6.2.6 on `127.0.0.1:5174`
+- Preview server on port `4174`
+- Backend: `pip` with `requirements.txt`
+- Frontend: `npm` with `package-lock.json` (lockfile present)
+## Frameworks
+- FastAPI 0.115.0 - REST API framework; versioned under `/api/v1`
+- Pydantic 2.10.3 - Data validation and serialization for all schemas
+- pydantic-settings 2.6.1 - Settings loaded from `.env` via `backend/app/core/config.py`
+- SQLAlchemy 2.0.36 - ORM with `DeclarativeBase`; synchronous sessions
+- Alembic 1.14.0 - Database migrations; config at `alembic.ini`
+- React 18.3.1 - UI framework
+- React Router DOM 7.6.0 - Client-side routing
+- Axios 1.8.4 - HTTP client with JWT interceptors (`frontend/src/services/api.ts`)
+- Vite 6.2.6 with `@vitejs/plugin-react` 4.4.1 - Dev server and bundler (`frontend/vite.config.ts`)
+- TypeScript compiler - `tsc -b && vite build` for production builds
+- Tailwind CSS 3.4.17 - Utility-first CSS (`frontend/tailwind.config.js`)
+- PostCSS 8.5.3 with Autoprefixer 10.4.21 (`frontend/postcss.config.js`)
+- pytest 8.3.5 - Backend test runner; tests organized under `backend/tests/`
+## Key Dependencies
+- httpx 0.28.1 - Synchronous HTTP client used exclusively for DeepSeek API calls (`backend/app/services/llm_service.py`)
+- aiohttp 3.11.10 - Async HTTP client (present in requirements; available for future async LLM paths)
+- python-jose[cryptography] 3.3.0 - JWT encoding/decoding (`backend/app/core/security.py`)
+- passlib[bcrypt] 1.7.4 - Password hashing; configured with `pbkdf2_sha256` scheme
+- pypdf 5.1.0 - PDF text extraction (`backend/app/parsers/document_parser.py`)
+- python-pptx 1.0.2 - PowerPoint slide text extraction (`backend/app/parsers/ppt_parser.py`)
+- Pillow 11.0.0 - Image metadata (PNG/JPG); OCR noted as reserved for later task (`backend/app/parsers/image_parser.py`)
+- pandas 2.2.3 - DataFrame operations for bulk import
+- numpy 2.2.1 - Numerical support for pandas
+- email-validator 2.2.0 - Email field validation in Pydantic schemas
+- python-multipart 0.0.12 - Multipart file upload support in FastAPI
+- minio 7.2.11 - MinIO/S3 object storage SDK (declared but current `LocalStorageService` uses local filesystem)
+- boto3 1.35.90 - AWS S3 SDK (declared; not actively wired in current storage layer)
+- celery 5.4.0 - Async task queue
+- redis 5.2.1 + hiredis 3.1.0 - Redis broker/backend for Celery
+- python-dotenv 1.0.1 - `.env` file loading
+- loguru 0.7.3 - Declared logging library; active logging uses stdlib `logging` via `dictConfig` (`backend/app/core/logging.py`)
+## Configuration
+- All settings in `backend/app/core/config.py` via `pydantic_settings.BaseSettings`
+- Reads from `.env` file in project root; falls back to defaults
+- `.env.example` documents all required variables
+- Settings accessed via `get_settings()` (LRU-cached) and injected with FastAPI `Depends`
+- SQLite: `sqlite+pysqlite:///./wage_adjust.db`
+- File `wage_adjust.db` exists in project root
+- PostgreSQL; drivers `psycopg2-binary` 2.9.10 and `asyncpg` 0.30.0 are installed
+- `.env.example` shows `DATABASE_URL=postgresql://user:password@localhost:5432/wage_adjust`
+- API base URL configured via `VITE_API_BASE_URL` env var; defaults to `http://127.0.0.1:8011/api/v1`
+- No `.env` file detected in `frontend/`
+## Build Scripts
+- `start_backend_local.cmd` - Windows batch file
+- `start_project_local.cmd` - Windows batch file
+- `start_project_local.ps1` - PowerShell script
+- `scripts/start_backend.ps1` - PowerShell for backend only
+- `scripts/start_frontend.ps1` - PowerShell for frontend only
+## Platform Requirements
+- Windows (primary; all startup scripts are `.cmd`/`.ps1`)
+- Python virtual environment in `.venv/`
+- SQLite available by default (no external DB needed in dev)
+- Local `uploads/` directory for file storage
+- PostgreSQL database
+- Redis for Celery task queue
+- MinIO or S3-compatible object storage
+- All configuration via environment variables
+<!-- GSD:stack-end -->
+
+<!-- GSD:conventions-start source:CONVENTIONS.md -->
+## Conventions
+
+## Summary
+## Naming Patterns
+- `snake_case` for all module names: `evaluation_service.py`, `salary_engine.py`, `access_scope_service.py`
+- Suffixes signal role: `_service.py`, `_engine.py`, `_parser.py`, `_schema.py` (but schemas dir uses singular: `evaluation.py`)
+- `PascalCase` for component files: `FileUploadPanel.tsx`, `BudgetSimulationPanel.tsx`
+- `camelCase` for non-component modules: `evaluationService.ts`, `api.ts`, `useAuth.tsx`
+- Hook files use `use` prefix: `useAuth.tsx`
+- `PascalCase` for all: `EvaluationService`, `SalaryEngine`, `DepartmentProfile`, `UUIDPrimaryKeyMixin`
+- Models inherit from mixins first, then `Base`: `class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base)`
+- `snake_case` everywhere
+- Private helpers prefixed with `_`: `_build_integrity_summary`, `_query_evaluation`
+- Keyword-only arguments enforced with `*` for construction helpers: `build_error_response(*, status_code, error, message, details=None)`
+- `PascalCase` for interfaces: `UserProfile`, `AuthContextValue`, `BudgetSimulationPanelProps`
+- Props interfaces named `[ComponentName]Props`: `FileUploadPanelProps`, `BudgetSimulationPanelProps`
+- Union types with `as const` for enums: `'collecting' | 'submitted' | 'parsing' | ...`
+- `camelCase` for local variables and functions: `refreshInFlight`, `handleLogin`, `isBootstrapping`
+- `SCREAMING_SNAKE_CASE` for module-level constants: `ACCESS_TOKEN_KEY`, `REFRESH_TOKEN_KEY`, `LONG_RUNNING_TIMEOUT`
+## Code Style
+- No Prettier config found in project. Code uses consistent 2-space indentation in TSX and consistent 4-space in Python.
+- TypeScript: single quotes in type annotations, double quotes for JSX string attributes.
+- Python: single quotes for strings throughout backend code.
+- TypeScript: `tsc --noEmit` is the lint command (`"lint": "tsc --noEmit"` in `frontend/package.json`). No ESLint config detected.
+- Python: No `pyproject.toml`, `setup.cfg`, or `ruff.toml` found in project root. Two `# noqa: ANN001, ANN201` suppressions present in test stubs where untyped signatures are intentional.
+- `tsconfig.json` has `"strict": true`, `"allowJs": false`, `"noEmit": true`.
+- Target: `ES2020`, module resolution: `Bundler`.
+## Import Organization
+- All files begin with `from __future__ import annotations` — mandatory across all backend modules.
+- Standard library imports come first, then third-party, then local `backend.app.*` imports. Not enforced by tooling but maintained consistently.
+- Example pattern from `backend/app/main.py`:
+- Third-party imports first, then relative imports, then type-only imports last.
+- Type imports use `import type { ... }` when the symbol is type-only.
+- Example from `frontend/src/pages/EvaluationDetail.tsx`:
+- No path aliases configured. All imports use relative paths (`../components/...`, `../services/...`).
+## TypeScript/Python Type Usage
+- Full explicit typing on all function parameters and return types in service layer.
+- `interface` preferred over `type` for object shapes.
+- Discriminated union types used for status flows: `type BatchParseItemStatus = 'queued' | 'parsing' | 'parsed' | 'failed'`
+- `as const` arrays for immutable flow steps: `const FLOW = ['collecting', 'submitted', ...] as const`
+- Optional props with `?:` and defaults in destructuring: `{ isGithubImporting = false, isUploading, ... }`
+- Nullable types with `| null`: `user: UserProfile | null`, `manager_id: string | null`
+- Full PEP 604 union syntax: `str | None`, `Settings | None` (enabled by `from __future__ import annotations`)
+- `Mapped[T]` for SQLAlchemy columns: `employee_no: Mapped[str] = mapped_column(...)`
+- `Mapped[str | None]` for nullable columns
+- Pydantic `BaseModel` for all request/response schemas with `ConfigDict(from_attributes=True)` for ORM serialization
+- `pydantic_settings.BaseSettings` for config with `SettingsConfigDict`
+- `dataclass(frozen=True)` for engine-internal value objects: `DimensionDefinition`, `DepartmentProfile`
+- Return type annotations on all service methods: `def get_evaluation(self, ...) -> AIEvaluation | None:`
+- `Callable`, `Generator`, `Mapping` from `collections.abc` / `typing`
+## Component Patterns (React)
+- Context defined in hook file: `const AuthContext = createContext<AuthContextValue | null>(null)`
+- Provider exported: `export function AuthProvider({ children }: { children: ReactNode })`
+- Consumer hook exported with guard: `export function useAuth()` — throws if used outside provider
+## Error Handling
+- `HTTPException` → `build_error_response(status_code, error='http_error', message=...)`
+- `RequestValidationError` → 422 with structured `details`
+- Bare `Exception` → 500 with `logger.exception(...)` + safe generic message
+- Services raise `HTTPException` directly when not found or forbidden: `raise HTTPException(status_code=404, detail='...')`
+- Access control raises `PermissionError` at service level, caught and re-raised as HTTP 403 in routers
+- `from exc` used consistently on re-raises to preserve traceback
+- No try/catch in service modules — errors propagate as rejected promises to pages/components
+- Axios interceptor handles 401 globally: attempts token refresh, clears session on failure
+- Pages handle errors locally with `axios.isAxiosError(err)` checks and local error state
+## Logging
+## Comments and Documentation Style
+- Single-line `"""..."""` docstrings on classes and utility functions only:
+- Service methods and API endpoints are typically undocumented (no docstring)
+- Inline comments used sparingly to explain non-obvious logic
+- No JSDoc found. Comments are rare and only for non-obvious code.
+- Type declarations serve as self-documentation.
+## Module Design
+- All collaborators optional with sensible defaults — enables easy test injection without mocking frameworks.
+- One file per domain: `evaluation.py`, `salary.py`, `employee.py`
+- Pydantic models for request (`...Request`), response (`...Read`, `...Response`), and update (`...UpdateRequest`) shapes
+- One file per domain: `evaluationService.ts`, `salaryService.ts`, `employeeService.ts`
+- Each exports plain async functions (not classes) that call `api` (the shared axios instance)
+- Long-running AI calls override timeout: `{ timeout: LONG_RUNNING_TIMEOUT }` (120000ms)
+- Single file for all API-facing types
+- All types are `interface` definitions
+## SQLAlchemy Model Design
+<!-- GSD:conventions-end -->
+
+<!-- GSD:architecture-start source:ARCHITECTURE.md -->
+## Architecture
+
+## Summary
+## Pattern Overview
+- Backend enforces a strict dependency direction: `api/` → `services/` → `engines/` → `models/`
+- Services are injected with a `Session` and optional engine/LLM dependencies for testability
+- All models share common UUID primary keys and timestamp mixins
+- Frontend mirrors the backend's domain model with a dedicated `services/` layer wrapping all HTTP calls, a `types/api.ts` shared contract, and a `hooks/useAuth.tsx` Context for session state
+- Role-based access control is enforced on both sides: `require_roles()` factory in `backend/app/dependencies.py` and `ProtectedRoute` + `roleAccess.ts` in the frontend
+## Layers
+- Purpose: Route HTTP requests to services, validate inputs via Pydantic schemas, enforce auth
+- Location: `backend/app/api/v1/`
+- Contains: One file per domain (`approvals.py`, `evaluations.py`, `salary.py`, etc.)
+- Depends on: `services/`, `schemas/`, `dependencies.py`
+- Used by: Frontend via Axios, external systems via public API
+- Purpose: Implement business logic, orchestrate DB access, call engines and LLM
+- Location: `backend/app/services/`
+- Contains: `EvaluationService`, `SalaryService`, `ApprovalService`, `ImportService`, `LlmService`, `ParseService`, `AccessScopeService`, `DashboardService`, `IntegrationService`, and others
+- Depends on: `engines/`, `models/`, `parsers/`, `core/`
+- Used by: `api/v1/` routers
+- Purpose: Pure computation — no I/O, no DB access
+- Location: `backend/app/engines/`
+- Contains: `EvaluationEngine` (five-dimension weighted scoring, AI level mapping), `SalaryEngine` (multiplier calculation with job level / department / job family adjustments)
+- Depends on: `models/evidence.py` value types, `utils/prompt_safety.py`
+- Used by: `EvaluationService`, `SalaryService`
+- Purpose: ORM entity definitions
+- Location: `backend/app/models/`
+- Contains: SQLAlchemy declarative models with UUID PKs and timestamp mixins from `backend/app/models/mixins.py`
+- Depends on: `backend/app/core/database.py` (`Base`)
+- Used by: All services and API layers
+- Purpose: Extract text and metadata from uploaded files (PPT, PDF, images, code, documents)
+- Location: `backend/app/parsers/`
+- Contains: `BaseParser` (abstract), `PptParser`, `ImageParser`, `DocumentParser`, `CodeParser`
+- Depends on: File system only (no DB)
+- Used by: `ParseService`
+- Purpose: Cross-cutting configuration, database, security, logging, storage
+- Location: `backend/app/core/`
+- Contains: `config.py` (pydantic-settings `Settings`), `database.py` (SQLAlchemy engine + session factory + `Base`), `security.py` (JWT + bcrypt), `logging.py`, `storage.py`
+- Depends on: Nothing within the app
+- Used by: All other layers
+- Purpose: Wrap API calls, expose typed async functions to pages and components
+- Location: `frontend/src/services/`
+- Contains: `api.ts` (Axios instance with JWT interceptor + silent token refresh), plus one file per domain (`evaluationService.ts`, `salaryService.ts`, `approvalService.ts`, etc.)
+- Depends on: `types/api.ts`
+- Used by: Pages and hooks
+## Data Flow
+- Server state is managed by direct fetch calls in page-level `useEffect` hooks; no global state cache library (no React Query / SWR / Redux)
+- Auth state is global via `AuthContext` (`frontend/src/hooks/useAuth.tsx`)
+- UI state is local component `useState`
+## Key Abstractions
+- Purpose: Central evaluation record linking submission → dimension scores → salary recommendation
+- Tracks both `ai_overall_score` (raw LLM output) and `overall_score` (final after manager calibration)
+- Status progression: `draft` → `confirmed` → (terminated by approval flow)
+- Purpose: One record per employee per evaluation cycle; anchor for files, evidence, and evaluations
+- Unique constraint on `(employee_id, cycle_id)` enforces one submission per cycle
+- Purpose: Stores computed salary figures and deferred adjustment metadata
+- Linked 1:1 to `AIEvaluation`; drives approval workflow
+- Purpose: One row per approval step per recommendation
+- `step_order` field enables ordered multi-step routing; unique constraint on `(recommendation_id, step_name)` prevents duplicates
+- Purpose: Centralized permission gate
+- Admins see all; HRBP/managers see only their department employees; employees see only themselves
+- All protected resource endpoints call `AccessScopeService.ensure_*_access()` before serving data
+- Purpose: Encapsulates all LLM calls (evidence extraction, evaluation scoring)
+- Includes `InMemoryRateLimiter` with configurable RPM window
+- `DeepSeekPromptLibrary` builds all system/user messages; prompts include explicit injection-resistance instructions
+- Purpose: Stateless, I/O-free computation of weighted dimension scores and AI level
+- Department-specific `DepartmentProfile` definitions allow per-profile keyword and weight customization
+- `DEPARTMENT_DIMENSION_EXAMPLES` provides behavioral anchors used in LLM prompts
+- Purpose: Deterministic salary calculation from AI level + employee attributes
+- All lookup tables (`LEVEL_RULES`, `JOB_LEVEL_ADJUSTMENTS`, etc.) are constants in the file; intended for future externalization to config
+## Entry Points
+- Location: `backend/app/main.py`
+- Start: `uvicorn backend.app.main:app --reload`
+- `create_app()` factory registers middlewares, exception handlers, and routes
+- `lifespan()` context manager runs `init_database()` on startup (creates tables + runs `ensure_schema_compatibility` migration shim)
+- Location: `frontend/src/main.tsx`
+- Start: `npm run dev` (Vite dev server, default port 5173)
+- Mounts `<BrowserRouter><App /></BrowserRouter>` into `#root`
+- `App.tsx` owns all route definitions and the `AuthProvider` wrapper
+## Error Handling
+- `HTTPException` → normalized `{error, message}` JSON response
+- `RequestValidationError` → 422 with `{error: "validation_error", message, details: [...]}` from Pydantic
+- Unhandled `Exception` → 500 with opaque message + server-side `logger.exception()` for full traceback
+- Services raise `HTTPException` directly when business logic fails (e.g., record not found)
+- `AccessScopeService` raises `PermissionError` which API layer catches and converts to 403
+## Cross-Cutting Concerns
+- Backend: JWT (HS256) via `python-jose`; access token (30 min) + refresh token (7 days); `oauth2_scheme` + `get_current_user` dependency chain
+- Public API: static API key via `X-API-Key` header; separate `require_public_api_key` dependency at `backend/app/api/v1/public.py`
+<!-- GSD:architecture-end -->
+
+<!-- GSD:workflow-start source:GSD defaults -->
+## GSD Workflow Enforcement
+
+Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
+
+Use these entry points:
+- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
+- `/gsd:debug` for investigation and bug fixing
+- `/gsd:execute-phase` for planned phase work
+
+Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
+<!-- GSD:workflow-end -->
+
+<!-- GSD:profile-start -->
+## Developer Profile
+
+> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
+> This section is managed by `generate-claude-profile` -- do not edit manually.
+<!-- GSD:profile-end -->

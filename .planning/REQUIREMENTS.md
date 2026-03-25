@@ -125,8 +125,67 @@
 
 ## 需求追踪索引
 
-*（由路线图生成器填充——每条需求对应的阶段）*
-
-| 需求 ID | 阶段 |
-|---------|------|
-| 待填充 | 待填充 |
+| 需求 ID | 阶段 | 状态 |
+|---------|------|------|
+| SEC-01 | Phase 1 | Pending |
+| SEC-02 | Phase 1 | Pending |
+| SEC-03 | Phase 1 | Pending |
+| SEC-04 | Phase 1 | Pending |
+| SEC-05 | Phase 1 | Pending |
+| SEC-06 | Phase 1 | Pending |
+| SEC-07 | Phase 1 | Pending |
+| SEC-08 | Phase 1 | Pending |
+| DB-01 | Phase 1 | Pending |
+| DB-02 | Phase 1 | Pending |
+| DB-03 | Phase 1 | Pending |
+| EVAL-01 | Phase 2 | Pending |
+| EVAL-02 | Phase 2 | Pending |
+| EVAL-03 | Phase 2 | Pending |
+| EVAL-04 | Phase 2 | Pending |
+| EVAL-05 | Phase 2 | Pending |
+| EVAL-06 | Phase 2 | Pending |
+| EVAL-07 | Phase 2 | Pending |
+| EVAL-08 | Phase 2 | Pending |
+| APPR-01 | Phase 3 | Pending |
+| APPR-02 | Phase 3 | Pending |
+| APPR-03 | Phase 3 | Pending |
+| APPR-04 | Phase 3 | Pending |
+| APPR-05 | Phase 3 | Pending |
+| APPR-06 | Phase 3 | Pending |
+| APPR-07 | Phase 3 | Pending |
+| AUDIT-01 | Phase 4 | Pending |
+| AUDIT-02 | Phase 4 | Pending |
+| AUDIT-03 | Phase 4 | Pending |
+| SUB-01 | Phase 5 | Pending |
+| SUB-02 | Phase 5 | Pending |
+| SUB-03 | Phase 5 | Pending |
+| SUB-04 | Phase 5 | Pending |
+| SUB-05 | Phase 5 | Pending |
+| IMP-01 | Phase 6 | Pending |
+| IMP-02 | Phase 6 | Pending |
+| IMP-03 | Phase 6 | Pending |
+| IMP-04 | Phase 6 | Pending |
+| IMP-05 | Phase 6 | Pending |
+| IMP-06 | Phase 6 | Pending |
+| DASH-01 | Phase 7 | Pending |
+| DASH-02 | Phase 7 | Pending |
+| DASH-03 | Phase 7 | Pending |
+| DASH-04 | Phase 7 | Pending |
+| DASH-05 | Phase 7 | Pending |
+| DASH-06 | Phase 7 | Pending |
+| DASH-07 | Phase 7 | Pending |
+| EMP-01 | Phase 8 | Pending |
+| EMP-02 | Phase 8 | Pending |
+| EMP-03 | Phase 8 | Pending |
+| ATT-01 | Phase 9 | Pending |
+| ATT-02 | Phase 9 | Pending |
+| ATT-03 | Phase 9 | Pending |
+| ATT-04 | Phase 9 | Pending |
+| ATT-05 | Phase 9 | Pending |
+| ATT-06 | Phase 9 | Pending |
+| ATT-07 | Phase 9 | Pending |
+| API-01 | Phase 10 | Pending |
+| API-02 | Phase 10 | Pending |
+| API-03 | Phase 10 | Pending |
+| API-04 | Phase 10 | Pending |
+| API-05 | Phase 10 | Pending |
