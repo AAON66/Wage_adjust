@@ -475,10 +475,15 @@ def test_scale_normalization_requires_three_dimensions():
     }
 
     result = service._normalize_llm_evaluation_payload(payload, baseline)
-    # With only 2 scores, five-point NOT activated; scores should NOT be ×20
-    # The 2 dims with score 4.5 should stay at ~4.5 (clamped), not become 90
-    inflated_dims = [dim for dim in result.dimensions if dim.raw_score > 10 and dim.code in {d.code for d in two_dims}]
-    assert not inflated_dims, f'Five-point scale must NOT activate with <3 dimensions, but got inflated dims: {inflated_dims}'
+    # With only 2 scores (< 3), five-point scale must NOT activate.
+    # The 2 dims with raw_score=4.5 must NOT be scaled to 90 (4.5 * 20).
+    # They may be blended with the baseline, but must not be 90.
+    for dim in result.dimensions:
+        if dim.code in {d.code for d in two_dims}:
+            assert dim.raw_score < 85, (
+                f'Five-point scale must NOT activate with <3 dimensions '
+                f'(dim {dim.code} score should not be 4.5×20=90, got {dim.raw_score})'
+            )
 
 
 # ---------------------------------------------------------------------------

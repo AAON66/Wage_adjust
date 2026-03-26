@@ -68,7 +68,7 @@ class EvaluationService:
 
         employee_profile = self._build_employee_profile(submission)
         baseline_result = self.engine.evaluate(list(submission.evidence_items), employee_profile=employee_profile)
-        result = self._generate_llm_backed_result(submission, baseline_result, employee_profile=employee_profile)
+        result, used_fallback, prompt_hash = self._generate_llm_backed_result(submission, baseline_result, employee_profile=employee_profile)
 
         evaluation = existing or AIEvaluation(submission_id=submission_id)
         evaluation.overall_score = result.overall_score
@@ -82,6 +82,7 @@ class EvaluationService:
         evaluation.hr_comment = None
         evaluation.hr_decision = None
         evaluation.status = 'generated'
+        evaluation.used_fallback = used_fallback
         self.db.add(evaluation)
         self.db.commit()
         self.db.refresh(evaluation)
@@ -103,6 +104,7 @@ class EvaluationService:
                     weighted_score=dimension.weighted_score,
                     ai_rationale=dimension.rationale,
                     rationale=dimension.rationale,
+                    prompt_hash=prompt_hash,
                 )
             )
 
@@ -136,7 +138,8 @@ class EvaluationService:
         baseline_result: EvaluationResult,
         *,
         employee_profile: dict[str, Any] | None = None,
-    ) -> EvaluationResult:
+    ) -> tuple[EvaluationResult, bool, str | None]:
+        """Return (EvaluationResult, used_fallback, prompt_hash)."""
         profile = employee_profile or self._build_employee_profile(submission)
         evidence_items = [self._serialize_evidence_item(item) for item in submission.evidence_items]
         llm_result = self.llm.generate_evaluation(
@@ -144,7 +147,8 @@ class EvaluationService:
             evidence_items,
             fallback_payload=self._serialize_evaluation_result(baseline_result),
         )
-        return self._normalize_llm_evaluation_payload(llm_result.payload, baseline_result)
+        evaluation_result = self._normalize_llm_evaluation_payload(llm_result.payload, baseline_result)
+        return evaluation_result, llm_result.used_fallback, llm_result.prompt_hash
 
     def _serialize_evidence_item(self, item: EvidenceItem) -> dict[str, Any]:
         metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
@@ -190,10 +194,19 @@ class EvaluationService:
             for item in dimensions_by_code.values()
             if self._safe_float(item.get('raw_score')) is not None
         ]
-        use_five_point_scale = bool(raw_dimension_scores) and max(raw_dimension_scores) <= 5.0
+        # Require at least 3 dimension scores all ≤ 5.0 to activate five-point scale detection.
+        # This avoids false positives when only 1-2 values happen to be small integers.
+        use_five_point_scale = len(raw_dimension_scores) >= 3 and max(raw_dimension_scores) <= 5.0
+
         overall_value = self._safe_float(payload.get('overall_score'))
-        if overall_value is not None and overall_value <= 5.0 and use_five_point_scale:
-            overall_value *= 20
+        if overall_value is not None:
+            if use_five_point_scale and overall_value <= 5.0:
+                # Consistently five-point context: scale overall to 100-point
+                overall_value = min(overall_value * 20, 100.0)
+            elif not use_five_point_scale and overall_value <= 5.0:
+                # Ambiguous: dimensions are 100-point scale but overall looks like 5-point.
+                # Discard overall_score; fall through to weighted_total path.
+                overall_value = None
 
         normalized_dimensions: list[EvaluatedDimension] = []
         for baseline_dimension in baseline_result.dimensions:
