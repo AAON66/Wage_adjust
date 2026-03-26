@@ -1,6 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+
+import redis as redis_lib
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -26,6 +29,47 @@ from backend.app.schemas.user import (
 from backend.app.services.identity_binding_service import IdentityBindingService
 
 router = APIRouter(prefix='/auth', tags=['auth'])
+
+logger = logging.getLogger(__name__)
+
+_FAILED_ATTEMPT_LIMIT = 10
+_FAILED_ATTEMPT_WINDOW_SECONDS = 900  # 15 minutes
+
+
+def _get_redis_client(settings) -> redis_lib.Redis | None:
+    """Return a Redis client, or None if Redis is unavailable."""
+    try:
+        client = redis_lib.from_url(settings.redis_url)
+        client.ping()
+        return client
+    except Exception:
+        return None
+
+
+def _check_and_increment_failed_login(ip: str, settings) -> None:
+    """Check if IP is rate-limited; raise HTTP 429 if so. Increment counter on call."""
+    redis_client = _get_redis_client(settings)
+    if redis_client is None:
+        return  # Redis unavailable — skip rate limiting (graceful degradation in dev)
+    key = f'login_failed:{ip}'
+    count = redis_client.get(key)
+    if count is not None and int(count) >= _FAILED_ATTEMPT_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail='Too many failed login attempts. Try again in 15 minutes.',
+        )
+    pipe = redis_client.pipeline()
+    pipe.incr(key)
+    pipe.expire(key, _FAILED_ATTEMPT_WINDOW_SECONDS, nx=True)
+    pipe.execute()
+
+
+def _reset_failed_login(ip: str, settings) -> None:
+    """Clear the failed-attempt counter for an IP after successful login."""
+    redis_client = _get_redis_client(settings)
+    if redis_client is None:
+        return
+    redis_client.delete(f'login_failed:{ip}')
 
 
 def _build_auth_response(user: User, settings) -> AuthResponse:
@@ -77,14 +121,17 @@ def register_user(
 
 @router.post('/login', response_model=TokenPair)
 def login_user(
+    request: Request,
     payload: UserLogin,
     db: Session = Depends(get_db),
     settings=Depends(get_app_settings),
 ) -> TokenPair:
+    ip = request.client.host if request.client else '0.0.0.0'
     user = db.scalar(select(User).where(User.email == payload.email))
     if user is None or not verify_password(payload.password, user.hashed_password):
+        _check_and_increment_failed_login(ip, settings)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password.')
-
+    _reset_failed_login(ip, settings)
     return TokenPair(
         access_token=create_access_token(user.id, role=user.role, settings=settings),
         refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),

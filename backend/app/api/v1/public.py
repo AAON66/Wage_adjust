@@ -1,9 +1,10 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from backend.app.core.config import Settings
+from backend.app.core.config import Settings, get_settings as _get_settings
+from backend.app.core.rate_limit import limiter
 from backend.app.dependencies import get_app_settings, get_db
 from backend.app.schemas.public import (
     PublicApprovalStatusItem,
@@ -19,6 +20,8 @@ from backend.app.services.integration_service import IntegrationService
 
 router = APIRouter(prefix='/public', tags=['public'])
 
+_RATE_LIMIT = _get_settings().public_api_rate_limit
+
 
 def require_public_api_key(
     x_api_key: str | None = Header(default=None, alias='X-API-Key'),
@@ -32,7 +35,9 @@ def require_public_api_key(
 
 
 @router.get('/employees/{employee_no}/latest-evaluation', response_model=PublicLatestEvaluationResponse)
+@limiter.limit(_RATE_LIMIT)
 def get_latest_employee_evaluation(
+    request: Request,
     employee_no: str,
     db: Session = Depends(get_db),
     _: str = Depends(require_public_api_key),
@@ -93,7 +98,9 @@ def get_latest_employee_evaluation(
 
 
 @router.get('/cycles/{cycle_id}/salary-results', response_model=PublicSalaryResultsResponse)
+@limiter.limit(_RATE_LIMIT)
 def get_cycle_salary_results(
+    request: Request,
     cycle_id: str,
     db: Session = Depends(get_db),
     _: str = Depends(require_public_api_key),
@@ -140,7 +147,9 @@ def get_cycle_salary_results(
 
 
 @router.get('/cycles/{cycle_id}/approval-status', response_model=PublicApprovalStatusResponse)
+@limiter.limit(_RATE_LIMIT)
 def get_cycle_approval_status(
+    request: Request,
     cycle_id: str,
     db: Session = Depends(get_db),
     _: str = Depends(require_public_api_key),
@@ -186,7 +195,9 @@ def get_cycle_approval_status(
 
 
 @router.get('/dashboard/summary', response_model=PublicDashboardSummaryResponse)
+@limiter.limit(_RATE_LIMIT)
 def get_public_dashboard_summary(
+    request: Request,
     db: Session = Depends(get_db),
     _: str = Depends(require_public_api_key),
 ) -> PublicDashboardSummaryResponse:
