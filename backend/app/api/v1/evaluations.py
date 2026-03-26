@@ -63,6 +63,7 @@ def serialize_evaluation(evaluation) -> EvaluationRead:
         integrity_issue_count=integrity_issue_count,
         integrity_examples=integrity_examples,
         dimension_scores=evaluation.dimension_scores,
+        used_fallback=evaluation.used_fallback,
     )
 
 
