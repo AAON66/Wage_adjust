@@ -44,7 +44,7 @@ Plans:
 - [x] 01-01-PLAN.md — Wave 0 test stubs + Alembic migration reset + retire ensure_schema_compatibility()
 - [x] 01-02-PLAN.md — AES-256-GCM national ID encryption, path traversal guard, password complexity
 - [x] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
-- [ ] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)
+- [x] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)
 - [ ] 01-05-PLAN.md — .env git hygiene, .env.example REQUIRED markers, certification import idempotency
 **UI hint**: no
 
