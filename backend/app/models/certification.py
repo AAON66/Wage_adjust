@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, ForeignKey, String
+from sqlalchemy import DateTime, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
@@ -11,6 +11,9 @@ from backend.app.models.mixins import UUIDPrimaryKeyMixin
 
 class Certification(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "certifications"
+    __table_args__ = (
+        UniqueConstraint('employee_id', 'certification_type', name='uq_certifications_employee_type'),
+    )
 
     employee_id: Mapped[str] = mapped_column(ForeignKey("employees.id"), nullable=False, index=True)
     certification_type: Mapped[str] = mapped_column(String(64), nullable=False)

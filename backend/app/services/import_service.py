@@ -328,15 +328,29 @@ class ImportService:
             except Exception:
                 results.append({'row_index': int(index) + 1, 'status': 'failed', 'message': self._localize_error_message('Invalid certification date or bonus rate.')})
                 continue
-            certification = Certification(
-                employee_id=employee.id,
-                certification_type=str(row['certification_type']).strip(),
-                certification_stage=str(row['certification_stage']).strip(),
-                bonus_rate=bonus_rate,
-                issued_at=issued_at,
-                expires_at=expires_at,
+            certification_type = str(row['certification_type']).strip()
+            existing = self.db.scalar(
+                select(Certification).where(
+                    Certification.employee_id == employee.id,
+                    Certification.certification_type == certification_type,
+                )
             )
-            self.db.add(certification)
+            if existing is not None:
+                existing.certification_stage = str(row['certification_stage']).strip()
+                existing.bonus_rate = bonus_rate
+                existing.issued_at = issued_at
+                existing.expires_at = expires_at
+                self.db.add(existing)
+            else:
+                certification = Certification(
+                    employee_id=employee.id,
+                    certification_type=certification_type,
+                    certification_stage=str(row['certification_stage']).strip(),
+                    bonus_rate=bonus_rate,
+                    issued_at=issued_at,
+                    expires_at=expires_at,
+                )
+                self.db.add(certification)
             results.append({'row_index': int(index) + 1, 'status': 'success', 'message': self._localize_error_message('Certification imported.')})
         self.db.commit()
         return results
