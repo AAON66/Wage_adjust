@@ -62,6 +62,7 @@ class Settings(BaseSettings):
         ]
     )
     redis_url: str = "redis://localhost:6379/0"
+    national_id_encryption_key: str = ''
 
     public_api_key: str = "your_public_api_key"
     public_api_rate_limit: str = "1000/hour"

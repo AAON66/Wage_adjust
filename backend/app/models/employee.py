@@ -4,6 +4,7 @@ from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
+from backend.app.core.encryption import EncryptedString
 from backend.app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin, UpdatedAtMixin
 
 
@@ -12,7 +13,7 @@ class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
 
     employee_no: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    id_card_no: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True, index=True)
+    id_card_no: Mapped[str | None] = mapped_column(EncryptedString(256), nullable=True, unique=True, index=True)
     department: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     sub_department: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
     job_family: Mapped[str] = mapped_column(String(128), nullable=False, index=True)

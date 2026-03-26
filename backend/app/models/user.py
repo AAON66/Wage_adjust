@@ -4,6 +4,7 @@ from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
+from backend.app.core.encryption import EncryptedString
 from backend.app.models.mixins import CreatedAtMixin, UUIDPrimaryKeyMixin
 
 
@@ -13,7 +14,7 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    id_card_no: Mapped[str | None] = mapped_column(String(32), nullable=True, unique=True, index=True)
+    id_card_no: Mapped[str | None] = mapped_column(EncryptedString(256), nullable=True, unique=True, index=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default='0')
     employee_id: Mapped[str | None] = mapped_column(ForeignKey('employees.id'), nullable=True, unique=True, index=True)
 
