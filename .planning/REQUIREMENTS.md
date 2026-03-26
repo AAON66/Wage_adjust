@@ -20,7 +20,7 @@
 - [x] **SEC-03**：居民身份证号码在存入数据库前使用 SM4（或 AES-256-GCM）加密；非管理员角色的 API 响应中显示脱敏格式（如 `330104********1234`）
 - [x] **SEC-04**：调薪建议接口按角色返回不同字段：`admin`/`hrbp` 可见完整薪资数字；`manager` 仅见调整幅度百分比；`employee` 仅见自己的调整幅度
 - [x] **SEC-05**：公开 API 的频率限制配置（`public_api_rate_limit`）真正生效，`/api/v1/public/` 接口执行该限制
-- [ ] **SEC-06**：`.env` 文件从 git 追踪中移除（`git rm --cached .env`），`.gitignore` 排除所有 `.env*` 文件，所有默认占位密钥均在文档中标注为必填配置项
+- [x] **SEC-06**：`.env` 文件从 git 追踪中移除（`git rm --cached .env`），`.gitignore` 排除所有 `.env*` 文件，所有默认占位密钥均在文档中标注为必填配置项
 - [x] **SEC-07**：`LocalStorageService.resolve_path()` 在读取或删除前断言解析路径在 `base_dir` 范围内，防止路径穿越攻击
 - [x] **SEC-08**：密码复杂度在后端进行校验（最少 8 位，需包含大小写字母 + 数字或符号），不能仅在前端校验
 
@@ -28,7 +28,7 @@
 
 - [x] **DB-01**：配置 Alembic 并生成当前 schema 的基线迁移，将 `ensure_schema_compatibility()` 启动时的 DDL 操作迁移到正式 migration 文件中
 - [x] **DB-02**：后续所有 schema 变更均通过 Alembic migration 执行，生产环境不再有启动时的直接 DDL 操作
-- [ ] **DB-03**：认证记录导入幂等——重复导入同一员工同一周期的认证文件，不产生重复行，不导致 `certification_bonus` 虚增
+- [x] **DB-03**：认证记录导入幂等——重复导入同一员工同一周期的认证文件，不产生重复行，不导致 `certification_bonus` 虚增
 
 ### AI 评估流水线
 
@@ -132,12 +132,12 @@
 | SEC-03 | Phase 1 | Complete |
 | SEC-04 | Phase 1 | Complete |
 | SEC-05 | Phase 1 | Complete |
-| SEC-06 | Phase 1 | Pending |
+| SEC-06 | Phase 1 | Complete |
 | SEC-07 | Phase 1 | Complete |
 | SEC-08 | Phase 1 | Complete |
 | DB-01 | Phase 1 | Complete |
 | DB-02 | Phase 1 | Complete |
-| DB-03 | Phase 1 | Pending |
+| DB-03 | Phase 1 | Complete |
 | EVAL-01 | Phase 2 | Pending |
 | EVAL-02 | Phase 2 | Pending |
 | EVAL-03 | Phase 2 | Pending |

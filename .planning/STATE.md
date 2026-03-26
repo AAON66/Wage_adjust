@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to execute
-stopped_at: Completed 01-04-PLAN.md (role-aware salary response filtering)
-last_updated: "2026-03-26T01:09:28.688Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 01-05-PLAN.md (env hygiene and certification import idempotency)
+last_updated: "2026-03-26T01:36:39.090Z"
 progress:
   total_phases: 10
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
+  completed_plans: 5
 ---
 
 # Project State
@@ -50,6 +50,7 @@ Plan: 5 of 5
 | Phase 01-security-hardening-and-schema-integrity P02 | 8 | 4 tasks | 11 files |
 | Phase 01-security-hardening-and-schema-integrity P03 | 8min | 2 tasks | 7 files |
 | Phase 01-security-hardening-and-schema-integrity P04 | 4min | 1 tasks | 3 files |
+| Phase 01-security-hardening-and-schema-integrity P05 | 12 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,8 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 01-security-hardening-and-schema-integrity]: validate_startup_config raises RuntimeError only in production; development mode is permissive with warning-only for placeholder secrets
 - [Phase 01-security-hardening-and-schema-integrity]: StaticPool required for TestClient tests with in-memory SQLite to share DB state across connections
 - [Phase 01-security-hardening-and-schema-integrity]: D-13/D-14 applied: admin/hrbp see full salary figures via SalaryRecommendationAdminRead; manager/employee see adjustment ratio only via SalaryRecommendationEmployeeRead; filtering in API layer only
+- [Phase 01-security-hardening-and-schema-integrity]: .env added to .gitignore; git rm --cached .env required as human action to remove from git index
+- [Phase 01-security-hardening-and-schema-integrity]: DB-03 upsert: SELECT-then-update-or-insert on (employee_id, certification_type); UniqueConstraint name uq_certifications_employee_type; dev DB must be re-seeded
 
 ### Pending Todos
 
@@ -82,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T01:09:28.683Z
-Stopped at: Completed 01-04-PLAN.md (role-aware salary response filtering)
+Last session: 2026-03-26T01:36:39.085Z
+Stopped at: Completed 01-05-PLAN.md (env hygiene and certification import idempotency)
 Resume file: None

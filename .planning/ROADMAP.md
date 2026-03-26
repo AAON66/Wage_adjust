@@ -16,7 +16,7 @@ attendance, external API). Nothing is built from scratch — everything lands on
 - Integer phases (1, 2, ...): Planned milestone work
 - Decimal phases (1.1, 2.1, ...): Urgent insertions (marked INSERTED)
 
-- [ ] **Phase 1: Security Hardening and Schema Integrity** - Fix production-blocking security vulnerabilities and establish Alembic as the sole migration path
+- [x] **Phase 1: Security Hardening and Schema Integrity** - Fix production-blocking security vulnerabilities and establish Alembic as the sole migration path (completed 2026-03-26)
 - [ ] **Phase 2: Evaluation Pipeline Integrity** - Make AI evaluations trustworthy, explainable, and auditable end-to-end
 - [ ] **Phase 3: Approval Workflow Correctness** - Fix race conditions and history-reset bugs; complete reviewer UI
 - [ ] **Phase 4: Audit Log Wiring** - Wire AuditLog into every service mutation so every decision is traceable
@@ -45,7 +45,7 @@ Plans:
 - [x] 01-02-PLAN.md — AES-256-GCM national ID encryption, path traversal guard, password complexity
 - [x] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
 - [x] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)
-- [ ] 01-05-PLAN.md — .env git hygiene, .env.example REQUIRED markers, certification import idempotency
+- [x] 01-05-PLAN.md — .env git hygiene, .env.example REQUIRED markers, certification import idempotency
 **UI hint**: no
 
 ### Phase 2: Evaluation Pipeline Integrity
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening and Schema Integrity | 3/5 | In Progress|  |
+| 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
 | 2. Evaluation Pipeline Integrity | 0/TBD | Not started | - |
 | 3. Approval Workflow Correctness | 0/TBD | Not started | - |
 | 4. Audit Log Wiring | 0/TBD | Not started | - |
