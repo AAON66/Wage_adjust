@@ -39,7 +39,13 @@ attendance, external API). Nothing is built from scratch — everything lands on
   3. National ID numbers are stored encrypted in the database and masked in API responses for non-admin roles
   4. Salary adjustment percentages (not absolute figures) are all an employee role can see in their own recommendation responses
   5. All database schema changes execute exclusively via Alembic migrations — no DDL runs at application startup
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 01-01-PLAN.md — Wave 0 test stubs + Alembic migration reset + retire ensure_schema_compatibility()
+- [ ] 01-02-PLAN.md — AES-256-GCM national ID encryption, path traversal guard, password complexity
+- [ ] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
+- [ ] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)
+- [ ] 01-05-PLAN.md — .env git hygiene, .env.example REQUIRED markers, certification import idempotency
 **UI hint**: no
 
 ### Phase 2: Evaluation Pipeline Integrity
@@ -162,7 +168,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening and Schema Integrity | 0/TBD | Not started | - |
+| 1. Security Hardening and Schema Integrity | 0/5 | In progress | - |
 | 2. Evaluation Pipeline Integrity | 0/TBD | Not started | - |
 | 3. Approval Workflow Correctness | 0/TBD | Not started | - |
 | 4. Audit Log Wiring | 0/TBD | Not started | - |
