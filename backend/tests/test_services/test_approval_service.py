@@ -3,9 +3,14 @@
 from pathlib import Path
 from uuid import uuid4
 
+import pytest
+from sqlalchemy import select
+
 from backend.app.core.config import Settings
 from backend.app.core.database import create_db_engine, create_session_factory, init_database
 from backend.app.models import load_model_modules
+from backend.app.models.audit_log import AuditLog
+from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evaluation_cycle import EvaluationCycle
@@ -143,3 +148,163 @@ def test_submit_decide_and_list_workflow() -> None:
         db.close()
 
 
+def _bind_user_to_department(session_factory, *, user_id: str, department_name: str) -> None:
+    """Bind a user to a department so can_access_employee passes department-scope check."""
+    db = session_factory()
+    try:
+        user = db.get(User, user_id)
+        assert user is not None
+        department = db.query(Department).filter(Department.name == department_name).one_or_none()
+        if department is None:
+            department = Department(name=department_name, description=f'{department_name} scope', status='active')
+            db.add(department)
+            db.flush()
+        user.departments = [department]
+        db.add(user)
+        db.commit()
+    finally:
+        db.close()
+
+
+def test_concurrent_decide_rejected() -> None:
+    """APPR-01: A second decide_approval on an already-decided step must raise ValueError.
+
+    The existing guard `if approval.decision != 'pending': raise ValueError(...)` should
+    fire when the same approval_id is decided twice. This test verifies that guard is present
+    and fires correctly (simulating a concurrent double-decision scenario).
+    """
+    _, session_factory = create_db_context()
+    ids = seed_workflow_entities(session_factory)
+    # Bind hrbp to Engineering so can_access_employee passes the department scope check
+    _bind_user_to_department(session_factory, user_id=ids['hrbp_id'], department_name='Engineering')
+
+    db = session_factory()
+    try:
+        service = ApprovalService(db)
+        service.submit_for_approval(
+            recommendation_id=ids['recommendation_id'],
+            steps=[
+                {'step_name': 'hr_review', 'approver_id': ids['hrbp_id'], 'comment': 'HRBP review'},
+                {'step_name': 'committee', 'approver_id': ids['manager_id'], 'comment': 'Committee review'},
+            ],
+        )
+
+        hrbp = db.get(User, ids['hrbp_id'])
+        assert hrbp is not None
+
+        pending_items = service.list_approvals(current_user=hrbp)
+        assert len(pending_items) >= 1
+        approval_item = pending_items[0]
+
+        # First decision succeeds
+        service.decide_approval(
+            approval_item.id,
+            current_user=hrbp,
+            decision='approved',
+            comment='OK',
+        )
+
+        # Second decision on the same already-decided record must raise ValueError
+        with pytest.raises(ValueError):
+            service.decide_approval(
+                approval_item.id,
+                current_user=hrbp,
+                decision='approved',
+                comment='OK',
+            )
+    finally:
+        db.close()
+
+
+def test_audit_log_written_on_decide() -> None:
+    """APPR-03: decide_approval must write an AuditLog row in the same transaction.
+
+    This test FAILS until Plan 02 wires the AuditLog write inside decide_approval.
+    Expected failure: AssertionError on len(logs) >= 1 (no rows written yet).
+    """
+    _, session_factory = create_db_context()
+    ids = seed_workflow_entities(session_factory)
+    # Bind hrbp to Engineering so can_access_employee passes the department scope check
+    _bind_user_to_department(session_factory, user_id=ids['hrbp_id'], department_name='Engineering')
+
+    db = session_factory()
+    try:
+        service = ApprovalService(db)
+        service.submit_for_approval(
+            recommendation_id=ids['recommendation_id'],
+            steps=[
+                {'step_name': 'hr_review', 'approver_id': ids['hrbp_id'], 'comment': 'HRBP review'},
+            ],
+        )
+
+        hrbp = db.get(User, ids['hrbp_id'])
+        assert hrbp is not None
+
+        pending_items = service.list_approvals(current_user=hrbp)
+        assert len(pending_items) >= 1
+        approval_item = pending_items[0]
+
+        service.decide_approval(
+            approval_item.id,
+            current_user=hrbp,
+            decision='approved',
+            comment='Looks good',
+        )
+
+        logs = list(db.scalars(select(AuditLog).where(AuditLog.target_type == 'approval_record')))
+
+        # Both assertions FAIL until Plan 02 wires audit log writes
+        assert len(logs) >= 1
+        assert any(log.action == 'approval_decided' for log in logs)
+    finally:
+        db.close()
+
+
+def test_audit_log_written_on_reject() -> None:
+    """APPR-03: decide_approval with 'rejected' must write an AuditLog row with full detail.
+
+    This test FAILS until Plan 02 wires the AuditLog write inside decide_approval.
+    Expected failure: AssertionError on len(logs) >= 1 (no rows written yet).
+    """
+    _, session_factory = create_db_context()
+    ids = seed_workflow_entities(session_factory)
+    # Bind hrbp to Engineering so can_access_employee passes the department scope check
+    _bind_user_to_department(session_factory, user_id=ids['hrbp_id'], department_name='Engineering')
+
+    db = session_factory()
+    try:
+        service = ApprovalService(db)
+        service.submit_for_approval(
+            recommendation_id=ids['recommendation_id'],
+            steps=[
+                {'step_name': 'hr_review', 'approver_id': ids['hrbp_id'], 'comment': 'HRBP review'},
+            ],
+        )
+
+        hrbp = db.get(User, ids['hrbp_id'])
+        assert hrbp is not None
+
+        pending_items = service.list_approvals(current_user=hrbp)
+        assert len(pending_items) >= 1
+        approval_item = pending_items[0]
+
+        service.decide_approval(
+            approval_item.id,
+            current_user=hrbp,
+            decision='rejected',
+            comment='Budget mismatch',
+        )
+
+        logs = list(db.scalars(select(AuditLog).where(AuditLog.target_type == 'approval_record')))
+
+        # All assertions FAIL until Plan 02 wires audit log writes
+        assert len(logs) >= 1
+        assert any(log.action == 'approval_decided' for log in logs)
+        matching = [log for log in logs if log.action == 'approval_decided']
+        assert len(matching) >= 1
+        log_detail = matching[0].detail
+        assert 'decision' in log_detail
+        assert log_detail['decision'] == 'rejected'
+        assert 'operator_role' in log_detail
+    finally:
+        db.close()
