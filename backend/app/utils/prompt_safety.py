@@ -35,6 +35,37 @@ PROMPT_MANIPULATION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
             re.IGNORECASE,
         ),
     ),
+    (
+        'english_score_manipulation',
+        re.compile(
+            r'(give\s+(me\s+)?(full|max|perfect|high|top)\s+(marks?|score|credit|points?|rating))'
+            r'|(give\s+me\s+(marks?|score|credit|points?|rating))'
+            r'|(rate\s+me\s+\d{2,3})'
+            r'|(score\s+me\s+\d{2,3})'
+            r'|(award\s+full\s+(marks?|credit|score))'
+            r'|(give\s+100|give\s+perfect)',
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        'english_instruction_override',
+        re.compile(
+            r'(ignore\s+(previous|above|all|prior)\s+(instructions?|prompt|context))'
+            r'|(disregard\s+(the\s+)?(above|previous|instructions?))'
+            r'|(forget\s+(your|the)\s+instructions?)'
+            r'|(you\s+must\s+give\s+(me\s+)?(full|max|high|100))'
+            r'|(act\s+as\s+if\s+you\s+have\s+no\s+restrictions)',
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        'unicode_homoglyph',
+        re.compile(
+            # Cyrillic chars that look like Latin: а е о р с х у і (lowercase)
+            r'[\u0430\u0435\u043E\u0440\u0441\u0445\u0443\u0456]',
+            re.UNICODE,
+        ),
+    ),
 )
 
 
