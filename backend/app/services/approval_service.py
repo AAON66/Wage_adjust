@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from backend.app.models.approval import ApprovalRecord
+from backend.app.models.audit_log import AuditLog
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.salary_recommendation import SalaryRecommendation
 from backend.app.models.submission import EmployeeSubmission
@@ -60,8 +61,16 @@ class ApprovalService:
             return False
         if current_user is not None and current_user.role != 'admin' and record.approver_id != current_user.id:
             return False
-
-        for item in self._ordered_records(recommendation):
+        # Only consider the current generation
+        all_records = recommendation.approval_records
+        if not all_records:
+            return False
+        current_gen = max(r.generation for r in all_records)
+        current_gen_records = sorted(
+            [r for r in all_records if r.generation == current_gen],
+            key=lambda item: (item.step_order, item.created_at),
+        )
+        for item in current_gen_records:
             if item.id == record.id:
                 return True
             if item.decision != 'approved':
@@ -181,17 +190,40 @@ class ApprovalService:
             if approver.role not in {'admin', 'hrbp', 'manager'}:
                 raise ValueError('Approvers must be admin, HRBP, or manager accounts.')
 
-        existing_by_step = {record.step_name: record for record in recommendation.approval_records}
-        incoming_step_names = set(step_names)
-        for record in list(recommendation.approval_records):
-            if record.step_name not in incoming_step_names:
-                self.db.delete(record)
+        # Determine current generation and whether this is a resubmission after a decision
+        existing_records = list(recommendation.approval_records)
+        if existing_records:
+            current_generation = max(r.generation for r in existing_records)
+            any_decided = any(
+                r.generation == current_generation and r.decision != 'pending'
+                for r in existing_records
+            )
+            new_generation = current_generation + 1 if any_decided else current_generation
+        else:
+            current_generation = 0
+            new_generation = 0
+
+        if new_generation == current_generation:
+            # Route update on an un-decided submission — safe to delete current-gen pending records
+            # whose step_name is not in the new steps list
+            incoming_step_names = {str(step['step_name']).strip() for step in steps}
+            for record in existing_records:
+                if record.generation == current_generation and record.step_name not in incoming_step_names:
+                    self.db.delete(record)
+            existing_by_step_current = {
+                r.step_name: r
+                for r in existing_records
+                if r.generation == current_generation
+            }
+        else:
+            # Resubmission — preserve ALL existing records, start fresh with new generation
+            existing_by_step_current = {}
 
         for index, step in enumerate(steps, start=1):
             step_name = str(step['step_name']).strip()
             approver_id = str(step['approver_id']).strip()
             comment = str(step['comment']).strip() if step.get('comment') else None
-            record = existing_by_step.get(step_name)
+            record = existing_by_step_current.get(step_name)
             if record is None:
                 record = ApprovalRecord(
                     recommendation_id=recommendation_id,
@@ -200,6 +232,7 @@ class ApprovalService:
                     step_order=index,
                     decision='pending',
                     comment=comment,
+                    generation=new_generation,
                 )
             else:
                 record.approver_id = approver_id
@@ -274,7 +307,19 @@ class ApprovalService:
         defer_until: datetime | None = None,
         defer_target_score: float | None = None,
     ) -> ApprovalRecord | None:
-        approval = self.get_approval(approval_id)
+        # SQLite silently ignores FOR UPDATE; the decision != 'pending' guard below
+        # provides application-level idempotency. On PostgreSQL this lock is effective.
+        stmt = (
+            select(ApprovalRecord)
+            .options(
+                selectinload(ApprovalRecord.approver),
+                selectinload(ApprovalRecord.recommendation)
+                .selectinload(SalaryRecommendation.approval_records),
+            )
+            .where(ApprovalRecord.id == approval_id)
+            .with_for_update()
+        )
+        approval = self.db.scalar(stmt)
         if approval is None:
             return None
         if current_user.role != 'admin' and approval.approver_id != current_user.id:
@@ -332,11 +377,31 @@ class ApprovalService:
             recommendation.defer_reason = None
 
         self.db.add(recommendation)
+
+        audit_entry = AuditLog(
+            operator_id=current_user.id,
+            action='approval_decided',
+            target_type='approval_record',
+            target_id=approval.id,
+            detail={
+                'decision': normalized_decision,
+                'recommendation_id': str(approval.recommendation_id),
+                'step_name': approval.step_name,
+                'step_order': approval.step_order,
+                'comment': approval.comment,
+                'operator_role': current_user.role,
+            },
+        )
+        self.db.add(audit_entry)
         self.db.commit()
         return self.get_approval(approval_id)
 
     def list_history(self, recommendation_id: str, *, current_user: User | None = None) -> list[ApprovalRecord]:
-        query = self._approval_query().where(ApprovalRecord.recommendation_id == recommendation_id).order_by(ApprovalRecord.step_order.asc(), ApprovalRecord.created_at.asc())
+        query = (
+            self._approval_query()
+            .where(ApprovalRecord.recommendation_id == recommendation_id)
+            .order_by(ApprovalRecord.generation.asc(), ApprovalRecord.step_order.asc(), ApprovalRecord.created_at.asc())
+        )
         records = list(self.db.scalars(query))
         if current_user is None:
             return records
