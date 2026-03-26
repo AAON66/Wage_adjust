@@ -60,7 +60,7 @@ Plans:
   5. Each stored dimension score carries the SHA-256 hash of the prompt that produced it, enabling reproducibility audits
 **Plans**: 1 plan
 Plans:
-- [ ] 02-01-PLAN.md — Schema migration, LLM retry/Redis rate limiter, image OCR, scale fix, prompt hash, fallback banner, dimension UI, prompt safety
+- [x] 02-01-PLAN.md — Schema migration, LLM retry/Redis rate limiter, image OCR, scale fix, prompt hash, fallback banner, dimension UI, prompt safety
 **UI hint**: yes
 
 ### Phase 3: Approval Workflow Correctness

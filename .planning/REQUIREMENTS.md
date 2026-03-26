@@ -32,14 +32,14 @@
 
 ### AI 评估流水线
 
-- [ ] **EVAL-01**：DeepSeek LLM 调用使用带抖动的指数退避重试策略，替换当前的线性退避（0.2s/0.4s），正确处理 429/503 响应
-- [ ] **EVAL-02**：LLM 频率限制器改用 Redis 后端，支持多 worker 部署下正确计数，消除每进程内存计数的问题
-- [ ] **EVAL-03**：图片文件解析能真正提取文字内容用于 LLM 评估，替换当前仅返回图片尺寸的占位实现（使用 pytesseract OCR 或 DeepSeek 多模态视觉 API）
-- [ ] **EVAL-04**：修复 `_normalize_llm_evaluation_payload` 中的分值归一化逻辑，正确区分 5 分制和 100 分制，消除低分时的 20 倍虚增 bug
-- [ ] **EVAL-05**：LLM 返回的每个维度分数存储时附带对应 prompt 的 SHA-256 哈希，支持评估结果的可复现与审计
-- [ ] **EVAL-06**：当 DeepSeek 未配置或调用出错时，前端明确显示当前结果为"模拟数据"，不以真实评估结果呈现
-- [ ] **EVAL-07**：评估结果页面展示 5 个维度的得分、权重和 LLM 给出的文字说明，而不仅显示最终 AI 等级
-- [ ] **EVAL-08**：用户上传的文档内容在拼入 LLM prompt 前进行净化处理，防止提示词注入（验证并完善现有 `prompt_safety.py`）
+- [x] **EVAL-01**：DeepSeek LLM 调用使用带抖动的指数退避重试策略，替换当前的线性退避（0.2s/0.4s），正确处理 429/503 响应
+- [x] **EVAL-02**：LLM 频率限制器改用 Redis 后端，支持多 worker 部署下正确计数，消除每进程内存计数的问题
+- [x] **EVAL-03**：图片文件解析能真正提取文字内容用于 LLM 评估，替换当前仅返回图片尺寸的占位实现（使用 pytesseract OCR 或 DeepSeek 多模态视觉 API）
+- [x] **EVAL-04**：修复 `_normalize_llm_evaluation_payload` 中的分值归一化逻辑，正确区分 5 分制和 100 分制，消除低分时的 20 倍虚增 bug
+- [x] **EVAL-05**：LLM 返回的每个维度分数存储时附带对应 prompt 的 SHA-256 哈希，支持评估结果的可复现与审计
+- [x] **EVAL-06**：当 DeepSeek 未配置或调用出错时，前端明确显示当前结果为"模拟数据"，不以真实评估结果呈现
+- [x] **EVAL-07**：评估结果页面展示 5 个维度的得分、权重和 LLM 给出的文字说明，而不仅显示最终 AI 等级
+- [x] **EVAL-08**：用户上传的文档内容在拼入 LLM prompt 前进行净化处理，防止提示词注入（验证并完善现有 `prompt_safety.py`）
 
 ### 审批工作流
 
@@ -138,14 +138,14 @@
 | DB-01 | Phase 1 | Complete |
 | DB-02 | Phase 1 | Complete |
 | DB-03 | Phase 1 | Complete |
-| EVAL-01 | Phase 2 | Pending |
-| EVAL-02 | Phase 2 | Pending |
-| EVAL-03 | Phase 2 | Pending |
-| EVAL-04 | Phase 2 | Pending |
-| EVAL-05 | Phase 2 | Pending |
-| EVAL-06 | Phase 2 | Pending |
-| EVAL-07 | Phase 2 | Pending |
-| EVAL-08 | Phase 2 | Pending |
+| EVAL-01 | Phase 2 | Complete |
+| EVAL-02 | Phase 2 | Complete |
+| EVAL-03 | Phase 2 | Complete |
+| EVAL-04 | Phase 2 | Complete |
+| EVAL-05 | Phase 2 | Complete |
+| EVAL-06 | Phase 2 | Complete |
+| EVAL-07 | Phase 2 | Complete |
+| EVAL-08 | Phase 2 | Complete |
 | APPR-01 | Phase 3 | Pending |
 | APPR-02 | Phase 3 | Pending |
 | APPR-03 | Phase 3 | Pending |

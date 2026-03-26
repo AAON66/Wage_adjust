@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 01-05-PLAN.md (env hygiene and certification import idempotency)
-last_updated: "2026-03-26T01:44:47.189Z"
+status: Phase complete — ready for verification
+stopped_at: Completed 02-01-PLAN.md (evaluation pipeline integrity)
+last_updated: "2026-03-26T06:10:52.482Z"
 progress:
   total_phases: 10
-  completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 01 — security-hardening-and-schema-integrity
+**Current focus:** Phase 02 — evaluation-pipeline-integrity
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
+Phase: 02 (evaluation-pipeline-integrity) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: Not started
 | Phase 01-security-hardening-and-schema-integrity P03 | 8min | 2 tasks | 7 files |
 | Phase 01-security-hardening-and-schema-integrity P04 | 4min | 1 tasks | 3 files |
 | Phase 01-security-hardening-and-schema-integrity P05 | 12 | 2 tasks | 5 files |
+| Phase 02-evaluation-pipeline-integrity P01 | 11 | 7 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,10 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 01-security-hardening-and-schema-integrity]: D-13/D-14 applied: admin/hrbp see full salary figures via SalaryRecommendationAdminRead; manager/employee see adjustment ratio only via SalaryRecommendationEmployeeRead; filtering in API layer only
 - [Phase 01-security-hardening-and-schema-integrity]: .env added to .gitignore; git rm --cached .env required as human action to remove from git index
 - [Phase 01-security-hardening-and-schema-integrity]: DB-03 upsert: SELECT-then-update-or-insert on (employee_id, certification_type); UniqueConstraint name uq_certifications_employee_type; dev DB must be re-seeded
+- [Phase 02-evaluation-pipeline-integrity]: Full-jitter exponential backoff chosen for LLM retries (avoids thundering herd); Retry-After header respected on 429/503
+- [Phase 02-evaluation-pipeline-integrity]: Five-point scale detection requires >=3 dimension scores (not just any non-empty list) to prevent false positive score inflation
+- [Phase 02-evaluation-pipeline-integrity]: Ambiguous overall_score (dims=100pt, overall<=5) is discarded rather than multiplied; falls to weighted_total path
+- [Phase 02-evaluation-pipeline-integrity]: ParseService.deepseek_service is optional DI parameter (not required), preserving backward compatibility with existing call sites
 
 ### Pending Todos
 
@@ -85,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T01:36:39.085Z
-Stopped at: Completed 01-05-PLAN.md (env hygiene and certification import idempotency)
+Last session: 2026-03-26T06:10:52.478Z
+Stopped at: Completed 02-01-PLAN.md (evaluation pipeline integrity)
 Resume file: None
