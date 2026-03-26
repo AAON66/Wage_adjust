@@ -21,7 +21,13 @@ class LocalStorageService:
         return str(target_path.relative_to(self.base_dir).as_posix())
 
     def resolve_path(self, storage_key: str) -> Path:
-        return (self.base_dir / storage_key).resolve()
+        resolved = (self.base_dir / storage_key).resolve()
+        if not resolved.is_relative_to(self.base_dir):
+            raise ValueError(
+                f'Storage key resolves outside base_dir. '
+                f'Key: {storage_key!r} | base_dir: {self.base_dir}'
+            )
+        return resolved
 
     def read_bytes(self, storage_key: str) -> bytes:
         return self.resolve_path(storage_key).read_bytes()

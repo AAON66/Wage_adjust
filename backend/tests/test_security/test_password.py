@@ -1,26 +1,35 @@
 from __future__ import annotations
+
 import pytest
+from pydantic import ValidationError
+
+from backend.app.schemas.user import UserCreate
 
 
-@pytest.mark.xfail(reason="SEC-08: password complexity validator not yet implemented")
-def test_password_with_mixed_case_and_digit_passes() -> None:
-    """'SecurePass1' passes the complexity validator."""
-    raise NotImplementedError
+def _make_user(password: str) -> UserCreate:
+    return UserCreate(email='test@example.com', password=password, role='employee')
 
 
-@pytest.mark.xfail(reason="SEC-08: password complexity validator not yet implemented")
-def test_password_with_mixed_case_and_symbol_passes() -> None:
-    """'SecurePass!' passes the complexity validator."""
-    raise NotImplementedError
+def test_mixed_case_and_digit_passes() -> None:
+    user = _make_user('SecurePass1')
+    assert user.password == 'SecurePass1'
 
 
-@pytest.mark.xfail(reason="SEC-08: password complexity validator not yet implemented")
-def test_all_lowercase_digits_rejected() -> None:
-    """'password1' is rejected — no uppercase letter."""
-    raise NotImplementedError
+def test_mixed_case_and_symbol_passes() -> None:
+    user = _make_user('SecurePass!')
+    assert user.password == 'SecurePass!'
 
 
-@pytest.mark.xfail(reason="SEC-08: password complexity validator not yet implemented")
+def test_all_lowercase_rejected() -> None:
+    with pytest.raises(ValidationError, match='uppercase'):
+        _make_user('password1')
+
+
 def test_no_digit_or_symbol_rejected() -> None:
-    """'SecurePassword' is rejected — no digit or symbol."""
-    raise NotImplementedError
+    with pytest.raises(ValidationError, match='digit or special'):
+        _make_user('SecurePassword')
+
+
+def test_no_lowercase_rejected() -> None:
+    with pytest.raises(ValidationError, match='lowercase'):
+        _make_user('SECUREPASSWORD1')

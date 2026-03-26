@@ -1,10 +1,22 @@
 ﻿from __future__ import annotations
 
+import re
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from backend.app.schemas.department import DepartmentRead
+
+
+def _validate_password_complexity(value: str) -> str:
+    """Enforce: >=8 chars, 1+ uppercase, 1+ lowercase, 1+ digit or symbol."""
+    if not re.search(r'[A-Z]', value):
+        raise ValueError('Password must contain at least one uppercase letter.')
+    if not re.search(r'[a-z]', value):
+        raise ValueError('Password must contain at least one lowercase letter.')
+    if not re.search(r'[0-9!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?`~]', value):
+        raise ValueError('Password must contain at least one digit or special character.')
+    return value
 
 
 ROLE_OPTIONS = ('admin', 'hrbp', 'manager', 'employee')
@@ -31,6 +43,11 @@ class UserCreate(BaseModel):
     role: str = Field(default='employee', min_length=2, max_length=50)
     id_card_no: str | None = Field(default=None, max_length=32)
 
+    @field_validator('password')
+    @classmethod
+    def password_complexity(cls, value: str) -> str:
+        return _validate_password_complexity(value)
+
 
 class UserEmployeeBindingUpdate(BaseModel):
     employee_id: str | None = None
@@ -45,9 +62,19 @@ class PasswordChangeRequest(BaseModel):
     current_password: str = Field(min_length=8, max_length=128)
     new_password: str = Field(min_length=8, max_length=128)
 
+    @field_validator('new_password')
+    @classmethod
+    def new_password_complexity(cls, value: str) -> str:
+        return _validate_password_complexity(value)
+
 
 class AdminPasswordUpdateRequest(BaseModel):
     new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator('new_password')
+    @classmethod
+    def new_password_complexity(cls, value: str) -> str:
+        return _validate_password_complexity(value)
 
 
 class TokenRefreshRequest(BaseModel):
