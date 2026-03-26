@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 01-01-PLAN.md (Wave 0 stubs, Alembic reset)
-last_updated: "2026-03-26T00:51:15.399Z"
+stopped_at: Completed 01-02-PLAN.md (encryption, path guard, password complexity, migration)
+last_updated: "2026-03-26T01:00:02.838Z"
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 01 (security-hardening-and-schema-integrity) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Plan: 2 of 5
 
 *Updated after each plan completion*
 | Phase 01-security-hardening-and-schema-integrity P01 | 5 | 3 tasks | 12 files |
+| Phase 01-security-hardening-and-schema-integrity P02 | 8 | 4 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -59,6 +60,9 @@ Key technical decisions pending confirmation before Phase 1:
 - PostgreSQL via Docker recommended for dev to match production migration behavior
 - [Phase 01-security-hardening-and-schema-integrity]: Autogenerate Alembic baseline against empty SQLite DB (not live DB) to produce op.create_table() for all 17 tables
 - [Phase 01-security-hardening-and-schema-integrity]: Alembic is the sole migration path: init_database() only calls create_all and logs reminder to run alembic upgrade head
+- [Phase 01-security-hardening-and-schema-integrity]: AES-256-GCM chosen over SM4 for national ID encryption (PIPL-compliant, no gmssl dependency needed)
+- [Phase 01-security-hardening-and-schema-integrity]: Migration uses batch_alter_table (SQLite-compatible); DB-level unique on encrypted id_card_no is ciphertext-unique only -- app-layer check required
+- [Phase 01-security-hardening-and-schema-integrity]: Password complexity rule: uppercase + lowercase + (digit OR special char) -- matches NIST SP 800-63B
 
 ### Pending Todos
 
@@ -72,6 +76,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T00:51:15.395Z
-Stopped at: Completed 01-01-PLAN.md (Wave 0 stubs, Alembic reset)
+Last session: 2026-03-26T01:00:02.834Z
+Stopped at: Completed 01-02-PLAN.md (encryption, path guard, password complexity, migration)
 Resume file: None
