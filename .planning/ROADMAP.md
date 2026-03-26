@@ -41,7 +41,7 @@ attendance, external API). Nothing is built from scratch — everything lands on
   5. All database schema changes execute exclusively via Alembic migrations — no DDL runs at application startup
 **Plans**: 5 plans
 Plans:
-- [ ] 01-01-PLAN.md — Wave 0 test stubs + Alembic migration reset + retire ensure_schema_compatibility()
+- [x] 01-01-PLAN.md — Wave 0 test stubs + Alembic migration reset + retire ensure_schema_compatibility()
 - [ ] 01-02-PLAN.md — AES-256-GCM national ID encryption, path traversal guard, password complexity
 - [ ] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
 - [ ] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)

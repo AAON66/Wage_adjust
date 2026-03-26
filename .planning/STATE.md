@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: Ready to execute
+stopped_at: Completed 01-01-PLAN.md (Wave 0 stubs, Alembic reset)
+last_updated: "2026-03-26T00:51:15.399Z"
+progress:
+  total_phases: 10
+  completed_phases: 0
+  total_plans: 5
+  completed_plans: 1
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +19,17 @@
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 1: Security Hardening and Schema Integrity
+**Current focus:** Phase 01 — security-hardening-and-schema-integrity
 
 ## Current Position
 
-Phase: 1 of 10 (Security Hardening and Schema Integrity)
-Plan: 0 of TBD in current phase
-Status: Ready to plan
-Last activity: 2026-03-25 — Roadmap created from requirements and codebase analysis
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (security-hardening-and-schema-integrity) — EXECUTING
+Plan: 2 of 5
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: -
 - Total execution time: 0 hours
@@ -30,19 +41,24 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: -
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-security-hardening-and-schema-integrity P01 | 5 | 3 tasks | 12 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-No decisions yet. Key technical decisions pending confirmation before Phase 1:
+Key technical decisions pending confirmation before Phase 1:
+
 - SM4 vs AES-256-GCM for PII encryption (PIPL compliance favors SM4 via gmssl)
 - Redis is a required service dependency — not optional — starting Phase 1
 - PostgreSQL via Docker recommended for dev to match production migration behavior
+- [Phase 01-security-hardening-and-schema-integrity]: Autogenerate Alembic baseline against empty SQLite DB (not live DB) to produce op.create_table() for all 17 tables
+- [Phase 01-security-hardening-and-schema-integrity]: Alembic is the sole migration path: init_database() only calls create_all and logs reminder to run alembic upgrade head
 
 ### Pending Todos
 
@@ -56,6 +72,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-25
-Stopped at: Roadmap created — ROADMAP.md, STATE.md, REQUIREMENTS.md traceability written
+Last session: 2026-03-26T00:51:15.395Z
+Stopped at: Completed 01-01-PLAN.md (Wave 0 stubs, Alembic reset)
 Resume file: None

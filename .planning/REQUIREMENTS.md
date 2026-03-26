@@ -26,8 +26,8 @@
 
 ### 数据库与迁移
 
-- [ ] **DB-01**：配置 Alembic 并生成当前 schema 的基线迁移，将 `ensure_schema_compatibility()` 启动时的 DDL 操作迁移到正式 migration 文件中
-- [ ] **DB-02**：后续所有 schema 变更均通过 Alembic migration 执行，生产环境不再有启动时的直接 DDL 操作
+- [x] **DB-01**：配置 Alembic 并生成当前 schema 的基线迁移，将 `ensure_schema_compatibility()` 启动时的 DDL 操作迁移到正式 migration 文件中
+- [x] **DB-02**：后续所有 schema 变更均通过 Alembic migration 执行，生产环境不再有启动时的直接 DDL 操作
 - [ ] **DB-03**：认证记录导入幂等——重复导入同一员工同一周期的认证文件，不产生重复行，不导致 `certification_bonus` 虚增
 
 ### AI 评估流水线
@@ -135,8 +135,8 @@
 | SEC-06 | Phase 1 | Pending |
 | SEC-07 | Phase 1 | Pending |
 | SEC-08 | Phase 1 | Pending |
-| DB-01 | Phase 1 | Pending |
-| DB-02 | Phase 1 | Pending |
+| DB-01 | Phase 1 | Complete |
+| DB-02 | Phase 1 | Complete |
 | DB-03 | Phase 1 | Pending |
 | EVAL-01 | Phase 2 | Pending |
 | EVAL-02 | Phase 2 | Pending |
