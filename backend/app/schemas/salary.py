@@ -22,6 +22,40 @@ class SalaryRecommendationRead(BaseModel):
     explanation: str | None = None
 
 
+class SalaryRecommendationAdminRead(BaseModel):
+    """Full salary figures — visible to admin and hrbp roles only."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    evaluation_id: str
+    current_salary: Decimal
+    recommended_ratio: float
+    recommended_salary: Decimal
+    ai_multiplier: float
+    certification_bonus: float
+    final_adjustment_ratio: float
+    status: str
+    created_at: datetime
+    explanation: str | None = None
+
+
+class SalaryRecommendationEmployeeRead(BaseModel):
+    """Redacted salary view — visible to manager and employee roles.
+
+    Contains adjustment percentage only; absolute salary figures are omitted.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    evaluation_id: str
+    final_adjustment_ratio: float
+    status: str
+    created_at: datetime
+    explanation: str | None = None
+
+
 class SalaryHistoryItemRead(BaseModel):
     recommendation_id: str
     evaluation_id: str
