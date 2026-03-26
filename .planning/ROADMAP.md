@@ -43,7 +43,7 @@ attendance, external API). Nothing is built from scratch — everything lands on
 Plans:
 - [x] 01-01-PLAN.md — Wave 0 test stubs + Alembic migration reset + retire ensure_schema_compatibility()
 - [x] 01-02-PLAN.md — AES-256-GCM national ID encryption, path traversal guard, password complexity
-- [ ] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
+- [x] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
 - [ ] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)
 - [ ] 01-05-PLAN.md — .env git hygiene, .env.example REQUIRED markers, certification import idempotency
 **UI hint**: no
@@ -168,7 +168,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Security Hardening and Schema Integrity | 2/5 | In Progress|  |
+| 1. Security Hardening and Schema Integrity | 3/5 | In Progress|  |
 | 2. Evaluation Pipeline Integrity | 0/TBD | Not started | - |
 | 3. Approval Workflow Correctness | 0/TBD | Not started | - |
 | 4. Audit Log Wiring | 0/TBD | Not started | - |

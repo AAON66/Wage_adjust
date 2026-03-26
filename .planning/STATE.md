@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 01-02-PLAN.md (encryption, path guard, password complexity, migration)
-last_updated: "2026-03-26T01:00:02.838Z"
+stopped_at: Completed 01-03-PLAN.md (startup guard + slowapi rate limiting)
+last_updated: "2026-03-26T01:03:11.465Z"
 progress:
   total_phases: 10
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 01 (security-hardening-and-schema-integrity) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: 3 of 5
 *Updated after each plan completion*
 | Phase 01-security-hardening-and-schema-integrity P01 | 5 | 3 tasks | 12 files |
 | Phase 01-security-hardening-and-schema-integrity P02 | 8 | 4 tasks | 11 files |
+| Phase 01-security-hardening-and-schema-integrity P03 | 8min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 01-security-hardening-and-schema-integrity]: AES-256-GCM chosen over SM4 for national ID encryption (PIPL-compliant, no gmssl dependency needed)
 - [Phase 01-security-hardening-and-schema-integrity]: Migration uses batch_alter_table (SQLite-compatible); DB-level unique on encrypted id_card_no is ciphertext-unique only -- app-layer check required
 - [Phase 01-security-hardening-and-schema-integrity]: Password complexity rule: uppercase + lowercase + (digit OR special char) -- matches NIST SP 800-63B
+- [Phase 01-security-hardening-and-schema-integrity]: Shared rate_limit.py module: single Limiter instance for decorator binding; create_limiter() builds Redis-backed instance at app startup for one backend across auth and public routes
+- [Phase 01-security-hardening-and-schema-integrity]: validate_startup_config raises RuntimeError only in production; development mode is permissive with warning-only for placeholder secrets
+- [Phase 01-security-hardening-and-schema-integrity]: StaticPool required for TestClient tests with in-memory SQLite to share DB state across connections
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T01:00:02.834Z
-Stopped at: Completed 01-02-PLAN.md (encryption, path guard, password complexity, migration)
+Last session: 2026-03-26T01:03:11.461Z
+Stopped at: Completed 01-03-PLAN.md (startup guard + slowapi rate limiting)
 Resume file: None

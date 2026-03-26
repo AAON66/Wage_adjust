@@ -15,11 +15,11 @@
 
 ### 安全加固
 
-- [ ] **SEC-01**：应用在生产环境中若检测到 `jwt_secret_key` 等于默认值 `"change_me"`，则拒绝启动并打印清晰的配置错误提示
-- [ ] **SEC-02**：登录接口（`POST /api/v1/auth/login`）使用 `slowapi` 进行频率限制，同一 IP 15 分钟内失败超过 10 次则返回 `429`
+- [x] **SEC-01**：应用在生产环境中若检测到 `jwt_secret_key` 等于默认值 `"change_me"`，则拒绝启动并打印清晰的配置错误提示
+- [x] **SEC-02**：登录接口（`POST /api/v1/auth/login`）使用 `slowapi` 进行频率限制，同一 IP 15 分钟内失败超过 10 次则返回 `429`
 - [x] **SEC-03**：居民身份证号码在存入数据库前使用 SM4（或 AES-256-GCM）加密；非管理员角色的 API 响应中显示脱敏格式（如 `330104********1234`）
 - [ ] **SEC-04**：调薪建议接口按角色返回不同字段：`admin`/`hrbp` 可见完整薪资数字；`manager` 仅见调整幅度百分比；`employee` 仅见自己的调整幅度
-- [ ] **SEC-05**：公开 API 的频率限制配置（`public_api_rate_limit`）真正生效，`/api/v1/public/` 接口执行该限制
+- [x] **SEC-05**：公开 API 的频率限制配置（`public_api_rate_limit`）真正生效，`/api/v1/public/` 接口执行该限制
 - [ ] **SEC-06**：`.env` 文件从 git 追踪中移除（`git rm --cached .env`），`.gitignore` 排除所有 `.env*` 文件，所有默认占位密钥均在文档中标注为必填配置项
 - [x] **SEC-07**：`LocalStorageService.resolve_path()` 在读取或删除前断言解析路径在 `base_dir` 范围内，防止路径穿越攻击
 - [x] **SEC-08**：密码复杂度在后端进行校验（最少 8 位，需包含大小写字母 + 数字或符号），不能仅在前端校验
@@ -127,11 +127,11 @@
 
 | 需求 ID | 阶段 | 状态 |
 |---------|------|------|
-| SEC-01 | Phase 1 | Pending |
-| SEC-02 | Phase 1 | Pending |
+| SEC-01 | Phase 1 | Complete |
+| SEC-02 | Phase 1 | Complete |
 | SEC-03 | Phase 1 | Complete |
 | SEC-04 | Phase 1 | Pending |
-| SEC-05 | Phase 1 | Pending |
+| SEC-05 | Phase 1 | Complete |
 | SEC-06 | Phase 1 | Pending |
 | SEC-07 | Phase 1 | Complete |
 | SEC-08 | Phase 1 | Complete |
