@@ -1356,6 +1356,20 @@ export function EvaluationDetailPage() {
     { label: '调薪状态', value: formatRecommendationStatus(salaryRecommendation?.status), note: salaryRecommendation ? formatPercent(salaryRecommendation.final_adjustment_ratio, 2) : '尚未生成' },
   ];
 
+  const DIMENSION_LABELS: Record<string, string> = {
+    TOOL_MASTERY: 'AI工具掌握度',
+    APPLICATION_DEPTH: 'AI应用深度',
+    LEARNING_ABILITY: 'AI学习能力',
+    SHARING_CONTRIBUTION: 'AI分享贡献',
+    OUTCOME_CONVERSION: 'AI成果转化',
+    // Legacy codes used by current evaluation engine
+    TOOL: 'AI工具掌握度',
+    DEPTH: 'AI应用深度',
+    LEARN: 'AI学习速度',
+    SHARE: '知识分享',
+    IMPACT: '业务影响力',
+  };
+
   const activeModuleContent = (() => {
     if (activeModule === 'overview') {
       return (
@@ -1430,6 +1444,37 @@ export function EvaluationDetailPage() {
                   检测到 {evaluation?.integrity_issue_count ?? 0} 条诚信风险提示，建议优先切到「人工复核」模块查看。
                 </div>
               ) : null}
+
+              {evaluation?.used_fallback ? (
+                <div style={{ marginTop: 20 }} className="rounded border border-yellow-400 bg-yellow-50 px-4 py-3 text-sm text-yellow-800 mb-4">
+                  当前结果为规则引擎估算，AI 未参与评估，请结合实际情况人工复核。
+                </div>
+              ) : null}
+
+              <section className="mt-6">
+                <h3 className="text-base font-semibold mb-3">维度评分详情</h3>
+                {evaluation && evaluation.dimension_scores && evaluation.dimension_scores.length > 0 ? (
+                  <div className="space-y-3">
+                    {evaluation.dimension_scores.map((ds) => (
+                      <div key={ds.id} className="rounded border border-gray-200 p-3 bg-white">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-gray-700">
+                            {DIMENSION_LABELS[ds.dimension_code] ?? ds.dimension_code}
+                          </span>
+                          <span className="text-sm text-gray-500">
+                            权重 {Math.round(ds.weight * 100)}% · AI得分 {ds.ai_raw_score.toFixed(1)}
+                          </span>
+                        </div>
+                        {ds.ai_rationale && (
+                          <p className="text-sm text-gray-600 mt-1">{ds.ai_rationale}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">暂无维度评分数据</p>
+                )}
+              </section>
             </div>
           </section>
 
