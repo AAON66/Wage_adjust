@@ -1,12 +1,15 @@
 ﻿from __future__ import annotations
 
+import logging
 from collections.abc import Generator
 
-from sqlalchemy import MetaData, create_engine, inspect
+from sqlalchemy import MetaData, create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from backend.app.core.config import Settings, get_settings
+
+logger = logging.getLogger(__name__)
 
 naming_convention = {
     "ix": "ix_%(column_0_label)s",
@@ -64,52 +67,14 @@ def get_db_session() -> Generator[Session, None, None]:
 
 
 def init_database(engine_instance: Engine | None = None) -> None:
-    """Create all registered tables for the configured engine."""
+    """Create all tables for the configured engine.
+
+    NOTE: Schema migrations are managed exclusively by Alembic.
+    Run `alembic upgrade head` before starting the server.
+    This function only creates tables that do not yet exist (safe for fresh installs).
+    """
     target_engine = engine_instance or engine
     Base.metadata.create_all(bind=target_engine)
-    ensure_schema_compatibility(target_engine)
-
-
-def ensure_schema_compatibility(target_engine: Engine) -> None:
-    inspector = inspect(target_engine)
-    table_names = set(inspector.get_table_names())
-    with target_engine.begin() as connection:
-        if 'dimension_scores' in table_names:
-            dimension_score_columns = {column['name'] for column in inspector.get_columns('dimension_scores')}
-            missing_dimension_score_columns: list[tuple[str, str]] = []
-            if 'ai_raw_score' not in dimension_score_columns:
-                missing_dimension_score_columns.append(('ai_raw_score', 'FLOAT NOT NULL DEFAULT 0'))
-            if 'ai_weighted_score' not in dimension_score_columns:
-                missing_dimension_score_columns.append(('ai_weighted_score', 'FLOAT NOT NULL DEFAULT 0'))
-            if 'ai_rationale' not in dimension_score_columns:
-                missing_dimension_score_columns.append(('ai_rationale', "TEXT NOT NULL DEFAULT ''"))
-            for column_name, column_type in missing_dimension_score_columns:
-                connection.exec_driver_sql(f'ALTER TABLE dimension_scores ADD COLUMN {column_name} {column_type}')
-
-        if 'employees' in table_names:
-            employee_columns = {column['name'] for column in inspector.get_columns('employees')}
-            if 'sub_department' not in employee_columns:
-                connection.exec_driver_sql('ALTER TABLE employees ADD COLUMN sub_department VARCHAR(128)')
-            if 'id_card_no' not in employee_columns:
-                connection.exec_driver_sql('ALTER TABLE employees ADD COLUMN id_card_no VARCHAR(32)')
-
-        if 'users' in table_names:
-            user_columns = {column['name'] for column in inspector.get_columns('users')}
-            if 'id_card_no' not in user_columns:
-                connection.exec_driver_sql('ALTER TABLE users ADD COLUMN id_card_no VARCHAR(32)')
-
-        if 'approval_records' in table_names:
-            approval_columns = {column['name'] for column in inspector.get_columns('approval_records')}
-            if 'step_order' not in approval_columns:
-                connection.exec_driver_sql('ALTER TABLE approval_records ADD COLUMN step_order INTEGER NOT NULL DEFAULT 1')
-
-        if 'salary_recommendations' in table_names:
-            salary_recommendation_columns = {column['name'] for column in inspector.get_columns('salary_recommendations')}
-            if 'explanation' not in salary_recommendation_columns:
-                connection.exec_driver_sql('ALTER TABLE salary_recommendations ADD COLUMN explanation TEXT')
-            if 'defer_until' not in salary_recommendation_columns:
-                connection.exec_driver_sql('ALTER TABLE salary_recommendations ADD COLUMN defer_until DATETIME')
-            if 'defer_target_score' not in salary_recommendation_columns:
-                connection.exec_driver_sql('ALTER TABLE salary_recommendations ADD COLUMN defer_target_score FLOAT')
-            if 'defer_reason' not in salary_recommendation_columns:
-                connection.exec_driver_sql('ALTER TABLE salary_recommendations ADD COLUMN defer_reason TEXT')
+    logger.info(
+        'Database tables verified. Run `alembic upgrade head` to apply any pending schema migrations.'
+    )
