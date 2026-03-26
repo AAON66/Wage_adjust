@@ -19,6 +19,7 @@ class DimensionScoreRead(BaseModel):
     ai_rationale: str
     rationale: str
     created_at: datetime
+    prompt_hash: str | None = None
 
 
 class EvaluationRead(BaseModel):
@@ -44,6 +45,7 @@ class EvaluationRead(BaseModel):
     integrity_issue_count: int = 0
     integrity_examples: list[str] = Field(default_factory=list)
     dimension_scores: list[DimensionScoreRead] = Field(default_factory=list)
+    used_fallback: bool = False
 
 
 class EvaluationGenerateRequest(BaseModel):

@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from sqlalchemy import Float, ForeignKey, String, Text
+from sqlalchemy import Boolean, Float, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
@@ -22,6 +22,7 @@ class AIEvaluation(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     hr_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     hr_decision: Mapped[str | None] = mapped_column(String(32), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
+    used_fallback: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default='0')
 
     submission = relationship("EmployeeSubmission", back_populates="ai_evaluation")
     dimension_scores = relationship("DimensionScore", back_populates="evaluation")
