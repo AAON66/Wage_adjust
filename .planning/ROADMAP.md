@@ -73,7 +73,11 @@ Plans:
   3. The manager approval queue shows pending evaluations filtered by their department, with evaluation dimension scores visible on the same screen
   4. HR/HRBP can view pending evaluations across all departments and compare adjustment percentages side by side
   5. Every approval action (approve, reject, return for revision, override) writes an audit log entry in the same transaction
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — Wave 0 test stubs for APPR-01 through APPR-06 (RED baseline)
+- [ ] 03-02-PLAN.md — Alembic migration (generation column), pessimistic lock, history preservation, audit log wiring
+- [ ] 03-03-PLAN.md — Dimension scores in approval response schema + Approvals.tsx panel + human smoke test
 **UI hint**: yes
 
 ### Phase 4: Audit Log Wiring
@@ -172,7 +176,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
 | 2. Evaluation Pipeline Integrity | 0/1 | Not started | - |
-| 3. Approval Workflow Correctness | 0/TBD | Not started | - |
+| 3. Approval Workflow Correctness | 0/3 | Not started | - |
 | 4. Audit Log Wiring | 0/TBD | Not started | - |
 | 5. Document Deduplication and Multi-Author | 0/TBD | Not started | - |
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
