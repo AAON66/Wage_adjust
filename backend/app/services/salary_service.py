@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, selectinload
 from backend.app.core.config import Settings, get_settings
 from backend.app.engines.salary_engine import LEVEL_RULES, SalaryEngine
 from backend.app.models.approval import ApprovalRecord
+from backend.app.models.audit_log import AuditLog
 from backend.app.models.certification import Certification
 from backend.app.models.cycle_department_budget import CycleDepartmentBudget
 from backend.app.models.department import Department
@@ -344,6 +345,11 @@ class SalaryService:
         recommendation = self._query_recommendation(recommendation_id)
         if recommendation is None:
             return None
+
+        # Capture old values before mutation for audit (APPR-04)
+        old_ratio = float(recommendation.final_adjustment_ratio)
+        old_status = recommendation.status
+
         recommendation.final_adjustment_ratio = round(final_adjustment_ratio, 4)
         recommendation.recommended_salary = (recommendation.current_salary * Decimal(str(1 + recommendation.final_adjustment_ratio))).quantize(Decimal('0.01'))
         if status is not None:
@@ -355,6 +361,22 @@ class SalaryService:
         if recommendation.evaluation is not None:
             recommendation.explanation = self._generate_salary_explanation(evaluation=recommendation.evaluation, recommendation=recommendation)
         self.db.add(recommendation)
+
+        # Write audit log in same transaction (APPR-04)
+        # operator_id is None — salary service has no auth context
+        audit_entry = AuditLog(
+            operator_id=None,
+            action='salary_updated',
+            target_type='salary_recommendation',
+            target_id=recommendation_id,
+            detail={
+                'old_final_adjustment_ratio': old_ratio,
+                'new_final_adjustment_ratio': round(final_adjustment_ratio, 4),
+                'old_status': old_status,
+                'new_status': status if status is not None else old_status,
+            },
+        )
+        self.db.add(audit_entry)
         self.db.commit()
         self.db.refresh(recommendation)
         return recommendation
