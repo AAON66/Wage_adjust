@@ -1,7 +1,7 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active development — brownfield, mostly working
+**Status:** Active development — Phase 2 complete (2026-03-26)
 
 ---
 
@@ -50,7 +50,7 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - Dashboard service layer (DashboardService with aggregation methods)
 
 ### Incomplete / Unreliable (What This Plan Addresses)
-1. **AI Evaluation Pipeline** — DeepSeek integration may not be end-to-end; evaluation result display and explanability need work
+1. **AI Evaluation Pipeline** — ✅ Validated in Phase 02: exponential-backoff retry, Redis rate limiter (in-memory fallback), real image OCR via DeepSeek Vision, scale normalization fix, SHA-256 prompt hash on each dimension score, used_fallback flag + yellow banner, 5-dimension detail panel, prompt injection safety patterns
 2. **Approval Workflow** — Status transitions, audit trail, and reviewer UI need completion
 3. **Dashboard & Analytics** — Service layer exists but frontend visualizations and data aggregation have gaps
 4. **Batch Import** — Upload exists but validation error feedback, partial success handling, and idempotency need work
