@@ -54,7 +54,7 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 2. **Approval Workflow** — Status transitions, audit trail, and reviewer UI need completion
 3. **Dashboard & Analytics** — Service layer exists but frontend visualizations and data aggregation have gaps
 4. **Batch Import** — Upload exists but validation error feedback, partial success handling, and idempotency need work
-5. **Security** — HIGH issues: JWT guard on startup, rate limiting on login, PII encryption for national ID numbers, role-aware salary response filtering
+5. **Security** — ✅ Validated in Phase 01: JWT startup guard, login rate limiting, AES-256-GCM national ID encryption, role-aware salary filtering, path traversal guard, password complexity, Alembic-only migrations, .env git hygiene, certification import idempotency
 6. **External API** — Public API endpoints exist but integration with real external systems hasn't been validated
 
 ---
