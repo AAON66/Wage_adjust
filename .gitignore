@@ -2,6 +2,7 @@
 .tmp/
 uploads/
 *.db
+.env
 pytest-cache-files-*/
 __pycache__/
 *.pyc
