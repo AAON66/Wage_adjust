@@ -4,13 +4,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from sqlalchemy import select
+
 from backend.app.core.config import Settings
 from backend.app.core.database import create_db_engine, create_session_factory, init_database
 from backend.app.models import load_model_modules
+from backend.app.models.audit_log import AuditLog
 from backend.app.models.certification import Certification
 from backend.app.models.employee import Employee
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evaluation_cycle import EvaluationCycle
+from backend.app.models.salary_recommendation import SalaryRecommendation
 from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.user import User
 from backend.app.services.llm_service import DeepSeekCallResult
@@ -251,5 +255,79 @@ def test_salary_service_backfills_legacy_english_explanation_to_chinese() -> Non
         assert refreshed.explanation is not None
         assert '当前岗位的 AI 应用要求' in refreshed.explanation
         assert 'Recommendation built from' not in refreshed.explanation
+    finally:
+        db.close()
+
+
+def test_audit_log_written_on_salary_change() -> None:
+    """APPR-04: SalaryService.update_recommendation must write an AuditLog row.
+
+    This test FAILS until Plan 02 wires the AuditLog write inside update_recommendation.
+    Expected failure: AssertionError on len(logs) >= 1 (no rows written yet).
+    """
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        employee = Employee(
+            employee_no='EMP-6099',
+            name='Audit Salary User',
+            department='Engineering',
+            job_family='Platform',
+            job_level='P5',
+            status='active',
+        )
+        cycle = EvaluationCycle(
+            name='2026 Audit Review',
+            review_period='2026',
+            budget_amount='8000.00',
+            status='draft',
+        )
+        db.add_all([employee, cycle])
+        db.commit()
+        db.refresh(employee)
+        db.refresh(cycle)
+
+        submission = EmployeeSubmission(employee_id=employee.id, cycle_id=cycle.id, status='evaluated')
+        db.add(submission)
+        db.commit()
+        db.refresh(submission)
+
+        evaluation = AIEvaluation(
+            submission_id=submission.id,
+            overall_score=80,
+            ai_level='Level 3',
+            confidence_score=0.78,
+            explanation='Audit evaluation.',
+            status='confirmed',
+        )
+        db.add(evaluation)
+        db.commit()
+        db.refresh(evaluation)
+
+        recommendation = SalaryRecommendation(
+            evaluation_id=evaluation.id,
+            current_salary='50000.00',
+            recommended_ratio=0.10,
+            recommended_salary='55000.00',
+            ai_multiplier=1.10,
+            certification_bonus=0.0,
+            final_adjustment_ratio=0.10,
+            status='recommended',
+        )
+        db.add(recommendation)
+        db.commit()
+        db.refresh(recommendation)
+
+        service = SalaryService(
+            db,
+            settings=Settings(deepseek_api_key='your_deepseek_api_key'),
+        )
+        service.update_recommendation(recommendation.id, final_adjustment_ratio=0.15, status='adjusted')
+
+        logs = list(db.scalars(select(AuditLog).where(AuditLog.target_type == 'salary_recommendation')))
+
+        # Both assertions FAIL until Plan 02 wires salary audit log writes
+        assert len(logs) >= 1
+        assert any(log.action == 'salary_updated' for log in logs)
     finally:
         db.close()

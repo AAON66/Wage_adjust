@@ -446,5 +446,166 @@ def test_approval_route_can_be_updated_before_processing_starts() -> None:
         assert candidate['route_preview'][0].endswith('manager@example.com')
 
 
+def test_resubmit_preserves_history() -> None:
+    """APPR-02: After reject + resubmit, history must contain records from BOTH generations.
+
+    This test FAILS until Plan 02 adds the generation column and preserves old records
+    on resubmit. Expected failure: AssertionError on len(items) > 2.
+    """
+    client, context = build_client()
+    with client:
+        register_user(client, email='admin@example.com', role='admin')
+        hrbp_id = register_user(client, email='hrbp@h.com', role='hrbp')
+        manager_id = register_user(client, email='mgr@h.com', role='manager')
+        bind_user_departments(context, email='hrbp@h.com', department_names=['Engineering'])
+        bind_user_departments(context, email='mgr@h.com', department_names=['Engineering'])
+
+        admin_token = login_token(client, email='admin@example.com')
+        hrbp_token = login_token(client, email='hrbp@h.com')
+        recommendation_id, _ = seed_recommendation(context)
+
+        # Submit two-step approval
+        submit_response = client.post(
+            '/api/v1/approvals/submit',
+            json={
+                'recommendation_id': recommendation_id,
+                'steps': [
+                    {'step_name': 'hr_review', 'approver_id': hrbp_id, 'comment': 'HRBP review'},
+                    {'step_name': 'committee', 'approver_id': manager_id, 'comment': 'Committee review'},
+                ],
+            },
+            headers={'Authorization': f'Bearer {admin_token}'},
+        )
+        assert submit_response.status_code == 201
+
+        # HRBP rejects step 1
+        hrbp_queue = client.get('/api/v1/approvals', headers={'Authorization': f'Bearer {hrbp_token}'})
+        assert hrbp_queue.status_code == 200
+        hr_review_id = hrbp_queue.json()['items'][0]['id']
+
+        reject_response = client.patch(
+            f'/api/v1/approvals/{hr_review_id}',
+            json={'decision': 'rejected', 'comment': 'Needs revision'},
+            headers={'Authorization': f'Bearer {hrbp_token}'},
+        )
+        assert reject_response.status_code == 200
+
+        # Admin resubmits the same recommendation with the same steps
+        resubmit_response = client.post(
+            '/api/v1/approvals/submit',
+            json={
+                'recommendation_id': recommendation_id,
+                'steps': [
+                    {'step_name': 'hr_review', 'approver_id': hrbp_id, 'comment': 'HRBP review'},
+                    {'step_name': 'committee', 'approver_id': manager_id, 'comment': 'Committee review'},
+                ],
+            },
+            headers={'Authorization': f'Bearer {admin_token}'},
+        )
+        assert resubmit_response.status_code == 201
+
+        # History should contain records from BOTH generations (old rejected + new pending)
+        history_response = client.get(
+            f'/api/v1/approvals/recommendations/{recommendation_id}/history',
+            headers={'Authorization': f'Bearer {admin_token}'},
+        )
+        assert history_response.status_code == 200
+        items = history_response.json()['items']
+        # FAILS until Plan 02 adds generation column and preserves old records on resubmit
+        assert len(items) > 2
+
+
+def test_manager_queue_has_dimension_scores() -> None:
+    """APPR-05: Each approval queue item must include a dimension_scores key.
+
+    This test FAILS until Plan 03 extends ApprovalRecordRead schema with dimension_scores.
+    Expected failure: AssertionError or KeyError on 'dimension_scores' missing.
+    """
+    client, context = build_client()
+    with client:
+        register_user(client, email='admin@example.com', role='admin')
+        manager_id = register_user(client, email='mgr2@h.com', role='manager')
+        bind_user_departments(context, email='mgr2@h.com', department_names=['Engineering'])
+
+        admin_token = login_token(client, email='admin@example.com')
+        manager_token = login_token(client, email='mgr2@h.com')
+        recommendation_id, _ = seed_recommendation(context)
+
+        # Admin submits one-step approval with manager as approver
+        submit_response = client.post(
+            '/api/v1/approvals/submit',
+            json={
+                'recommendation_id': recommendation_id,
+                'steps': [
+                    {'step_name': 'manager_review', 'approver_id': manager_id, 'comment': 'Manager review'},
+                ],
+            },
+            headers={'Authorization': f'Bearer {admin_token}'},
+        )
+        assert submit_response.status_code == 201
+
+        # Manager lists pending approvals
+        queue_response = client.get(
+            '/api/v1/approvals',
+            params={'decision': 'pending'},
+            headers={'Authorization': f'Bearer {manager_token}'},
+        )
+        assert queue_response.status_code == 200
+        items = queue_response.json()['items']
+        assert len(items) >= 1
+
+        first_item = items[0]
+        # FAILS until Plan 03 extends the response schema with dimension_scores
+        assert 'dimension_scores' in first_item
+
+
+def test_hrbp_cross_department_queue() -> None:
+    """APPR-06: HRBP with include_all=true should see all pending items regardless of department.
+
+    The HRBP is assigned to Engineering; the seeded employee is also in Engineering.
+    This test asserts that include_all=true surfaces items to HRBP even when the HRBP
+    is not the designated approver. May PASS or FAIL depending on current scoping behavior —
+    either outcome is acceptable as long as it runs without crash.
+    """
+    client, context = build_client()
+    with client:
+        register_user(client, email='admin@example.com', role='admin')
+        hrbp1_id = register_user(client, email='hrbp1@h.com', role='hrbp')
+        bind_user_departments(context, email='hrbp1@h.com', department_names=['Engineering'])
+
+        admin_token = login_token(client, email='admin@example.com')
+        hrbp1_token = login_token(client, email='hrbp1@h.com')
+        recommendation_id, _ = seed_recommendation(context)
+
+        # Admin submits one-step with hrbp1 as approver
+        submit_response = client.post(
+            '/api/v1/approvals/submit',
+            json={
+                'recommendation_id': recommendation_id,
+                'steps': [
+                    {'step_name': 'hr_review', 'approver_id': hrbp1_id, 'comment': 'HRBP1 review'},
+                ],
+            },
+            headers={'Authorization': f'Bearer {admin_token}'},
+        )
+        assert submit_response.status_code == 201
+
+        # Admin sees all items with include_all=true
+        admin_queue = client.get(
+            '/api/v1/approvals?include_all=true',
+            headers={'Authorization': f'Bearer {admin_token}'},
+        )
+        assert admin_queue.status_code == 200
+        assert admin_queue.json()['total'] >= 1
+
+        # HRBP with include_all=true should also see items from their department
+        hrbp_queue = client.get(
+            '/api/v1/approvals?include_all=true',
+            headers={'Authorization': f'Bearer {hrbp1_token}'},
+        )
+        assert hrbp_queue.status_code == 200
+        # FAILS until Plan 02/03 fix include_all scoping for HRBP role
+        assert len(hrbp_queue.json()['items']) >= 1
+
 
 
