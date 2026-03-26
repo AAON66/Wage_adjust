@@ -43,12 +43,12 @@
 
 ### 审批工作流
 
-- [ ] **APPR-01**：`decide_approval` 使用 `SELECT ... FOR UPDATE` 悲观锁，防止两个审批人同时操作时的竞态条件
-- [ ] **APPR-02**：已审批的评估被退回修改后重新提交，不覆盖原有审批步骤记录，保留完整修改历史
-- [ ] **APPR-03**：每次审批操作（通过、拒绝、退回修改、覆写）均写入 `AuditLog`，现有 `ApprovalService` 接入审计日志
-- [ ] **APPR-04**：每次调薪建议变更（系统建议值 vs 最终审批值）均写入 `AuditLog`
-- [ ] **APPR-05**：管理员可查看自己权限范围内的待审批评估列表，支持按状态、员工、部门筛选
-- [ ] **APPR-06**：HR/HRBP 可跨部门查看所有评估，支持相同筛选条件及跨部门对比
+- [x] **APPR-01**：`decide_approval` 使用 `SELECT ... FOR UPDATE` 悲观锁，防止两个审批人同时操作时的竞态条件
+- [x] **APPR-02**：已审批的评估被退回修改后重新提交，不覆盖原有审批步骤记录，保留完整修改历史
+- [x] **APPR-03**：每次审批操作（通过、拒绝、退回修改、覆写）均写入 `AuditLog`，现有 `ApprovalService` 接入审计日志
+- [x] **APPR-04**：每次调薪建议变更（系统建议值 vs 最终审批值）均写入 `AuditLog`
+- [x] **APPR-05**：管理员可查看自己权限范围内的待审批评估列表，支持按状态、员工、部门筛选
+- [x] **APPR-06**：HR/HRBP 可跨部门查看所有评估，支持相同筛选条件及跨部门对比
 - [ ] **APPR-07**：审批界面在调薪建议旁展示完整评估明细（5 个维度 + 分数 + 说明），为审批人提供决策依据
 
 ### 审计日志与可追溯性
@@ -146,12 +146,12 @@
 | EVAL-06 | Phase 2 | Complete |
 | EVAL-07 | Phase 2 | Complete |
 | EVAL-08 | Phase 2 | Complete |
-| APPR-01 | Phase 3 | Pending |
-| APPR-02 | Phase 3 | Pending |
-| APPR-03 | Phase 3 | Pending |
-| APPR-04 | Phase 3 | Pending |
-| APPR-05 | Phase 3 | Pending |
-| APPR-06 | Phase 3 | Pending |
+| APPR-01 | Phase 3 | Complete |
+| APPR-02 | Phase 3 | Complete |
+| APPR-03 | Phase 3 | Complete |
+| APPR-04 | Phase 3 | Complete |
+| APPR-05 | Phase 3 | Complete |
+| APPR-06 | Phase 3 | Complete |
 | APPR-07 | Phase 3 | Pending |
 | AUDIT-01 | Phase 4 | Pending |
 | AUDIT-02 | Phase 4 | Pending |

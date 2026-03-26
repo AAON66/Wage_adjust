@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 02-01-PLAN.md (evaluation pipeline integrity)
-last_updated: "2026-03-26T07:09:33.679Z"
+status: Ready to execute
+stopped_at: Completed 03-01-PLAN.md (approval workflow failing test stubs)
+last_updated: "2026-03-26T08:07:27.616Z"
 progress:
   total_phases: 10
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 02 — evaluation-pipeline-integrity
+**Current focus:** Phase 03 — approval-workflow-correctness
 
 ## Current Position
 
-Phase: 3
-Plan: Not started
+Phase: 03 (approval-workflow-correctness) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: Not started
 | Phase 01-security-hardening-and-schema-integrity P04 | 4min | 1 tasks | 3 files |
 | Phase 01-security-hardening-and-schema-integrity P05 | 12 | 2 tasks | 5 files |
 | Phase 02-evaluation-pipeline-integrity P01 | 11 | 7 tasks | 13 files |
+| Phase 03-approval-workflow-correctness P01 | 20min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 02-evaluation-pipeline-integrity]: Five-point scale detection requires >=3 dimension scores (not just any non-empty list) to prevent false positive score inflation
 - [Phase 02-evaluation-pipeline-integrity]: Ambiguous overall_score (dims=100pt, overall<=5) is discarded rather than multiplied; falls to weighted_total path
 - [Phase 02-evaluation-pipeline-integrity]: ParseService.deepseek_service is optional DI parameter (not required), preserving backward compatibility with existing call sites
+- [Phase 03-approval-workflow-correctness]: Department scope binding required in service tests: list_approvals calls can_access_employee; hrbp/manager users must be bound to employee's department before list_approvals returns non-empty results
+- [Phase 03-approval-workflow-correctness]: test_hrbp_cross_department_queue passes immediately: include_all=true for HRBP already surfaces items when HRBP is the designated approver sharing the employee department
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T06:10:52.478Z
-Stopped at: Completed 02-01-PLAN.md (evaluation pipeline integrity)
+Last session: 2026-03-26T08:07:27.612Z
+Stopped at: Completed 03-01-PLAN.md (approval workflow failing test stubs)
 Resume file: None
