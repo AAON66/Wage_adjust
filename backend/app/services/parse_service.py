@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from posixpath import basename
 import re
+from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import Session
 
@@ -12,26 +14,65 @@ from backend.app.models.evidence import EvidenceItem
 from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
 from backend.app.parsers import CodeParser, DocumentParser, ImageParser, PPTParser
-from backend.app.parsers.base_parser import BaseParser
+from backend.app.parsers.base_parser import BaseParser, ParsedDocument
 from backend.app.services.evidence_service import EvidenceService, RequiredLLMError
+
+if TYPE_CHECKING:
+    from backend.app.services.llm_service import DeepSeekService
+
+logger = logging.getLogger(__name__)
 
 
 ARCHIVE_SECTION_PATTERN = re.compile(r'(^|\n\n)File:\s(?P<path>[^\n]+)\n', re.MULTILINE)
 DEFAULT_ARCHIVE_EVIDENCE_ITEMS = 24
 
 
+IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg'}
+
+
 class ParseService:
-    def __init__(self, db: Session, settings: Settings):
+    def __init__(self, db: Session, settings: Settings, *, deepseek_service: DeepSeekService | None = None):
         self.db = db
         self.settings = settings
         self.storage = LocalStorageService(settings)
         self.evidence_service = EvidenceService(settings)
+        self.deepseek_service = deepseek_service
         self.parsers: list[BaseParser] = [
             PPTParser(),
             ImageParser(),
             CodeParser(settings),
             DocumentParser(),
         ]
+
+    def _enrich_image_document(self, parsed: ParsedDocument, file_path: Path) -> ParsedDocument:
+        """Attempt to extract text from an image using DeepSeek vision API.
+
+        Returns a new ParsedDocument with extracted text if successful.
+        If DeepSeek is unavailable or the call fails, returns the original document
+        with metadata.ocr_skipped=True.
+        """
+        if self.deepseek_service is None:
+            return ParsedDocument(
+                text='',
+                title=parsed.title,
+                metadata={**parsed.metadata, 'ocr_skipped': True, 'reason': 'deepseek_not_configured'},
+            )
+        try:
+            result = self.deepseek_service.extract_image_text(file_path)
+            if not result.used_fallback and result.payload.get('has_text'):
+                extracted_text = str(result.payload.get('extracted_text', ''))
+                return ParsedDocument(
+                    text=extracted_text,
+                    title=parsed.title,
+                    metadata={**parsed.metadata, 'ocr_source': 'deepseek_vision'},
+                )
+        except Exception as exc:
+            logger.warning('Image OCR via DeepSeek failed for %s: %s', file_path.name, exc)
+        return ParsedDocument(
+            text='',
+            title=parsed.title,
+            metadata={**parsed.metadata, 'ocr_skipped': True, 'reason': 'deepseek_not_configured'},
+        )
 
     def _pick_parser(self, path: Path) -> BaseParser | None:
         for parser in self.parsers:
@@ -134,6 +175,9 @@ class ParseService:
 
         try:
             parsed = parser.parse(path)
+            # Enrich image documents with real OCR text via DeepSeek vision API
+            if path.suffix.lower() in IMAGE_EXTENSIONS:
+                parsed = self._enrich_image_document(parsed, path)
             evidence_items = self._upsert_evidence(file_record, path=path, parsed=parsed)
             file_record.parse_status = 'parsed'
             submission = self.db.get(EmployeeSubmission, file_record.submission_id)

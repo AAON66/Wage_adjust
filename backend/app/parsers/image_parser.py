@@ -16,7 +16,7 @@ class ImageParser(BaseParser):
             mode = image.mode
 
         return ParsedDocument(
-            text=f'Image asset {path.name} with dimensions {width}x{height} and color mode {mode}. OCR is reserved for a later task.',
+            text='',
             title=path.name,
             metadata={'width': width, 'height': height, 'mode': mode, 'extension': path.suffix.lower()},
         )

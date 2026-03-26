@@ -263,9 +263,9 @@ def test_image_ocr_deepseek_called():
     from backend.app.services.llm_service import DeepSeekCallResult, DeepSeekService
     from backend.app.services.parse_service import ParseService
 
-    settings = build_test_settings()
+    # Don't require real LLM for evidence extraction so only image OCR is exercised
+    settings = build_test_settings(deepseek_require_real_call_for_parsing=False)
     _, session_factory = build_context(settings)
-    db = session_factory()
 
     from backend.app.models.uploaded_file import UploadedFile
 
@@ -279,15 +279,11 @@ def test_image_ocr_deepseek_called():
     img_path = uploads_dir / storage_key
     img.save(str(img_path))
 
-    # Seed a file record
-    _, session_factory = build_context(settings)
-    db = session_factory()
     db2, submission = seed_submission(session_factory)
     file_record = UploadedFile(
         submission_id=submission.id,
         file_name=storage_key,
         storage_key=storage_key,
-        file_size=img_path.stat().st_size,
         file_type='png',
         parse_status='pending',
     )
@@ -295,7 +291,7 @@ def test_image_ocr_deepseek_called():
     db2.commit()
     db2.refresh(file_record)
 
-    # Mock DeepSeekService
+    # Mock DeepSeekService — extract_image_text returns real text
     mock_llm = MagicMock(spec=DeepSeekService)
     mock_llm.extract_image_text.return_value = DeepSeekCallResult(
         payload={'has_text': True, 'extracted_text': 'Sample extracted text from image'},
@@ -333,7 +329,6 @@ def test_image_ocr_fallback_on_no_deepseek():
         submission_id=submission.id,
         file_name=storage_key,
         storage_key=storage_key,
-        file_size=img_path.stat().st_size,
         file_type='png',
         parse_status='pending',
     )
