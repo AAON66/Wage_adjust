@@ -49,7 +49,7 @@
 - [x] **APPR-04**：每次调薪建议变更（系统建议值 vs 最终审批值）均写入 `AuditLog`
 - [x] **APPR-05**：管理员可查看自己权限范围内的待审批评估列表，支持按状态、员工、部门筛选
 - [x] **APPR-06**：HR/HRBP 可跨部门查看所有评估，支持相同筛选条件及跨部门对比
-- [ ] **APPR-07**：审批界面在调薪建议旁展示完整评估明细（5 个维度 + 分数 + 说明），为审批人提供决策依据
+- [x] **APPR-07**：审批界面在调薪建议旁展示完整评估明细（5 个维度 + 分数 + 说明），为审批人提供决策依据
 
 ### 审计日志与可追溯性
 
@@ -152,7 +152,7 @@
 | APPR-04 | Phase 3 | Complete |
 | APPR-05 | Phase 3 | Complete |
 | APPR-06 | Phase 3 | Complete |
-| APPR-07 | Phase 3 | Pending |
+| APPR-07 | Phase 3 | Complete |
 | AUDIT-01 | Phase 4 | Pending |
 | AUDIT-02 | Phase 4 | Pending |
 | AUDIT-03 | Phase 4 | Pending |
