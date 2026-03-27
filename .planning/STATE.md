@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Phase complete — ready for verification
-stopped_at: Completed 04-01-PLAN.md (audit log RED baseline)
-last_updated: "2026-03-27T00:34:56.426Z"
+stopped_at: Completed 04-02-PLAN.md (audit log GREEN implementation)
+last_updated: "2026-03-27T01:00:43.344Z"
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 10
-  completed_plans: 10
+  completed_plans: 11
 ---
 
 # Project State
@@ -56,6 +56,7 @@ Plan: 3 of 3
 | Phase 03-approval-workflow-correctness P02 | 27min | 3 tasks | 4 files |
 | Phase 03-approval-workflow-correctness P03 | 6min | 2 tasks | 5 files |
 | Phase 04-audit-log-wiring P01 | 4min | 2 tasks | 2 files |
+| Phase 04-audit-log-wiring P02 | 26min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,8 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 03-approval-workflow-correctness]: dimension_scores defaults to [] in ApprovalRecordRead so existing callers require no changes
 - [Phase 04-audit-log-wiring]: test_audit_atomicity uses db.add monkey-patch to simulate audit write failure without new operator= param
 - [Phase 04-audit-log-wiring]: API tests assert expected status codes against missing endpoint — all get 404, producing clear AssertionError gap messages
+- [Phase 04-audit-log-wiring]: AuditLog action names use 'manual_review'/'hr_review'/'evaluation_confirmed' (not 'evaluation_score_changed') to match test assertions; target_type='evaluation'
+- [Phase 04-audit-log-wiring]: RequestIdMiddleware registered after CORSMiddleware in register_middlewares() so it runs first on inbound requests (Starlette reverse order)
 
 ### Pending Todos
 
@@ -102,6 +105,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T00:34:56.421Z
-Stopped at: Completed 04-01-PLAN.md (audit log RED baseline)
+Last session: 2026-03-27T01:00:43.339Z
+Stopped at: Completed 04-02-PLAN.md (audit log GREEN implementation)
 Resume file: None

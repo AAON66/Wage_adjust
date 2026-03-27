@@ -91,7 +91,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 04-01-PLAN.md — Wave 0 test stubs for AUDIT-01, AUDIT-02, AUDIT-03 (RED baseline)
-- [ ] 04-02-PLAN.md — Alembic migration, RequestIdMiddleware, evaluation/salary service audit wiring
+- [x] 04-02-PLAN.md — Alembic migration, RequestIdMiddleware, evaluation/salary service audit wiring
 - [ ] 04-03-PLAN.md — AuditService query layer, GET /api/v1/audit/ endpoint, admin AuditLog UI page
 **UI hint**: yes
 
