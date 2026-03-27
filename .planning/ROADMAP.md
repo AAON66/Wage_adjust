@@ -60,9 +60,9 @@ Plans:
   5. Each stored dimension score carries the SHA-256 hash of the prompt that produced it, enabling reproducibility audits
 **Plans**: 6 plans
 Plans:
-- [ ] 02-01-PLAN.md — Wave 1: Schema migration — prompt_hash on dimension_scores, used_fallback on ai_evaluations (EVAL-05, EVAL-06)
-- [ ] 02-02-PLAN.md — Wave 2: LLM service hardening — exponential backoff retry, Redis rate limiter, prompt_hash in DeepSeekCallResult (EVAL-01, EVAL-02, EVAL-05)
-- [ ] 02-03-PLAN.md — Wave 2: Image OCR via DeepSeek vision API — clear stub, add extract_image_text, wire through ParseService (EVAL-03)
+- [x] 02-01-PLAN.md — Wave 1: Schema migration — prompt_hash on dimension_scores, used_fallback on ai_evaluations (EVAL-05, EVAL-06)
+- [x] 02-02-PLAN.md — Wave 2: LLM service hardening — exponential backoff retry, Redis rate limiter, prompt_hash in DeepSeekCallResult (EVAL-01, EVAL-02, EVAL-05)
+- [x] 02-03-PLAN.md — Wave 2: Image OCR via DeepSeek vision API — clear stub, add extract_image_text, wire through ParseService (EVAL-03)
 - [ ] 02-04-PLAN.md — Wave 2: Scale normalization fix, used_fallback + prompt_hash storage wiring, prompt safety extension (EVAL-04, EVAL-07, EVAL-08)
 - [ ] 02-05-PLAN.md — Wave 3: Frontend — fallback banner + read-only dimension summary panel in EvaluationDetail (EVAL-06, EVAL-07)
 - [ ] 02-06-PLAN.md — Wave 3: Unit tests — 22 tests covering all 8 EVAL requirements, no live API required (EVAL-01 through EVAL-08)

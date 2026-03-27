@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Phase complete — ready for verification
-stopped_at: Completed 04-03-PLAN.md (audit log query API + admin frontend)
-last_updated: "2026-03-27T01:11:00.179Z"
+status: Ready to execute
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-27T09:25:25.997Z"
 progress:
   total_phases: 10
-  completed_phases: 4
-  total_plans: 10
-  completed_plans: 12
+  completed_phases: 3
+  total_plans: 19
+  completed_plans: 14
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 03 — approval-workflow-correctness
+**Current focus:** Phase 02 — evaluation-pipeline-integrity
 
 ## Current Position
 
-Phase: 03 (approval-workflow-correctness) — EXECUTING
-Plan: 3 of 3
+Phase: 02 (evaluation-pipeline-integrity) — EXECUTING
+Plan: 3 of 6
 
 ## Performance Metrics
 
@@ -58,6 +58,8 @@ Plan: 3 of 3
 | Phase 04-audit-log-wiring P01 | 4min | 2 tasks | 2 files |
 | Phase 04-audit-log-wiring P02 | 26min | 2 tasks | 9 files |
 | Phase 04-audit-log-wiring P03 | 8min | 2 tasks | 9 files |
+| Phase 02 P02 | 8min | 2 tasks | 3 files |
+| Phase 02-evaluation-pipeline-integrity P03 | 8min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -94,6 +96,11 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 04-audit-log-wiring]: AuditLog action names use 'manual_review'/'hr_review'/'evaluation_confirmed' (not 'evaluation_score_changed') to match test assertions; target_type='evaluation'
 - [Phase 04-audit-log-wiring]: RequestIdMiddleware registered after CORSMiddleware in register_middlewares() so it runs first on inbound requests (Starlette reverse order)
 - [Phase 04-audit-log-wiring]: AuditService.query() returns tuple[list[AuditLog], int]; GET /api/v1/audit/ admin-only; frontend uses plain HTML table with offset/limit pagination
+- [Phase 02]: Full-jitter exponential backoff replaces linear 0.2*n sleep to avoid thundering herd
+- [Phase 02]: Redis rate limiter uses uuid4() in sorted-set member to prevent concurrent timestamp collision
+- [Phase 02]: _DEEPSEEK_REDIS_DEGRADED module-level flag allows health checks to detect degraded mode
+- [Phase 02-evaluation-pipeline-integrity]: ParseService.deepseek_service is optional DI parameter (not required), preserving backward compatibility with existing call sites
+- [Phase 02-evaluation-pipeline-integrity]: Image OCR always uses deepseek-chat model (not configurable) since vision requires multimodal support
 
 ### Pending Todos
 
@@ -107,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T01:11:00.176Z
-Stopped at: Completed 04-03-PLAN.md (audit log query API + admin frontend)
+Last session: 2026-03-27T09:25:10.333Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
