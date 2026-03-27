@@ -90,7 +90,7 @@ Plans:
   3. Each audit log entry contains entity type, entity ID, operation type, operator user ID and role, old value, new value, timestamp, and request ID
 **Plans**: 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — Wave 0 test stubs for AUDIT-01, AUDIT-02, AUDIT-03 (RED baseline)
+- [x] 04-01-PLAN.md — Wave 0 test stubs for AUDIT-01, AUDIT-02, AUDIT-03 (RED baseline)
 - [ ] 04-02-PLAN.md — Alembic migration, RequestIdMiddleware, evaluation/salary service audit wiring
 - [ ] 04-03-PLAN.md — AuditService query layer, GET /api/v1/audit/ endpoint, admin AuditLog UI page
 **UI hint**: yes
@@ -181,7 +181,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
 | 2. Evaluation Pipeline Integrity | 0/1 | Not started | - |
 | 3. Approval Workflow Correctness | 0/3 | Not started | - |
-| 4. Audit Log Wiring | 0/3 | Not started | - |
+| 4. Audit Log Wiring | 1/3 | In Progress|  |
 | 5. Document Deduplication and Multi-Author | 0/TBD | Not started | - |
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
 | 7. Dashboard and Cache Layer | 0/TBD | Not started | - |

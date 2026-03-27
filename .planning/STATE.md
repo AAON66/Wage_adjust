@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Phase complete — ready for verification
-stopped_at: Completed 03-03-PLAN.md (dimension scores in approval queue)
-last_updated: "2026-03-27T00:09:26.164Z"
+stopped_at: Completed 04-01-PLAN.md (audit log RED baseline)
+last_updated: "2026-03-27T00:34:56.426Z"
 progress:
   total_phases: 10
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 9
+  total_plans: 10
+  completed_plans: 10
 ---
 
 # Project State
@@ -55,6 +55,7 @@ Plan: 3 of 3
 | Phase 03-approval-workflow-correctness P01 | 20min | 2 tasks | 3 files |
 | Phase 03-approval-workflow-correctness P02 | 27min | 3 tasks | 4 files |
 | Phase 03-approval-workflow-correctness P03 | 6min | 2 tasks | 5 files |
+| Phase 04-audit-log-wiring P01 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 03-approval-workflow-correctness]: submit_for_approval resubmit: new_generation = current_generation + 1 only when any current-gen record has decision != pending
 - [Phase 03-approval-workflow-correctness]: DimensionScoreRead already existed in evaluation.py — imported directly into approval schema, not redefined
 - [Phase 03-approval-workflow-correctness]: dimension_scores defaults to [] in ApprovalRecordRead so existing callers require no changes
+- [Phase 04-audit-log-wiring]: test_audit_atomicity uses db.add monkey-patch to simulate audit write failure without new operator= param
+- [Phase 04-audit-log-wiring]: API tests assert expected status codes against missing endpoint — all get 404, producing clear AssertionError gap messages
 
 ### Pending Todos
 
@@ -99,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T00:09:26.161Z
-Stopped at: Completed 03-03-PLAN.md (dimension scores in approval queue)
+Last session: 2026-03-27T00:34:56.421Z
+Stopped at: Completed 04-01-PLAN.md (audit log RED baseline)
 Resume file: None

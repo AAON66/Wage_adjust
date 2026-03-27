@@ -53,9 +53,9 @@
 
 ### 审计日志与可追溯性
 
-- [ ] **AUDIT-01**：每次评估分数变更、审批决定、薪资覆写均写入 `AuditLog`，包含：实体类型、实体 ID、操作类型、操作人（用户 ID + 角色）、旧值、新值、时间戳、请求 ID
-- [ ] **AUDIT-02**：管理员可通过 `GET /api/v1/audit/` 按实体、操作人、操作类型和日期范围查询审计日志
-- [ ] **AUDIT-03**：审计日志写入与业务变更在同一数据库事务中提交，不存在"业务成功但日志未写入"的窗口期
+- [x] **AUDIT-01**：每次评估分数变更、审批决定、薪资覆写均写入 `AuditLog`，包含：实体类型、实体 ID、操作类型、操作人（用户 ID + 角色）、旧值、新值、时间戳、请求 ID
+- [x] **AUDIT-02**：管理员可通过 `GET /api/v1/audit/` 按实体、操作人、操作类型和日期范围查询审计日志
+- [x] **AUDIT-03**：审计日志写入与业务变更在同一数据库事务中提交，不存在"业务成功但日志未写入"的窗口期
 
 ### 批量导入
 
@@ -153,9 +153,9 @@
 | APPR-05 | Phase 3 | Complete |
 | APPR-06 | Phase 3 | Complete |
 | APPR-07 | Phase 3 | Complete |
-| AUDIT-01 | Phase 4 | Pending |
-| AUDIT-02 | Phase 4 | Pending |
-| AUDIT-03 | Phase 4 | Pending |
+| AUDIT-01 | Phase 4 | Complete |
+| AUDIT-02 | Phase 4 | Complete |
+| AUDIT-03 | Phase 4 | Complete |
 | SUB-01 | Phase 5 | Pending |
 | SUB-02 | Phase 5 | Pending |
 | SUB-03 | Phase 5 | Pending |
