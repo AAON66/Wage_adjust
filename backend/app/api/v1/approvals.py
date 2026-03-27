@@ -17,6 +17,7 @@ from backend.app.schemas.approval import (
     CalibrationQueueItem,
     CalibrationQueueResponse,
 )
+from backend.app.schemas.evaluation import DimensionScoreRead
 from backend.app.services.access_scope_service import AccessScopeService
 from backend.app.services.approval_service import ApprovalService
 
@@ -29,6 +30,10 @@ def serialize_approval_with_service(record, service: ApprovalService) -> Approva
     submission = evaluation.submission
     employee = submission.employee
     cycle = submission.cycle
+    dimension_scores = [
+        DimensionScoreRead.model_validate(ds)
+        for ds in (evaluation.dimension_scores or [])
+    ]
     return ApprovalRecordRead(
         id=record.id,
         recommendation_id=recommendation.id,
@@ -56,6 +61,7 @@ def serialize_approval_with_service(record, service: ApprovalService) -> Approva
         defer_until=recommendation.defer_until,
         defer_target_score=recommendation.defer_target_score,
         defer_reason=recommendation.defer_reason,
+        dimension_scores=dimension_scores,
     )
 
 

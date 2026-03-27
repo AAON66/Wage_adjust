@@ -31,6 +31,9 @@ class ApprovalService:
                 .selectinload(SalaryRecommendation.evaluation)
                 .selectinload(AIEvaluation.submission)
                 .selectinload(EmployeeSubmission.cycle),
+                selectinload(ApprovalRecord.recommendation)
+                .selectinload(SalaryRecommendation.evaluation)
+                .selectinload(AIEvaluation.dimension_scores),
             )
         )
 

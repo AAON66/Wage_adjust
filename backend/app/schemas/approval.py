@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend.app.schemas.evaluation import DimensionScoreRead
+
 
 class ApprovalStepCreate(BaseModel):
     step_name: str = Field(min_length=1, max_length=64)
@@ -57,6 +59,7 @@ class ApprovalRecordRead(BaseModel):
     defer_until: datetime | None = None
     defer_target_score: float | None = None
     defer_reason: str | None = None
+    dimension_scores: list[DimensionScoreRead] = []
 
 
 class ApprovalListResponse(BaseModel):
