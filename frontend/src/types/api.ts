@@ -352,6 +352,7 @@ export interface ApprovalRecord {
   defer_until: string | null;
   defer_target_score: number | null;
   defer_reason: string | null;
+  dimension_scores: DimensionScoreRecord[];
 }
 
 export interface ApprovalListResponse {

@@ -672,6 +672,40 @@ export function ApprovalsPage() {
                 </div>
               </div>
 
+              <div>
+                <div className="text-sm font-semibold text-ink">评估维度明细</div>
+                {selectedApproval.dimension_scores && selectedApproval.dimension_scores.length > 0 ? (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr>
+                          <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2 pr-4">维度代码</th>
+                          <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2 pr-4">权重</th>
+                          <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2 pr-4">原始得分</th>
+                          <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2 pr-4">加权得分</th>
+                          <th className="text-left text-xs font-medium text-gray-500 uppercase pb-2">AI说明</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedApproval.dimension_scores.map((ds) => (
+                          <tr key={ds.id}>
+                            <td className="py-1 pr-4 text-gray-700">{ds.dimension_code}</td>
+                            <td className="py-1 pr-4 text-gray-700">{(ds.weight * 100).toFixed(0)}%</td>
+                            <td className="py-1 pr-4 text-gray-700">{ds.raw_score.toFixed(1)}</td>
+                            <td className="py-1 pr-4 text-gray-700">{ds.weighted_score.toFixed(2)}</td>
+                            <td className="py-1 text-gray-500 text-xs max-w-xs">
+                              {ds.ai_rationale.length > 60 ? ds.ai_rationale.slice(0, 60) + '…' : ds.ai_rationale}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400 mt-2">暂无维度评分数据</p>
+                )}
+              </div>
+
               <div className="grid gap-2">
                 <div className="text-sm font-semibold text-ink">审批动作</div>
                 <div className="flex flex-wrap gap-2">
