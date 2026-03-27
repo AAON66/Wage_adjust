@@ -58,9 +58,14 @@ Plans:
   3. Image files uploaded as evidence produce real extracted text content for LLM evaluation (not the current "OCR reserved" stub)
   4. Re-running an evaluation on the same submission does not silently inflate scores due to 5-point vs 100-point scale ambiguity
   5. Each stored dimension score carries the SHA-256 hash of the prompt that produced it, enabling reproducibility audits
-**Plans**: 1 plan
+**Plans**: 6 plans
 Plans:
-- [x] 02-01-PLAN.md — Schema migration, LLM retry/Redis rate limiter, image OCR, scale fix, prompt hash, fallback banner, dimension UI, prompt safety
+- [ ] 02-01-PLAN.md — Wave 1: Schema migration — prompt_hash on dimension_scores, used_fallback on ai_evaluations (EVAL-05, EVAL-06)
+- [ ] 02-02-PLAN.md — Wave 2: LLM service hardening — exponential backoff retry, Redis rate limiter, prompt_hash in DeepSeekCallResult (EVAL-01, EVAL-02, EVAL-05)
+- [ ] 02-03-PLAN.md — Wave 2: Image OCR via DeepSeek vision API — clear stub, add extract_image_text, wire through ParseService (EVAL-03)
+- [ ] 02-04-PLAN.md — Wave 2: Scale normalization fix, used_fallback + prompt_hash storage wiring, prompt safety extension (EVAL-04, EVAL-07, EVAL-08)
+- [ ] 02-05-PLAN.md — Wave 3: Frontend — fallback banner + read-only dimension summary panel in EvaluationDetail (EVAL-06, EVAL-07)
+- [ ] 02-06-PLAN.md — Wave 3: Unit tests — 22 tests covering all 8 EVAL requirements, no live API required (EVAL-01 through EVAL-08)
 **UI hint**: yes
 
 ### Phase 3: Approval Workflow Correctness
@@ -179,7 +184,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
-| 2. Evaluation Pipeline Integrity | 0/1 | Not started | - |
+| 2. Evaluation Pipeline Integrity | 0/6 | Not started | - |
 | 3. Approval Workflow Correctness | 0/3 | Not started | - |
 | 4. Audit Log Wiring | 1/3 | In Progress|  |
 | 5. Document Deduplication and Multi-Author | 0/TBD | Not started | - |
