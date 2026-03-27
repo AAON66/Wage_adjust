@@ -92,7 +92,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — Wave 0 test stubs for AUDIT-01, AUDIT-02, AUDIT-03 (RED baseline)
 - [x] 04-02-PLAN.md — Alembic migration, RequestIdMiddleware, evaluation/salary service audit wiring
-- [ ] 04-03-PLAN.md — AuditService query layer, GET /api/v1/audit/ endpoint, admin AuditLog UI page
+- [x] 04-03-PLAN.md — AuditService query layer, GET /api/v1/audit/ endpoint, admin AuditLog UI page
 **UI hint**: yes
 
 ### Phase 5: Document Deduplication and Multi-Author
