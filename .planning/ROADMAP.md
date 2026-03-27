@@ -110,7 +110,12 @@ Plans:
   3. A co-contributor can see the shared project in their own materials list and upload supplementary files to it
   4. When AI evaluates a shared project worth 80 points, a contributor with 60% share receives a 48-point effective score for that project
   5. The approval review screen shows all co-contributors and their contribution percentages for any shared project
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 05-01-PLAN.md — Schema migration + ProjectContributor model + UploadedFile extension + RED test stubs (SUB-01..SUB-05)
+- [ ] 05-02-PLAN.md — FileService dedup logic + contributor management + API endpoint update (SUB-01, SUB-02, SUB-03)
+- [ ] 05-03-PLAN.md — EvaluationService score scaling + ApprovalService contributor display (SUB-04, SUB-05)
+- [ ] 05-04-PLAN.md — Frontend: ContributorPicker, dedup UX, approval ContributorTags (SUB-01, SUB-02, SUB-03, SUB-05)
 **UI hint**: yes
 
 ### Phase 6: Batch Import Reliability
@@ -187,7 +192,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 2. Evaluation Pipeline Integrity | 4/6 | In Progress|  |
 | 3. Approval Workflow Correctness | 0/3 | Not started | - |
 | 4. Audit Log Wiring | 1/3 | In Progress|  |
-| 5. Document Deduplication and Multi-Author | 0/TBD | Not started | - |
+| 5. Document Deduplication and Multi-Author | 0/4 | Not started | - |
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
 | 7. Dashboard and Cache Layer | 0/TBD | Not started | - |
 | 8. Employee Self-Service UI | 0/TBD | Not started | - |
