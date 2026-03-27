@@ -76,7 +76,7 @@ Plans:
 **Plans**: 3 plans
 Plans:
 - [x] 03-01-PLAN.md — Wave 0 test stubs for APPR-01 through APPR-06 (RED baseline)
-- [ ] 03-02-PLAN.md — Alembic migration (generation column), pessimistic lock, history preservation, audit log wiring
+- [x] 03-02-PLAN.md — Alembic migration (generation column), pessimistic lock, history preservation, audit log wiring
 - [ ] 03-03-PLAN.md — Dimension scores in approval response schema + Approvals.tsx panel + human smoke test
 **UI hint**: yes
 

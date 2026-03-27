@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 03-01-PLAN.md (approval workflow failing test stubs)
-last_updated: "2026-03-26T08:07:27.616Z"
+stopped_at: Completed 03-02-PLAN.md (approval workflow backend fixes)
+last_updated: "2026-03-27T00:01:41.735Z"
 progress:
   total_phases: 10
   completed_phases: 3
   total_plans: 7
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 03 (approval-workflow-correctness) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: 2 of 3
 | Phase 01-security-hardening-and-schema-integrity P05 | 12 | 2 tasks | 5 files |
 | Phase 02-evaluation-pipeline-integrity P01 | 11 | 7 tasks | 13 files |
 | Phase 03-approval-workflow-correctness P01 | 20min | 2 tasks | 3 files |
+| Phase 03-approval-workflow-correctness P02 | 27min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,8 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 02-evaluation-pipeline-integrity]: ParseService.deepseek_service is optional DI parameter (not required), preserving backward compatibility with existing call sites
 - [Phase 03-approval-workflow-correctness]: Department scope binding required in service tests: list_approvals calls can_access_employee; hrbp/manager users must be bound to employee's department before list_approvals returns non-empty results
 - [Phase 03-approval-workflow-correctness]: test_hrbp_cross_department_queue passes immediately: include_all=true for HRBP already surfaces items when HRBP is the designated approver sharing the employee department
+- [Phase 03-approval-workflow-correctness]: Actual UniqueConstraint name in DB is uq_approval_records_recommendation_id — drop_constraint uses this name in migration
+- [Phase 03-approval-workflow-correctness]: submit_for_approval resubmit: new_generation = current_generation + 1 only when any current-gen record has decision != pending
 
 ### Pending Todos
 
@@ -93,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-26T08:07:27.612Z
-Stopped at: Completed 03-01-PLAN.md (approval workflow failing test stubs)
+Last session: 2026-03-27T00:01:41.732Z
+Stopped at: Completed 03-02-PLAN.md (approval workflow backend fixes)
 Resume file: None
