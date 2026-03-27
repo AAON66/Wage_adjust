@@ -7,10 +7,12 @@ from sqlalchemy.orm import Session, selectinload
 
 from backend.app.core.config import Settings, get_settings
 from backend.app.engines.evaluation_engine import EvaluationEngine, EvaluatedDimension, EvaluationResult
+from backend.app.models.audit_log import AuditLog
 from backend.app.models.dimension_score import DimensionScore
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evidence import EvidenceItem
 from backend.app.models.submission import EmployeeSubmission
+from backend.app.models.user import User
 from backend.app.services.llm_service import DeepSeekService
 
 MANAGER_ALIGNMENT_THRESHOLD = 10.0
@@ -318,10 +320,15 @@ class EvaluationService:
         overall_score: float | None,
         explanation: str | None,
         dimension_updates: list[dict[str, object]],
+        operator: User | None = None,
+        request_id: str | None = None,
     ) -> AIEvaluation | None:
         evaluation = self.get_evaluation(evaluation_id)
         if evaluation is None:
             return None
+
+        old_score = float(evaluation.overall_score)
+        old_level = evaluation.ai_level
 
         if dimension_updates:
             score_map = {
@@ -367,6 +374,21 @@ class EvaluationService:
             )
 
         self.db.add(evaluation)
+        self.db.add(AuditLog(
+            operator_id=operator.id if operator else None,
+            operator_role=operator.role if operator else None,
+            action='manual_review',
+            target_type='evaluation',
+            target_id=evaluation_id,
+            request_id=request_id,
+            detail={
+                'old_overall_score': old_score,
+                'new_overall_score': float(evaluation.overall_score),
+                'old_ai_level': old_level,
+                'new_ai_level': evaluation.ai_level,
+                'source': 'manual_review',
+            },
+        ))
         self.db.commit()
         return self.get_evaluation(evaluation.id)
 
@@ -377,6 +399,8 @@ class EvaluationService:
         decision: str,
         comment: str | None,
         final_score: float | None,
+        operator: User | None = None,
+        request_id: str | None = None,
     ) -> AIEvaluation | None:
         evaluation = self.get_evaluation(evaluation_id)
         if evaluation is None:
@@ -385,6 +409,9 @@ class EvaluationService:
             raise ValueError('Evaluation is not waiting for HR review.')
         if evaluation.manager_score is None:
             raise ValueError('Manager score is required before HR review.')
+
+        old_score = float(evaluation.overall_score)
+        old_decision = evaluation.hr_decision
 
         normalized_decision = decision.strip().lower()
         if normalized_decision not in {'approved', 'returned'}:
@@ -407,10 +434,31 @@ class EvaluationService:
             evaluation.explanation = comment or 'HR 已退回本次复核，请主管补充更充分的客观说明后重新提交。'
 
         self.db.add(evaluation)
+        self.db.add(AuditLog(
+            operator_id=operator.id if operator else None,
+            operator_role=operator.role if operator else None,
+            action='hr_review',
+            target_type='evaluation',
+            target_id=evaluation_id,
+            request_id=request_id,
+            detail={
+                'old_overall_score': old_score,
+                'new_overall_score': float(evaluation.overall_score),
+                'old_hr_decision': old_decision,
+                'new_hr_decision': evaluation.hr_decision,
+                'source': 'hr_review',
+            },
+        ))
         self.db.commit()
         return self.get_evaluation(evaluation.id)
 
-    def confirm_evaluation(self, evaluation_id: str) -> AIEvaluation | None:
+    def confirm_evaluation(
+        self,
+        evaluation_id: str,
+        *,
+        operator: User | None = None,
+        request_id: str | None = None,
+    ) -> AIEvaluation | None:
         evaluation = self.get_evaluation(evaluation_id)
         if evaluation is None:
             return None
@@ -422,5 +470,14 @@ class EvaluationService:
             evaluation.hr_comment = evaluation.hr_comment or 'HR 快速确认了主管复核结果。'
         evaluation.status = 'confirmed'
         self.db.add(evaluation)
+        self.db.add(AuditLog(
+            operator_id=operator.id if operator else None,
+            operator_role=operator.role if operator else None,
+            action='evaluation_confirmed',
+            target_type='evaluation',
+            target_id=evaluation_id,
+            request_id=request_id,
+            detail={'source': 'confirm_evaluation'},
+        ))
         self.db.commit()
         return self.get_evaluation(evaluation.id)

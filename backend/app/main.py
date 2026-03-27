@@ -17,6 +17,7 @@ from backend.app.core.database import init_database
 from backend.app.core.logging import configure_logging
 from backend.app.core.rate_limit import create_limiter
 from backend.app.dependencies import get_app_settings
+from backend.app.middleware.request_id import RequestIdMiddleware
 from backend.app.models import load_model_modules
 
 logger = logging.getLogger(__name__)
@@ -128,6 +129,7 @@ def register_middlewares(app: FastAPI, settings: Settings) -> None:
         allow_methods=['*'],
         allow_headers=['*'],
     )
+    app.add_middleware(RequestIdMiddleware)
 
 
 def register_routes(app: FastAPI, settings: Settings) -> None:

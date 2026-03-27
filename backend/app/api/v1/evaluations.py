@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings
@@ -157,6 +157,7 @@ def get_evaluation(
 def manual_review_evaluation(
     evaluation_id: str,
     payload: EvaluationManualReviewRequest,
+    request: Request,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(get_current_user),
@@ -175,6 +176,8 @@ def manual_review_evaluation(
             overall_score=payload.overall_score,
             explanation=payload.explanation,
             dimension_updates=[item.model_dump() for item in payload.dimension_scores],
+            operator=current_user,
+            request_id=request.state.request_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -187,6 +190,7 @@ def manual_review_evaluation(
 def hr_review_evaluation(
     evaluation_id: str,
     payload: EvaluationHrReviewRequest,
+    request: Request,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(require_roles('admin', 'hrbp')),
@@ -204,6 +208,8 @@ def hr_review_evaluation(
             decision=payload.decision,
             comment=payload.comment,
             final_score=payload.final_score,
+            operator=current_user,
+            request_id=request.state.request_id,
         )
     except ValueError as exc:
         message = str(exc)
@@ -217,6 +223,7 @@ def hr_review_evaluation(
 @router.post('/{evaluation_id}/confirm', response_model=EvaluationConfirmResponse)
 def confirm_evaluation(
     evaluation_id: str,
+    request: Request,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(get_current_user),
@@ -228,7 +235,11 @@ def confirm_evaluation(
     if scoped_evaluation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
     service = EvaluationService(db, settings)
-    evaluation = service.confirm_evaluation(evaluation_id)
+    evaluation = service.confirm_evaluation(
+        evaluation_id,
+        operator=current_user,
+        request_id=request.state.request_id,
+    )
     if evaluation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Evaluation not found.')
     return EvaluationConfirmResponse(id=evaluation.id, status=evaluation.status)

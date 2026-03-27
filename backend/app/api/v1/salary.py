@@ -191,6 +191,7 @@ def update_recommendation(
         recommendation_id,
         final_adjustment_ratio=payload.final_adjustment_ratio,
         status=payload.status,
+        operator=current_user,
     )
     if recommendation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Salary recommendation not found.')

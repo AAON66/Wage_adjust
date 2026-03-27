@@ -341,7 +341,7 @@ class SalaryService:
         self.db.refresh(recommendation)
         return recommendation
 
-    def update_recommendation(self, recommendation_id: str, *, final_adjustment_ratio: float, status: str | None) -> SalaryRecommendation | None:
+    def update_recommendation(self, recommendation_id: str, *, final_adjustment_ratio: float, status: str | None, operator: User | None = None) -> SalaryRecommendation | None:
         recommendation = self._query_recommendation(recommendation_id)
         if recommendation is None:
             return None
@@ -363,9 +363,9 @@ class SalaryService:
         self.db.add(recommendation)
 
         # Write audit log in same transaction (APPR-04)
-        # operator_id is None — salary service has no auth context
         audit_entry = AuditLog(
-            operator_id=None,
+            operator_id=operator.id if operator else None,
+            operator_role=operator.role if operator else None,
             action='salary_updated',
             target_type='salary_recommendation',
             target_id=recommendation_id,
