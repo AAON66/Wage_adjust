@@ -63,7 +63,7 @@ Plans:
 - [x] 02-01-PLAN.md — Wave 1: Schema migration — prompt_hash on dimension_scores, used_fallback on ai_evaluations (EVAL-05, EVAL-06)
 - [x] 02-02-PLAN.md — Wave 2: LLM service hardening — exponential backoff retry, Redis rate limiter, prompt_hash in DeepSeekCallResult (EVAL-01, EVAL-02, EVAL-05)
 - [x] 02-03-PLAN.md — Wave 2: Image OCR via DeepSeek vision API — clear stub, add extract_image_text, wire through ParseService (EVAL-03)
-- [ ] 02-04-PLAN.md — Wave 2: Scale normalization fix, used_fallback + prompt_hash storage wiring, prompt safety extension (EVAL-04, EVAL-07, EVAL-08)
+- [x] 02-04-PLAN.md — Wave 2: Scale normalization fix, used_fallback + prompt_hash storage wiring, prompt safety extension (EVAL-04, EVAL-07, EVAL-08)
 - [ ] 02-05-PLAN.md — Wave 3: Frontend — fallback banner + read-only dimension summary panel in EvaluationDetail (EVAL-06, EVAL-07)
 - [ ] 02-06-PLAN.md — Wave 3: Unit tests — 22 tests covering all 8 EVAL requirements, no live API required (EVAL-01 through EVAL-08)
 **UI hint**: yes
@@ -184,7 +184,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
-| 2. Evaluation Pipeline Integrity | 0/6 | Not started | - |
+| 2. Evaluation Pipeline Integrity | 4/6 | In Progress|  |
 | 3. Approval Workflow Correctness | 0/3 | Not started | - |
 | 4. Audit Log Wiring | 1/3 | In Progress|  |
 | 5. Document Deduplication and Multi-Author | 0/TBD | Not started | - |
