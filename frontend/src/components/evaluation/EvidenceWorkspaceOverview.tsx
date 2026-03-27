@@ -97,18 +97,18 @@ export function EvidenceWorkspaceOverview({ evidenceItems }: EvidenceWorkspaceOv
       </div>
 
       {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-        <div style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px' }}>
-          <p style={{ fontSize: 11, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>证据数</p>
-          <p style={{ marginTop: 4, fontSize: 22, fontWeight: 600, color: 'var(--color-ink)' }}>{evidenceItems.length}</p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 16, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 0' }}>
+        <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid var(--color-border)' }}>
+          <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.2 }}>{evidenceItems.length}</p>
+          <p style={{ marginTop: 2, fontSize: 11, color: 'var(--color-steel)' }}>证据数</p>
         </div>
-        <div style={{ background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 12px' }}>
-          <p style={{ fontSize: 11, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>总体评分</p>
-          <p style={{ marginTop: 4, fontSize: 22, fontWeight: 600, color: 'var(--color-ink)' }}>{averageScore}</p>
+        <div style={{ flex: 1, textAlign: 'center', borderRight: '1px solid var(--color-border)' }}>
+          <p style={{ fontSize: 20, fontWeight: 600, color: 'var(--color-ink)', lineHeight: 1.2 }}>{averageScore}</p>
+          <p style={{ marginTop: 2, fontSize: 11, color: 'var(--color-steel)' }}>总体评分</p>
         </div>
-        <div style={{ background: riskCount > 0 ? 'var(--color-danger-bg)' : 'var(--color-bg-subtle)', border: `1px solid ${riskCount > 0 ? '#FFCDD0' : 'var(--color-border)'}`, borderRadius: 6, padding: '10px 12px' }}>
-          <p style={{ fontSize: 11, color: 'var(--color-steel)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>风险证据</p>
-          <p style={{ marginTop: 4, fontSize: 22, fontWeight: 600, color: riskCount > 0 ? 'var(--color-danger)' : 'var(--color-ink)' }}>{riskCount}</p>
+        <div style={{ flex: 1, textAlign: 'center' }}>
+          <p style={{ fontSize: 20, fontWeight: 600, color: riskCount > 0 ? 'var(--color-danger)' : 'var(--color-ink)', lineHeight: 1.2 }}>{riskCount}</p>
+          <p style={{ marginTop: 2, fontSize: 11, color: riskCount > 0 ? 'var(--color-danger)' : 'var(--color-steel)' }}>风险证据</p>
         </div>
       </div>
 
