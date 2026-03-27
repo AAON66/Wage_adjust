@@ -597,4 +597,23 @@ export interface BulkUserDeleteResponse {
   total_requested: number;
 }
 
+export interface AuditLogRead {
+  id: string;
+  operator_id: string | null;
+  operator_role: string | null;
+  action: string;
+  target_type: string;
+  target_id: string;
+  detail: Record<string, unknown>;
+  request_id: string | null;
+  created_at: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogRead[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 

@@ -31,6 +31,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '审批中心', description: '处理待审批与历史记录。', href: '/approvals' },
     { title: '组织看板', description: '查看分布、热力和 ROI。', href: '/dashboard' },
     { title: '平台账号', description: '管理账号与权限范围。', href: '/user-admin' },
+    { title: '审计日志', description: '查看所有操作与变更记录。', href: '/audit-log' },
     EMPLOYEE_ARCHIVE_MODULE,
     SETTINGS_MODULE,
   ],
