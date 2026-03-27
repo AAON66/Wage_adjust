@@ -267,7 +267,6 @@ export interface EvaluationRecord {
   integrity_examples: string[];
   used_fallback?: boolean;
   dimension_scores: DimensionScoreRecord[];
-  used_fallback?: boolean;
 }
 
 export interface SalaryRecommendationRecord {
