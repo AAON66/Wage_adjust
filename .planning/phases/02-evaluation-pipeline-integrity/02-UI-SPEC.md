@@ -53,22 +53,36 @@ Exceptions:
 
 ## Typography
 
-| Role | Size | Weight | Line Height |
-|------|------|--------|-------------|
-| Body | 13.5px | 400 | 1.65 |
-| Label / nav | 13px | 500 | 1.4 |
-| Section title | 15px | 600 | 1.4 |
-| Page title / heading | 20px | 600 | 1.3 |
+### Phase 2 Introduces — 2 weights only
 
-Additional in-use sizes (do not introduce new ones):
-- `11px` — eyebrow / table column headers (uppercase, tracked, weight 600)
-- `12px` — metric labels, status pills, secondary meta
-- `26–28px` — metric values (weight 600–700, letter-spacing -0.02em to -0.04em)
+Phase 2 new components (`FallbackBanner`, `DimensionSummaryPanel`) introduce exactly two font weights:
 
-**For Phase 2 new elements:**
-- Fallback banner body: 13.5px, weight 500, line-height 1.5
-- Dimension rationale text: 13px, weight 400, line-height 1.65 (matches `section-note`)
-- Prompt hash display: 11px, weight 400, font-family `monospace`, color `--color-placeholder`
+| Role | Size | Weight | Line Height | Component |
+|------|------|--------|-------------|-----------|
+| Banner body text | 13.5px | 500 | 1.5 | `FallbackBanner` body paragraph |
+| Dimension AI score | 26px | 700 | 1.2 | `DimensionSummaryPanel` score number |
+
+No other weights are introduced by this phase.
+
+### Project-Wide Pre-Existing Inventory (not introduced by Phase 2)
+
+The following weights exist in the codebase prior to this phase and are referenced here for executor context only. The checker evaluates Phase 2 introductions above, not this inventory table.
+
+| Role | Size | Weight | Line Height | Origin |
+|------|------|--------|-------------|--------|
+| Body | 13.5px | 400 | 1.65 | `index.css` base layer |
+| Label / nav | 13px | 400 | 1.4 | `index.css` component layer |
+| Section title | 15px | 600 | 1.4 | `.section-title` class |
+| Page title / heading | 20px | 600 | 1.3 | `.page-title` class |
+| Eyebrow / column headers | 11px | 600 | 1.0 | `.eyebrow` class (uppercase, tracked) |
+| Metric labels / status pills | 12px | 400 | 1.4 | `.status-pill`, `.metric-label` |
+| Metric values | 26–28px | 700 | 1.0 | `.dashboard-value` (letter-spacing -0.02em) |
+
+**For Phase 2 new elements — full specification:**
+- Fallback banner body: 13.5px, **weight 500**, line-height 1.5
+- Dimension rationale text: 13px, weight 400 (pre-existing), line-height 1.65 — reuses `section-note`
+- Prompt hash display: 11px, weight 400 (pre-existing), font-family `monospace`, color `--color-placeholder`
+- Dimension AI score: 26px, **weight 700**, letter-spacing -0.02em — reuses `.dashboard-value` pattern
 
 **Source:** `frontend/src/index.css` component layer; `DimensionScoreEditor.tsx`
 
