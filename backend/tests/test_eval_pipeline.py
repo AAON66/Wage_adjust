@@ -590,6 +590,15 @@ def test_used_fallback_reset():
     assert ev is not None
     assert ev.used_fallback is False, f'Expected used_fallback=False after real LLM, got {ev.used_fallback}'
 
+    # Verify DimensionScore cleanup: exactly 5 rows for this evaluation (no stale rows from first run)
+    from backend.app.models.dimension_score import DimensionScore
+    from sqlalchemy import select as sa_select_fb
+
+    score_count = len(db.scalars(
+        sa_select_fb(DimensionScore).where(DimensionScore.evaluation_id == evaluation2.id)
+    ).all())
+    assert score_count == 5, f'Expected exactly 5 DimensionScore rows after re-evaluation cleanup, got {score_count}'
+
 
 # ---------------------------------------------------------------------------
 # EVAL-08: Prompt safety — English patterns and homoglyphs
@@ -637,3 +646,92 @@ def test_prompt_safety_clean_text():
     result = scan_for_prompt_manipulation(text)
     assert result.detected is False
     assert result.sanitized_text == text.strip() or text.strip() in result.sanitized_text
+
+
+# ---------------------------------------------------------------------------
+# EVAL-07: API response contract
+# ---------------------------------------------------------------------------
+
+
+def test_evaluation_api_response_contract():
+    """GET /api/v1/evaluations/{id} returns used_fallback and dimension_scores with expected shape."""
+    from fastapi.testclient import TestClient
+
+    from backend.app.core.config import Settings
+    from backend.app.core.database import create_db_engine, create_session_factory, init_database
+    from backend.app.dependencies import get_db, get_app_settings
+    from backend.app.main import create_app
+    from backend.app.models import load_model_modules
+    from backend.app.models.user import User as UserModel
+
+    # --- set up isolated DB ---
+    temp_root = Path('.tmp').resolve()
+    temp_root.mkdir(parents=True, exist_ok=True)
+    database_path = (temp_root / f'eval-contract-{uuid4().hex}.db').as_posix()
+    settings = Settings(
+        database_url=f'sqlite+pysqlite:///{database_path}',
+        deepseek_api_key='your_deepseek_api_key',
+        allow_self_registration=True,
+    )
+    load_model_modules()
+    engine = create_db_engine(settings)
+    init_database(engine)
+    session_factory = create_session_factory(settings)
+
+    def override_get_db():
+        db = session_factory()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    def override_get_settings():
+        return settings
+
+    app = create_app(settings)
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_app_settings] = override_get_settings
+    client = TestClient(app)
+
+    # Register and login an admin user
+    reg_resp = client.post('/api/v1/auth/register', json={
+        'email': 'contract-test@example.com', 'password': 'Password123', 'role': 'admin',
+    })
+    assert reg_resp.status_code == 201, f'Registration failed: {reg_resp.text}'
+    login_resp = client.post('/api/v1/auth/login', json={
+        'email': 'contract-test@example.com', 'password': 'Password123',
+    })
+    assert login_resp.status_code == 200, f'Login failed: {login_resp.text}'
+    token = login_resp.json()['access_token']
+    headers = {'Authorization': f'Bearer {token}'}
+
+    # Seed evaluation via the service layer (not the API, to avoid LLM call)
+    db = session_factory()
+    db_submission_data = seed_submission(session_factory)
+    db2, submission = db_submission_data
+
+    from backend.app.services.evaluation_service import EvaluationService
+
+    eval_service = EvaluationService(db2, settings)
+    evaluation = eval_service.generate_evaluation(submission.id)
+    evaluation_id = evaluation.id
+    db2.close()
+
+    # GET the evaluation via the API
+    resp = client.get(f'/api/v1/evaluations/{evaluation_id}', headers=headers)
+    assert resp.status_code == 200, f'Expected 200, got {resp.status_code}: {resp.text}'
+    data = resp.json()
+
+    # Assert used_fallback field is present
+    assert 'used_fallback' in data, 'Response must contain used_fallback field'
+
+    # Assert dimension_scores list is present
+    assert 'dimension_scores' in data, 'Response must contain dimension_scores field'
+    assert isinstance(data['dimension_scores'], list), 'dimension_scores must be a list'
+    assert len(data['dimension_scores']) > 0, 'dimension_scores must not be empty'
+
+    # Check each dimension_score entry has weight, ai_rationale, and prompt_hash
+    for ds in data['dimension_scores']:
+        assert 'weight' in ds, f'dimension_score entry missing weight: {ds}'
+        assert 'ai_rationale' in ds, f'dimension_score entry missing ai_rationale: {ds}'
+        assert 'prompt_hash' in ds, f'dimension_score entry missing prompt_hash: {ds}'
