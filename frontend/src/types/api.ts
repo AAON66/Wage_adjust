@@ -241,6 +241,7 @@ export interface DimensionScoreRecord {
   weighted_score: number;
   ai_rationale: string;
   rationale: string;
+  prompt_hash?: string | null;
   created_at: string;
 }
 
@@ -264,6 +265,7 @@ export interface EvaluationRecord {
   integrity_flagged: boolean;
   integrity_issue_count: number;
   integrity_examples: string[];
+  used_fallback?: boolean;
   dimension_scores: DimensionScoreRecord[];
   used_fallback?: boolean;
 }

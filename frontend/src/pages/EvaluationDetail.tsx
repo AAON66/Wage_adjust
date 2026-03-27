@@ -40,6 +40,21 @@ import type {
 } from '../types/api';
 import { getRoleHomePath } from '../utils/roleAccess';
 
+const DIMENSION_LABELS: Record<string, string> = {
+  TOOL_MASTERY: 'AI工具掌握度',
+  APPLICATION_DEPTH: 'AI应用深度',
+  LEARNING_ABILITY: 'AI学习能力',
+  SHARING_CONTRIBUTION: 'AI分享贡献',
+  OUTCOME_CONVERSION: 'AI成果转化',
+  TOOL: 'AI工具掌握度',
+  DEPTH: 'AI应用深度',
+  LEARNING: 'AI学习能力',
+  SHARING: 'AI分享贡献',
+  OUTCOME: 'AI成果转化',
+};
+
+const FALLBACK_VISIBLE_STATUSES = ['evaluated', 'reviewing', 'calibrated', 'approved'];
+
 const FLOW = ['collecting', 'submitted', 'parsing', 'evaluated', 'reviewing', 'calibrated', 'approved', 'published'] as const;
 const MODULE_KEYS = ['overview', 'parse', 'evidence', 'review', 'salary'] as const;
 
@@ -1784,6 +1799,77 @@ export function EvaluationDetailPage() {
                 reviewLevel={reviewLevel}
               />
             </div>
+
+            {evaluation?.used_fallback && FALLBACK_VISIBLE_STATUSES.includes(evaluation.status) && (
+              <div style={{
+                background: 'var(--color-warning-bg, #FFF3E8)',
+                border: '1px solid var(--color-warning-border, #FFD8A8)',
+                borderLeft: '3px solid var(--color-warning, #FF7D00)',
+                borderRadius: '6px',
+                padding: '12px 16px',
+              }}>
+                <div style={{ fontWeight: 500, fontSize: '13.5px', color: 'var(--color-ink)' }}>
+                  当前结果为规则引擎估算
+                </div>
+                <p style={{ fontSize: '13.5px', fontWeight: 500, lineHeight: 1.5, color: 'var(--color-steel)', marginTop: '4px' }}>
+                  DeepSeek AI 服务未配置或暂时不可用，本次评估基于规则引擎生成，结果仅供参考，不代表 AI 评估意见。
+                </p>
+              </div>
+            )}
+
+            {FALLBACK_VISIBLE_STATUSES.includes(evaluation?.status ?? '') && (
+              <div className="surface px-6 py-6 lg:px-7">
+                <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 20 }}>
+                  <p className="eyebrow">维度评分</p>
+                  <h3 className="mt-2 text-[22px] font-semibold tracking-[-0.03em] text-ink">维度评分详情</h3>
+                  <p className="mt-2 text-sm leading-6 text-steel">AI 评估的 5 个维度得分与说明。</p>
+                </div>
+                {evaluation?.dimension_scores && evaluation.dimension_scores.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {evaluation.dimension_scores.map((ds) => (
+                      <div key={ds.id} className="list-row">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div>
+                            <div className="eyebrow">{ds.dimension_code}</div>
+                            <div className="section-title" style={{ marginTop: '2px' }}>
+                              {DIMENSION_LABELS[ds.dimension_code] ?? ds.dimension_code}
+                            </div>
+                            <div style={{ fontSize: '12px', color: 'var(--color-steel)', marginTop: '2px' }}>
+                              权重 {Math.round(ds.weight * 100)}%
+                            </div>
+                          </div>
+                          <div className="dashboard-value" style={{ fontSize: '26px' }}>
+                            {ds.ai_raw_score.toFixed(1)}
+                          </div>
+                        </div>
+                        {ds.ai_rationale && (
+                          <p style={{ fontSize: '13px', color: 'var(--color-steel)', lineHeight: 1.65, marginTop: '8px' }}>
+                            {ds.ai_rationale}
+                          </p>
+                        )}
+                        {ds.prompt_hash && (
+                          <details style={{ marginTop: '8px' }}>
+                            <summary className="chip-button" style={{ cursor: 'pointer', userSelect: 'none' }}>
+                              Prompt 哈希（可复现审计）
+                            </summary>
+                            <code style={{ fontSize: '11px', color: 'var(--color-placeholder)', fontFamily: 'monospace', display: 'block', marginTop: '4px', wordBreak: 'break-all' }}>
+                              {ds.prompt_hash}
+                            </code>
+                          </details>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: '14px', color: 'var(--color-steel)' }}>暂无维度评分数据</p>
+                    <p style={{ fontSize: '13px', color: 'var(--color-placeholder)', marginTop: '4px' }}>
+                      完成 AI 评估后，5 个维度得分将展示在此处。
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="surface px-6 py-6 lg:px-7">
               <DimensionScoreEditor dimensions={dimensions} onChange={setDimensions} />
