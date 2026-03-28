@@ -6,6 +6,14 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class ProjectContributorSummary(BaseModel):
+    employee_id: str
+    employee_name: str
+    contribution_pct: float
+    file_name: str
+    is_owner: bool = False
+
+
 class ApprovalStepCreate(BaseModel):
     step_name: str = Field(min_length=1, max_length=64)
     approver_id: str
@@ -57,6 +65,7 @@ class ApprovalRecordRead(BaseModel):
     defer_until: datetime | None = None
     defer_target_score: float | None = None
     defer_reason: str | None = None
+    project_contributors: list[ProjectContributorSummary] = []
 
 
 class ApprovalListResponse(BaseModel):

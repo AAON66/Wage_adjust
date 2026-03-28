@@ -25,6 +25,7 @@ class EmployeeSubmission(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     uploaded_files = relationship("UploadedFile", back_populates="submission")
     evidence_items = relationship("EvidenceItem", back_populates="submission")
     ai_evaluation = relationship("AIEvaluation", back_populates="submission", uselist=False)
+    contributed_projects = relationship("ProjectContributor", back_populates="submission")
 
     @property
     def evaluation_id(self) -> str | None:

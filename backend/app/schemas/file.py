@@ -1,9 +1,32 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+
+
+class ContributorInput(BaseModel):
+    employee_id: str
+    contribution_pct: float = Field(gt=0, le=100)
+
+
+class ContributorRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    uploaded_file_id: str
+    submission_id: str
+    contribution_pct: float
+    status: str
+
+
+class DuplicateFileError(BaseModel):
+    error: str = 'duplicate_file'
+    existing_file_id: str
+    uploaded_by: str
+    uploaded_at: str
+    message: str
 
 
 class UploadedFileRead(BaseModel):
@@ -15,6 +38,9 @@ class UploadedFileRead(BaseModel):
     file_type: str
     storage_key: str
     parse_status: str
+    content_hash: str = ''
+    owner_contribution_pct: float = 100.0
+    contributors: list[ContributorRead] = []
     created_at: datetime
 
 
