@@ -145,7 +145,11 @@ Plans:
   3. The approval pipeline status card shows live counts in each workflow state (draft, submitted, manager review, HR review, approved, rejected)
   4. HR can click a department name to drill down and see that department's level distribution and average adjustment percentage
   5. The pending-approvals count refreshes every 30 seconds without a full page reload; other charts use Redis cache with TTL-based refresh
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 07-01-PLAN.md — 后端 SQL 聚合 + Redis 缓存层 + 新 API 端点 (DASH-01, DASH-02, DASH-05, DASH-07)
+- [ ] 07-02-PLAN.md — 前端 ECharts 图表组件 + usePolling hook + API 客户端 (DASH-03, DASH-04)
+- [ ] 07-03-PLAN.md — Dashboard.tsx 重构 + 部门下钻 + KPI 卡片 + 人工验证 (DASH-06, DASH-07)
 **UI hint**: yes
 
 ### Phase 8: Employee Self-Service UI
@@ -198,7 +202,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 4. Audit Log Wiring | 1/3 | In Progress|  |
 | 5. Document Deduplication and Multi-Author | 0/4 | Not started | - |
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
-| 7. Dashboard and Cache Layer | 0/TBD | Not started | - |
+| 7. Dashboard and Cache Layer | 0/3 | Not started | - |
 | 8. Employee Self-Service UI | 0/TBD | Not started | - |
 | 9. Feishu Attendance Integration | 0/TBD | Not started | - |
 | 10. External API Hardening | 0/TBD | Not started | - |
