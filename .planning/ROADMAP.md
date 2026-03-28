@@ -128,7 +128,11 @@ Plans:
   3. The import response includes total rows, success count, failure count, and a per-row error message for every failed row
   4. A GBK-encoded Chinese Excel file imports without garbled characters
   5. The frontend provides a downloadable Excel template with correct column headers and example rows
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 06-01-PLAN.md — Backend: SAVEPOINT partial success, xlsx read/write, 5000-row limit, upsert audit, HTTP 207 (IMP-01..IMP-05)
+- [ ] 06-02-PLAN.md — Tests: RED test stubs for all IMP requirements (IMP-01..IMP-06)
+- [ ] 06-03-PLAN.md — Frontend: ImportResultPanel, ImportErrorTable, dual-format template download (IMP-02, IMP-03, IMP-06)
 **UI hint**: yes
 
 ### Phase 7: Dashboard and Cache Layer
