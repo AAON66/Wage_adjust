@@ -480,6 +480,7 @@ export function EvaluationDetailPage() {
   const [reviewComment, setReviewComment] = useState('请填写主管评分依据；如进入 HR 审核，请填写同意或打回原因。');
   const [isUploading, setIsUploading] = useState(false);
   const [pendingContributors, setPendingContributors] = useState<import('../types/api').ContributorInput[]>([]);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const [isGithubImporting, setIsGithubImporting] = useState(false);
   const [isParsingAll, setIsParsingAll] = useState(false);
   const [batchParseTotal, setBatchParseTotal] = useState(0);
@@ -1025,6 +1026,7 @@ export function EvaluationDetailPage() {
     setIsUploading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setDuplicateError(null);
     try {
       const uploadResponse = await uploadSubmissionFiles(
         submission.id,
@@ -1035,13 +1037,14 @@ export function EvaluationDetailPage() {
       const summary = await parseFilesInParallel(uploadResponse.items, { showBatchProgress: false });
       await reloadCurrentCycleData();
       if (summary.failed > 0) {
-        setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击“重新解析”。`);
+        setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击”重新解析”。`);
       } else {
         setSuccessMessage('材料已上传，系统正在自动解析。');
       }
     } catch (error) {
       if (error instanceof DuplicateFileException) {
-        setErrorMessage(`重复文件：${error.detail.message}`);
+        const who = error.detail.uploaded_by || '其他人';
+        setDuplicateError(`此文件已由「${who}」提交过，无法重复上传。`);
       } else {
         setErrorMessage(resolveError(error));
       }
@@ -1549,7 +1552,9 @@ export function EvaluationDetailPage() {
                 onFilesSelected={handleFilesSelected}
                 onGitHubImport={handleGitHubImport}
                 showContributorPicker
+                contributors={pendingContributors}
                 onContributorsChange={setPendingContributors}
+                duplicateError={duplicateError}
               />
             </div>
             <div className="surface px-6 py-6 lg:px-7">

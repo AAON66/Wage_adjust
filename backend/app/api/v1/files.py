@@ -82,16 +82,15 @@ def upload_submission_files(
     except ValueError as exc:
         message = str(exc)
         if _is_duplicate_error(message):
-            # Extract existing_file_id from message if present
             import re as _re
-            match = _re.search(r'existing_file_id=([a-f0-9-]+)', message)
-            existing_id = match.group(1) if match else ''
+            id_match = _re.search(r'existing_file_id=([a-f0-9-]+)', message)
+            by_match = _re.search(r'uploaded_by=(.+?)(?:\)|\s*$)', message)
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail={
                     'error': 'duplicate_file',
-                    'existing_file_id': existing_id,
-                    'uploaded_by': '',
+                    'existing_file_id': id_match.group(1) if id_match else '',
+                    'uploaded_by': by_match.group(1).strip() if by_match else '',
                     'uploaded_at': '',
                     'message': message,
                 },

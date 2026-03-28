@@ -424,9 +424,13 @@ class FileService:
             existing = self._check_duplicate(file_name, content_hash)
             if existing is not None:
                 uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
+                # Resolve uploader name via submission -> employee
+                uploader_name = ''
+                if existing.submission and existing.submission.employee:
+                    uploader_name = existing.submission.employee.name or ''
                 raise ValueError(
-                    f'重复文件: 此文件已由其他人在 {uploaded_at} 提交 '
-                    f'(duplicate existing_file_id={existing.id})'
+                    f'重复文件: 此文件已由 {uploader_name or "其他人"} 在 {uploaded_at} 提交 '
+                    f'(duplicate existing_file_id={existing.id} uploaded_by={uploader_name})'
                 )
 
             file_record = self._create_file_record(
