@@ -15,13 +15,13 @@ export async function createImportJob(importType: string, file: File): Promise<I
   return response.data;
 }
 
-export async function downloadImportTemplate(importType: string): Promise<Blob> {
-  const response = await api.get(`/imports/templates/${importType}`, { responseType: 'blob' });
+export async function downloadImportTemplate(importType: string, format: 'xlsx' | 'csv' = 'xlsx'): Promise<Blob> {
+  const response = await api.get(`/imports/templates/${importType}?format=${format}`, { responseType: 'blob' });
   return response.data;
 }
 
-export async function exportImportJob(jobId: string): Promise<Blob> {
-  const response = await api.get(`/imports/jobs/${jobId}/export`, { responseType: 'blob' });
+export async function exportImportJob(jobId: string, format: 'xlsx' | 'csv' = 'xlsx'): Promise<Blob> {
+  const response = await api.get(`/imports/jobs/${jobId}/export?format=${format}`, { responseType: 'blob' });
   return response.data;
 }
 

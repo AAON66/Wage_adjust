@@ -522,11 +522,18 @@ export interface PublicLatestEvaluationRecord {
   salary_recommendation: PublicSalaryRecommendationRecord | null;
 }
 
+export interface ImportRowResult {
+  row_index: number | null;
+  status: 'success' | 'failed';
+  message: string;
+  error_column?: string;
+}
+
 export interface ImportJobRecord {
   id: string;
   file_name: string;
   import_type: string;
-  status: 'pending' | 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'partial';
   total_rows: number;
   success_rows: number;
   failed_rows: number;
