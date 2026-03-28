@@ -1,14 +1,17 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import json
 import logging
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings
 from backend.app.dependencies import get_app_settings, get_current_user, get_db
 from backend.app.models.user import User
 from backend.app.schemas.file import (
+    ContributorInput,
+    DuplicateFileError,
     EvidenceListResponse,
     EvidenceRead,
     FileDeleteResponse,
@@ -26,6 +29,11 @@ from backend.app.services.parse_service import ParseService
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=['files'])
+
+
+def _is_duplicate_error(message: str) -> bool:
+    lower = message.lower()
+    return 'duplicate' in lower or '重复' in lower
 
 
 def ensure_submission_access(db: Session, current_user: User, submission_id: str) -> None:
@@ -51,16 +59,30 @@ def ensure_file_access(db: Session, current_user: User, file_id: str):
 def upload_submission_files(
     submission_id: str,
     files: list[UploadFile] = File(...),
+    contributors: str = Form(default='[]'),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(get_current_user),
 ) -> UploadedFileListResponse:
     ensure_submission_access(db, current_user, submission_id)
+
+    # Parse contributors JSON from form data
+    try:
+        contributor_data = json.loads(contributors)
+        contributor_list = [ContributorInput(**c) for c in contributor_data] if contributor_data else None
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'Invalid contributors JSON: {exc}',
+        ) from exc
+
     service = FileService(db, settings)
     try:
-        items = service.upload_files(submission_id, files)
+        items = service.upload_files(submission_id, files, contributors=contributor_list)
     except ValueError as exc:
         message = str(exc)
+        if _is_duplicate_error(message):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message) from exc
         status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
     return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in items], total=len(items))
@@ -82,6 +104,8 @@ def import_github_submission_file(
         parsed_file, _ = parse_service.parse_file(file_record)
     except ValueError as exc:
         message = str(exc)
+        if _is_duplicate_error(message):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message) from exc
         status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
     except Exception as exc:
@@ -117,6 +141,8 @@ def replace_uploaded_file(
         updated = service.replace_file(file_id, file)
     except ValueError as exc:
         message = str(exc)
+        if _is_duplicate_error(message):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message) from exc
         status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
     return UploadedFileRead.model_validate(updated)
