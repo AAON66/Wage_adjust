@@ -34,6 +34,7 @@ def serialize_approval_with_service(record, service: ApprovalService) -> Approva
         DimensionScoreRead.model_validate(ds)
         for ds in (evaluation.dimension_scores or [])
     ]
+    project_contributors = service.load_project_contributors(submission.id)
     return ApprovalRecordRead(
         id=record.id,
         recommendation_id=recommendation.id,
@@ -62,6 +63,7 @@ def serialize_approval_with_service(record, service: ApprovalService) -> Approva
         defer_target_score=recommendation.defer_target_score,
         defer_reason=recommendation.defer_reason,
         dimension_scores=dimension_scores,
+        project_contributors=project_contributors,
     )
 
 
