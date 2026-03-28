@@ -17,7 +17,7 @@ export function ContributorPicker({ contributors, onChange, disabled = false }: 
     let cancelled = false;
     async function load() {
       try {
-        const response = await fetchEmployees({ page: 1, page_size: 200 });
+        const response = await fetchEmployees({ page: 1, page_size: 100 });
         if (!cancelled) {
           setEmployees(response.items);
         }

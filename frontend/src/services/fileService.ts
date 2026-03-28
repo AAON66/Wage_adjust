@@ -9,8 +9,8 @@ export class DuplicateFileException extends Error {
   readonly detail: DuplicateFileError;
 
   constructor(detail: DuplicateFileError) {
-    const uploadedAt = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium' }).format(new Date(detail.uploaded_at));
-    super(`此文件已由 ${detail.uploaded_by} 在 ${uploadedAt} 提交`);
+    const msg = detail.message || '此文件已被提交过';
+    super(msg);
     this.name = 'DuplicateFileException';
     this.detail = detail;
   }
