@@ -4,7 +4,7 @@ interface ImportJobRow {
   id: string;
   fileName: string;
   importType: string;
-  status: 'pending' | 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'partial';
   totalRows: number;
   successRows: number;
   failedRows: number;
@@ -16,7 +16,7 @@ interface ImportJobTableProps {
   onToggleRow?: (jobId: string) => void;
   onToggleAll?: () => void;
   onDeleteSelected?: () => void;
-  onExport?: (jobId: string) => void;
+  onExport?: (jobId: string, format?: 'xlsx' | 'csv') => void;
 }
 
 const STATUS_STYLES: Record<ImportJobRow['status'], React.CSSProperties> = {
@@ -25,6 +25,7 @@ const STATUS_STYLES: Record<ImportJobRow['status'], React.CSSProperties> = {
   processing: { background: 'var(--color-warning-bg)', color: 'var(--color-warning)' },
   completed:  { background: 'var(--color-success-bg)', color: 'var(--color-success)' },
   failed:     { background: 'var(--color-danger-bg)', color: 'var(--color-danger)' },
+  partial:    { background: 'var(--color-warning-bg)', color: 'var(--color-warning)' },
 };
 
 const STATUS_LABELS: Record<ImportJobRow['status'], string> = {
@@ -33,6 +34,7 @@ const STATUS_LABELS: Record<ImportJobRow['status'], string> = {
   processing: '处理中',
   completed: '已完成',
   failed: '失败',
+  partial: '部分成功',
 };
 
 function formatImportType(importType: string): string {
@@ -104,8 +106,8 @@ export function ImportJobTable({
                   <td style={{ color: 'var(--color-success)' }}>{row.successRows}</td>
                   <td style={{ color: row.failedRows > 0 ? 'var(--color-danger)' : 'var(--color-steel)' }}>{row.failedRows}</td>
                   <td>
-                    <button className="action-secondary" style={{ height: 30, padding: '0 12px', fontSize: 13 }} disabled={!onExport} onClick={() => onExport?.(row.id)} type="button">
-                      导出报告
+                    <button className="action-secondary" style={{ height: 30, padding: '0 12px', fontSize: 13 }} disabled={!onExport} onClick={() => onExport?.(row.id, 'xlsx')} type="button">
+                      {row.failedRows > 0 ? '下载错误报告' : '导出报告'}
                     </button>
                   </td>
                 </tr>
