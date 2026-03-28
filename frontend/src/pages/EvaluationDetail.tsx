@@ -24,6 +24,7 @@ import {
   parseFile,
   replaceSubmissionFile,
   uploadSubmissionFiles,
+  DuplicateFileException,
 } from '../services/fileService';
 import { fetchEmployee } from '../services/employeeService';
 import { fetchSalaryHistoryByEmployee, fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
@@ -1034,7 +1035,11 @@ export function EvaluationDetailPage() {
         setSuccessMessage('材料已上传，系统正在自动解析。');
       }
     } catch (error) {
-      setErrorMessage(resolveError(error));
+      if (error instanceof DuplicateFileException) {
+        setErrorMessage(`重复文件：${error.data.message}`);
+      } else {
+        setErrorMessage(resolveError(error));
+      }
     } finally {
       setIsUploading(false);
     }

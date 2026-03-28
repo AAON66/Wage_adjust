@@ -1,7 +1,7 @@
 """Phase 05: add content_hash and project_contributors table
 
 Revision ID: a5b6c7d8e9f0
-Revises: 9a7b6c5d4e3f
+Revises: a3f1c8e92b04
 Create Date: 2026-03-28 00:00:00.000000
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision: str = 'a5b6c7d8e9f0'
-down_revision: Union[str, None] = '9a7b6c5d4e3f'
+down_revision: Union[str, None] = 'a3f1c8e92b04'
 branch_labels: Union[str, None] = None
 depends_on: Union[str, None] = None
 

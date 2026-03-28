@@ -82,7 +82,20 @@ def upload_submission_files(
     except ValueError as exc:
         message = str(exc)
         if _is_duplicate_error(message):
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message) from exc
+            # Extract existing_file_id from message if present
+            import re as _re
+            match = _re.search(r'existing_file_id=([a-f0-9-]+)', message)
+            existing_id = match.group(1) if match else ''
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    'error': 'duplicate_file',
+                    'existing_file_id': existing_id,
+                    'uploaded_by': '',
+                    'uploaded_at': '',
+                    'message': message,
+                },
+            ) from exc
         status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
     return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in items], total=len(items))
