@@ -418,6 +418,7 @@ export interface DashboardOverviewResponse {
 export interface DashboardDistributionItem {
   label: string;
   value: number;
+  percentage?: number;
 }
 
 export interface DashboardDistributionResponse {
@@ -646,4 +647,22 @@ export interface AuditLogListResponse {
   offset: number;
 }
 
+export interface KpiSummaryResponse {
+  pending_approvals: number;
+  total_employees: number;
+  evaluated_employees: number;
+  avg_adjustment_ratio: number;
+  level_summary: DashboardDistributionItem[];
+}
 
+export interface ApprovalPipelineResponse {
+  items: DashboardDistributionItem[];
+  total: number;
+}
+
+export interface DepartmentDrilldownResponse {
+  department: string;
+  level_distribution: DashboardDistributionItem[];
+  avg_adjustment_ratio: number;
+  employee_count: number;
+}
