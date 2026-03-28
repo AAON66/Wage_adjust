@@ -1,7 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_current_user, get_db, require_roles
@@ -17,19 +17,23 @@ from backend.app.services.import_service import ImportService
 router = APIRouter(prefix='/imports', tags=['imports'])
 
 
-@router.post('/jobs', response_model=ImportJobRead, status_code=status.HTTP_201_CREATED)
+@router.post('/jobs')
 def create_import_job(
     import_type: str,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _: object = Depends(require_roles('admin', 'hrbp', 'manager')),
-) -> ImportJobRead:
-    service = ImportService(db)
+    current_user=Depends(require_roles('admin', 'hrbp', 'manager')),
+):
+    service = ImportService(db, operator_id=current_user.id, operator_role=current_user.role)
     try:
         job = service.run_import(import_type=import_type, upload=file)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return ImportJobRead.model_validate(job)
+    data = ImportJobRead.model_validate(job).model_dump(mode='json')
+    # IMP-02: HTTP 207 Multi-Status when partial failure
+    if job.failed_rows > 0:
+        return JSONResponse(content=data, status_code=207)
+    return JSONResponse(content=data, status_code=201)
 
 
 @router.get('/jobs', response_model=ImportJobListResponse)
@@ -83,12 +87,16 @@ def bulk_delete_import_jobs(
 @router.get('/templates/{import_type}')
 def download_template(
     import_type: str,
+    format: str = 'xlsx',
     db: Session = Depends(get_db),
     _: object = Depends(get_current_user),
 ):
     service = ImportService(db)
     try:
-        file_name, content, media_type = service.build_template(import_type)
+        if format == 'xlsx':
+            file_name, content, media_type = service.build_template_xlsx(import_type)
+        else:
+            file_name, content, media_type = service.build_template(import_type)
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return StreamingResponse(
@@ -101,6 +109,7 @@ def download_template(
 @router.get('/jobs/{job_id}/export')
 def export_import_job(
     job_id: str,
+    format: str = 'xlsx',
     db: Session = Depends(get_db),
     _: object = Depends(get_current_user),
 ):
@@ -108,7 +117,10 @@ def export_import_job(
     job = service.get_job(job_id)
     if job is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Import job not found.')
-    file_name, content, media_type = service.build_export_report(job)
+    if format == 'xlsx':
+        file_name, content, media_type = service.build_export_report_xlsx(job)
+    else:
+        file_name, content, media_type = service.build_export_report(job)
     return StreamingResponse(
         iter([content]),
         media_type=media_type,
