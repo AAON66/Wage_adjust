@@ -59,11 +59,11 @@
 
 ### 批量导入
 
-- [ ] **IMP-01**：批量导入使用惰性验证，收集所有行级错误后一次性返回，不在第一个错误时中断
-- [ ] **IMP-02**：批量导入使用每行独立 savepoint，有效行在部分失败时仍然提交，返回 HTTP 207 附带每行状态
-- [ ] **IMP-03**：导入响应包含汇总信息：总行数、成功行数、失败行数，以及每条失败行的具体错误原因
-- [ ] **IMP-04**：批量导入正确处理中文字符编码，支持 UTF-8 和 GBK/GB2312 格式的 Excel 文件，不出现乱码
-- [ ] **IMP-05**：员工导入幂等——对 `employee_id` 进行 upsert，重复导入不产生重复数据
+- [x] **IMP-01**：批量导入使用惰性验证，收集所有行级错误后一次性返回，不在第一个错误时中断
+- [x] **IMP-02**：批量导入使用每行独立 savepoint，有效行在部分失败时仍然提交，返回 HTTP 207 附带每行状态
+- [x] **IMP-03**：导入响应包含汇总信息：总行数、成功行数、失败行数，以及每条失败行的具体错误原因
+- [x] **IMP-04**：批量导入正确处理中文字符编码，支持 UTF-8 和 GBK/GB2312 格式的 Excel 文件，不出现乱码
+- [x] **IMP-05**：员工导入幂等——对 `employee_id` 进行 upsert，重复导入不产生重复数据
 - [ ] **IMP-06**：前端提供导入模板文件下载（包含必填列和示例数据的 Excel 格式）
 
 ### 看板与数据分析
@@ -161,11 +161,11 @@
 | SUB-03 | Phase 5 | Complete |
 | SUB-04 | Phase 5 | Complete |
 | SUB-05 | Phase 5 | Complete |
-| IMP-01 | Phase 6 | Pending |
-| IMP-02 | Phase 6 | Pending |
-| IMP-03 | Phase 6 | Pending |
-| IMP-04 | Phase 6 | Pending |
-| IMP-05 | Phase 6 | Pending |
+| IMP-01 | Phase 6 | Complete |
+| IMP-02 | Phase 6 | Complete |
+| IMP-03 | Phase 6 | Complete |
+| IMP-04 | Phase 6 | Complete |
+| IMP-05 | Phase 6 | Complete |
 | IMP-06 | Phase 6 | Pending |
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
