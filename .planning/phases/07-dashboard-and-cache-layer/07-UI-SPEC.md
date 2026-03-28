@@ -54,9 +54,11 @@ created: 2026-03-28
 | 角色 | 尺寸 | 字重 | 行高 | 来源 |
 |------|------|------|------|------|
 | 正文 / Body | 13.5px | 400 (regular) | 1.5 | 现有 `.table-lite`、`.toolbar-input` |
-| 标签 / Label | 12px | 500 (medium) | 1.5 | 现有 `.metric-label`、`.dashboard-signal-label` |
+| 标签 / Label | 12px | 600 (semibold) | 1.5 | 现有 `.metric-label`、`.dashboard-signal-label` |
 | 小标题 / Section Title | 15px | 600 (semibold) | 1.4 | 现有 `.section-title` |
 | KPI 数值 / KPI Value | 26px | 600 (semibold) | 1.1 | 现有 `.metric-value` |
+
+字重声明（共 2 个）：400 (regular) + 600 (semibold)。标签、小标题、KPI 数值统一使用 600，正文使用 400。
 
 ECharts 内部排版规范：
 - 坐标轴标签：12px，颜色 `#646A73`（--color-steel）
@@ -139,6 +141,10 @@ ECharts 图表色板（按 AI 等级从低到高）：
 ---
 
 ## 布局契约 / Layout Contract
+
+### 主视觉焦点 / Primary Visual Focus
+
+主视觉焦点：KPI 卡片横排区域，其中"待审批"卡片因 warning 色（`#FF7D00`）高亮为最高优先级信号。用户进入看板页面时，视线首先落在 KPI 卡片行上，"待审批"数值的橙色高亮在灰白页面中形成最强视觉吸引力，引导用户第一时间感知待处理工作量。
 
 ### 整体结构（D-09 锁定决策）
 
