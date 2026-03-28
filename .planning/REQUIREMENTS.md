@@ -64,7 +64,7 @@
 - [x] **IMP-03**：导入响应包含汇总信息：总行数、成功行数、失败行数，以及每条失败行的具体错误原因
 - [x] **IMP-04**：批量导入正确处理中文字符编码，支持 UTF-8 和 GBK/GB2312 格式的 Excel 文件，不出现乱码
 - [x] **IMP-05**：员工导入幂等——对 `employee_id` 进行 upsert，重复导入不产生重复数据
-- [ ] **IMP-06**：前端提供导入模板文件下载（包含必填列和示例数据的 Excel 格式）
+- [x] **IMP-06**：前端提供导入模板文件下载（包含必填列和示例数据的 Excel 格式）
 
 ### 看板与数据分析
 
@@ -166,7 +166,7 @@
 | IMP-03 | Phase 6 | Complete |
 | IMP-04 | Phase 6 | Complete |
 | IMP-05 | Phase 6 | Complete |
-| IMP-06 | Phase 6 | Pending |
+| IMP-06 | Phase 6 | Complete |
 | DASH-01 | Phase 7 | Pending |
 | DASH-02 | Phase 7 | Pending |
 | DASH-03 | Phase 7 | Pending |
