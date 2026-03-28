@@ -96,6 +96,9 @@ async def lifespan(_: FastAPI):
 def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(HTTPException)
     async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+        # If detail is already a dict (e.g. duplicate_file error), return it directly
+        if isinstance(exc.detail, dict):
+            return JSONResponse(status_code=exc.status_code, content=exc.detail)
         return build_error_response(
             status_code=exc.status_code,
             error='http_error',
