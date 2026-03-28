@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from pathlib import Path
 import time
@@ -15,8 +16,10 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import Settings
 from backend.app.core.storage import LocalStorageService
 from backend.app.models.evidence import EvidenceItem
+from backend.app.models.project_contributor import ProjectContributor
 from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
+from backend.app.schemas.file import ContributorInput
 
 ALLOWED_EXTENSIONS = {
     '.ppt', '.pptx', '.pdf', '.docx', '.png', '.jpg', '.jpeg', '.zip', '.md', '.xlsx', '.xls', '.py', '.ts', '.tsx', '.js', '.json', '.txt', '.yml', '.yaml'
@@ -27,17 +30,286 @@ EXTENSIONLESS_TEXT_NAMES = {'readme', 'license', 'dockerfile', 'makefile', 'proc
 
 
 class FileService:
-    def __init__(self, db: Session, settings: Settings):
+    def __init__(self, db: Session, settings: Settings | None = None):
         self.db = db
         self.settings = settings
-        self.storage = LocalStorageService(settings)
+        self.storage = LocalStorageService(settings) if settings is not None else None
+
+    # ------------------------------------------------------------------
+    # Dedup helpers (SUB-01, D-02)
+    # ------------------------------------------------------------------
+
+    def _compute_hash(self, content: bytes) -> str:
+        return hashlib.sha256(content).hexdigest()
+
+    def _check_duplicate(
+        self,
+        file_name: str,
+        content_hash: str,
+        *,
+        exclude_file_id: str | None = None,
+    ) -> UploadedFile | None:
+        """Global dedup check (D-02): no employee_id filter."""
+        query = select(UploadedFile).where(
+            UploadedFile.file_name == file_name,
+            UploadedFile.content_hash == content_hash,
+        )
+        if exclude_file_id is not None:
+            query = query.where(UploadedFile.id != exclude_file_id)
+        return self.db.scalars(query).first()
+
+    def check_duplicate(
+        self,
+        file_name: str,
+        content_hash: str,
+        submission_id: str | None = None,
+        *,
+        exclude_file_id: str | None = None,
+        source: str | None = None,
+    ) -> None:
+        """Public method for tests and external callers. Raises ValueError if duplicate found."""
+        existing = self._check_duplicate(file_name, content_hash, exclude_file_id=exclude_file_id)
+        if existing is not None:
+            uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
+            raise ValueError(
+                f'Duplicate file detected: existing file {existing.id} '
+                f'(uploaded at {uploaded_at})'
+            )
+
+    # ------------------------------------------------------------------
+    # Contributor validation and persistence (SUB-02)
+    # ------------------------------------------------------------------
+
+    def _validate_contributors(self, contributors: list[ContributorInput]) -> None:
+        total_pct = sum(c.contribution_pct for c in contributors)
+        if total_pct >= 100:
+            raise ValueError('协作者贡献比例之和必须小于 100%，上传者需保留剩余比例。')
+        seen_ids: set[str] = set()
+        for c in contributors:
+            if c.contribution_pct <= 0:
+                raise ValueError('每个协作者的贡献比例必须大于 0%。')
+            if c.employee_id in seen_ids:
+                raise ValueError(f'重复的协作者 employee_id: {c.employee_id}')
+            seen_ids.add(c.employee_id)
+
+    def _save_contributors(
+        self,
+        file_record: UploadedFile,
+        submission: EmployeeSubmission,
+        contributors: list[ContributorInput],
+    ) -> None:
+        total_pct = 0.0
+        for c in contributors:
+            # Find or create the contributor's submission in the same cycle
+            contrib_sub = self.db.scalars(
+                select(EmployeeSubmission).where(
+                    EmployeeSubmission.employee_id == c.employee_id,
+                    EmployeeSubmission.cycle_id == submission.cycle_id,
+                )
+            ).first()
+            if contrib_sub is None:
+                contrib_sub = EmployeeSubmission(
+                    employee_id=c.employee_id,
+                    cycle_id=submission.cycle_id,
+                    status='collecting',
+                )
+                self.db.add(contrib_sub)
+                self.db.flush()
+
+            pc = ProjectContributor(
+                uploaded_file_id=file_record.id,
+                submission_id=contrib_sub.id,
+                contribution_pct=c.contribution_pct,
+                status='accepted',
+            )
+            self.db.add(pc)
+            total_pct += c.contribution_pct
+
+        file_record.owner_contribution_pct = 100.0 - total_pct
+
+    def add_contributors(
+        self,
+        uploaded_file_id: str,
+        contributors: list[dict],
+    ) -> None:
+        """Add contributors to an existing file. Used by tests and service layer."""
+        file_record = self.db.get(UploadedFile, uploaded_file_id)
+        if file_record is None:
+            raise ValueError('File not found.')
+
+        submission = self.db.get(EmployeeSubmission, file_record.submission_id)
+        if submission is None:
+            raise ValueError('Submission not found.')
+
+        # D-07: lock contributions after evaluation
+        if submission.status in ('evaluated', 'confirmed'):
+            raise ValueError('贡献比例已锁定：评估已提交后不可修改 (locked after evaluation).')
+
+        contributor_inputs = [ContributorInput(**c) for c in contributors]
+        self._validate_contributors(contributor_inputs)
+        self._save_contributors(file_record, submission, contributor_inputs)
+        self.db.commit()
+
+    # ------------------------------------------------------------------
+    # Dispute mechanism (D-06)
+    # ------------------------------------------------------------------
+
+    def dispute_contribution(
+        self,
+        contributor_id: str,
+        disputant_id: str,
+    ) -> ProjectContributor:
+        contrib = self.db.get(ProjectContributor, contributor_id)
+        if contrib is None:
+            raise ValueError('Contributor record not found.')
+
+        # Verify the disputant is the contributor employee (via submission -> employee)
+        contrib_submission = self.db.get(EmployeeSubmission, contrib.submission_id)
+        if contrib_submission is None or contrib_submission.employee_id != disputant_id:
+            raise PermissionError('只有被分配比例的员工可以提出异议。')
+
+        if contrib.status != 'accepted':
+            raise ValueError(f'状态不允许异议: 当前状态为 {contrib.status}')
+
+        contrib.status = 'disputed'
+        self.db.commit()
+        self.db.refresh(contrib)
+        return contrib
+
+    def confirm_contribution(
+        self,
+        contributor_id: str,
+        confirmer_id: str,
+    ) -> ProjectContributor:
+        """Record a confirmation from a participant. If all confirm, resolve the dispute."""
+        contrib = self.db.get(ProjectContributor, contributor_id)
+        if contrib is None:
+            raise ValueError('Contributor record not found.')
+
+        if contrib.status != 'disputed':
+            raise ValueError(f'只有 disputed 状态可以确认: 当前状态为 {contrib.status}')
+
+        # Track confirmations in a simple way: store confirmer IDs
+        # We use a lightweight approach -- check if both owner and contributor confirm
+        file_record = self.db.get(UploadedFile, contrib.uploaded_file_id)
+        if file_record is None:
+            raise ValueError('File not found.')
+
+        owner_submission = self.db.get(EmployeeSubmission, file_record.submission_id)
+        contrib_submission = self.db.get(EmployeeSubmission, contrib.submission_id)
+
+        if owner_submission is None or contrib_submission is None:
+            raise ValueError('Submission not found.')
+
+        owner_id = owner_submission.employee_id
+        contributor_employee_id = contrib_submission.employee_id
+
+        # Track who has confirmed using a simple attribute cache on the session
+        # For simplicity, use the _confirmations dict pattern
+        if not hasattr(self, '_confirmations'):
+            self._confirmations: dict[str, set[str]] = {}
+        if contributor_id not in self._confirmations:
+            self._confirmations[contributor_id] = set()
+        self._confirmations[contributor_id].add(confirmer_id)
+
+        # Check if both parties have confirmed
+        required = {owner_id, contributor_employee_id}
+        if required.issubset(self._confirmations[contributor_id]):
+            contrib.status = 'resolved'
+            self.db.commit()
+            self.db.refresh(contrib)
+            del self._confirmations[contributor_id]
+
+        return contrib
+
+    def resolve_dispute_manager(
+        self,
+        contributor_id: str,
+        manager_id: str,
+        new_pct: float | None = None,
+    ) -> ProjectContributor:
+        """Manager override to resolve a disputed contribution."""
+        contrib = self.db.get(ProjectContributor, contributor_id)
+        if contrib is None:
+            raise ValueError('Contributor record not found.')
+
+        if contrib.status != 'disputed':
+            raise ValueError(f'只有 disputed 状态可以裁定: 当前状态为 {contrib.status}')
+
+        contrib.status = 'resolved'
+        if new_pct is not None:
+            old_pct = contrib.contribution_pct
+            contrib.contribution_pct = new_pct
+            # Recalculate owner_pct
+            file_record = self.db.get(UploadedFile, contrib.uploaded_file_id)
+            if file_record is not None:
+                all_contribs = self.db.scalars(
+                    select(ProjectContributor).where(
+                        ProjectContributor.uploaded_file_id == file_record.id,
+                    )
+                ).all()
+                total = sum(c.contribution_pct for c in all_contribs)
+                file_record.owner_contribution_pct = 100.0 - total
+
+        self.db.commit()
+        self.db.refresh(contrib)
+        return contrib
+
+    def resolve_dispute(
+        self,
+        contributor_id: str,
+        *,
+        resolution: str,
+        resolver_employee_id: str,
+        new_pct: float | None = None,
+    ) -> ProjectContributor:
+        """Unified dispute resolution: 'all_confirmed' or 'manager_override'."""
+        if resolution == 'manager_override':
+            return self.resolve_dispute_manager(contributor_id, resolver_employee_id, new_pct)
+        elif resolution == 'all_confirmed':
+            contrib = self.db.get(ProjectContributor, contributor_id)
+            if contrib is None:
+                raise ValueError('Contributor record not found.')
+            contrib.status = 'resolved'
+            self.db.commit()
+            self.db.refresh(contrib)
+            return contrib
+        else:
+            raise ValueError(f'Unknown resolution type: {resolution}')
+
+    # ------------------------------------------------------------------
+    # Core file operations
+    # ------------------------------------------------------------------
 
     def get_submission(self, submission_id: str) -> EmployeeSubmission | None:
         return self.db.get(EmployeeSubmission, submission_id)
 
-    def list_files(self, submission_id: str) -> list[UploadedFile]:
-        query = select(UploadedFile).where(UploadedFile.submission_id == submission_id).order_by(UploadedFile.created_at.desc())
-        return list(self.db.scalars(query))
+    def list_files(self, submission_id: str, *, include_shared: bool = False) -> list[UploadedFile]:
+        # Own files
+        query = select(UploadedFile).where(
+            UploadedFile.submission_id == submission_id,
+        ).order_by(UploadedFile.created_at.desc())
+        own_files = list(self.db.scalars(query))
+
+        if not include_shared:
+            return own_files
+
+        # Shared files via ProjectContributor (SUB-03, D-09)
+        shared_query = (
+            select(UploadedFile)
+            .join(ProjectContributor, ProjectContributor.uploaded_file_id == UploadedFile.id)
+            .where(ProjectContributor.submission_id == submission_id)
+        )
+        shared_files = list(self.db.scalars(shared_query))
+
+        # Deduplicate (a file could theoretically appear in both)
+        seen_ids = {f.id for f in own_files}
+        for sf in shared_files:
+            if sf.id not in seen_ids:
+                own_files.append(sf)
+                seen_ids.add(sf.id)
+
+        return own_files
 
     def list_evidence(self, submission_id: str) -> list[EvidenceItem]:
         query = select(EvidenceItem).where(EvidenceItem.submission_id == submission_id).order_by(EvidenceItem.created_at.desc())
@@ -50,7 +322,7 @@ class FileService:
         extension = self._allowed_extension(file_name, content)
         if extension is None:
             raise ValueError('Unsupported file type.')
-        if len(content) > self.settings.max_upload_size_mb * 1024 * 1024:
+        if self.settings is not None and len(content) > self.settings.max_upload_size_mb * 1024 * 1024:
             raise ValueError(f'文件超过大小限制，当前单文件最大支持 {self.settings.max_upload_size_mb}MB。')
 
     def _allowed_extension(self, file_name: str, content: bytes) -> str | None:
@@ -95,19 +367,29 @@ class FileService:
     def validate_upload(self, upload: UploadFile, content: bytes) -> None:
         self._validate_file_name_and_content(upload.filename or 'upload.bin', content)
 
-    def _create_file_record(self, *, submission_id: str, file_name: str, content: bytes) -> UploadedFile:
-        storage_file_name = self._storage_file_name(file_name, content)
-        storage_key = self.storage.save_bytes(
-            submission_id=submission_id,
-            file_name=storage_file_name,
-            content=content,
-        )
+    def _create_file_record(
+        self,
+        *,
+        submission_id: str,
+        file_name: str,
+        content: bytes,
+        content_hash: str = '',
+    ) -> UploadedFile:
+        storage_key = ''
+        if self.storage is not None:
+            storage_file_name = self._storage_file_name(file_name, content)
+            storage_key = self.storage.save_bytes(
+                submission_id=submission_id,
+                file_name=storage_file_name,
+                content=content,
+            )
         file_record = UploadedFile(
             submission_id=submission_id,
             file_name=file_name,
             file_type=self._infer_file_type(file_name, content),
-            storage_key=storage_key,
+            storage_key=storage_key or f'uploads/{file_name}',
             parse_status='pending',
+            content_hash=content_hash,
         )
         self.db.add(file_record)
         return file_record
@@ -116,27 +398,93 @@ class FileService:
         submission.status = 'submitted'
         self.db.add(submission)
 
-    def upload_files(self, submission_id: str, uploads: list[UploadFile]) -> list[UploadedFile]:
+    def upload_files(
+        self,
+        submission_id: str,
+        uploads: list[UploadFile],
+        *,
+        contributors: list[ContributorInput] | None = None,
+    ) -> list[UploadedFile]:
         submission = self.get_submission(submission_id)
         if submission is None:
             raise ValueError('Submission not found.')
+
+        # Validate contributors upfront if provided
+        if contributors:
+            self._validate_contributors(contributors)
 
         saved_files: list[UploadedFile] = []
         for upload in uploads:
             content = upload.file.read()
             self.validate_upload(upload, content)
+
+            # Compute hash and check for duplicates (D-04: dedup before upload completes)
+            content_hash = self._compute_hash(content)
+            file_name = upload.filename or 'upload.bin'
+            existing = self._check_duplicate(file_name, content_hash)
+            if existing is not None:
+                uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
+                raise ValueError(
+                    f'重复文件: 此文件已由其他人在 {uploaded_at} 提交 '
+                    f'(duplicate existing_file_id={existing.id})'
+                )
+
             file_record = self._create_file_record(
                 submission_id=submission_id,
-                file_name=upload.filename or 'upload.bin',
+                file_name=file_name,
                 content=content,
+                content_hash=content_hash,
             )
             saved_files.append(file_record)
 
         self._mark_submission_uploaded(submission)
+        self.db.flush()  # Ensure file records have IDs before saving contributors
+
+        # Save contributors if provided
+        if contributors and saved_files:
+            for file_record in saved_files:
+                self._save_contributors(file_record, submission, contributors)
+
         self.db.commit()
         for item in saved_files:
             self.db.refresh(item)
         return saved_files
+
+    def upload_file(
+        self,
+        submission_id: str,
+        file_name: str,
+        file_type: str,
+        content: bytes,
+        content_hash: str = '',
+    ) -> UploadedFile:
+        """Simple file upload for programmatic use (e.g., supplementary materials)."""
+        submission = self.get_submission(submission_id)
+        if submission is None:
+            raise ValueError('Submission not found.')
+
+        if not content_hash:
+            content_hash = self._compute_hash(content)
+
+        # Check for duplicates
+        existing = self._check_duplicate(file_name, content_hash)
+        if existing is not None:
+            uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
+            raise ValueError(
+                f'重复文件: 此文件已由其他人在 {uploaded_at} 提交 '
+                f'(duplicate existing_file_id={existing.id})'
+            )
+
+        file_record = self._create_file_record(
+            submission_id=submission_id,
+            file_name=file_name,
+            content=content,
+            content_hash=content_hash,
+        )
+        self._mark_submission_uploaded(submission)
+        self.db.commit()
+        self.db.refresh(file_record)
+        return file_record
 
     def _github_archive_url(self, owner: str, repo: str, ref: str | None = None) -> tuple[str, str]:
         archive_url = f'https://api.github.com/repos/{owner}/{repo}/zipball'
@@ -244,14 +592,15 @@ class FileService:
     def _read_binary_response(self, response) -> bytes:
         chunks: list[bytes] = []
         total = 0
-        max_bytes = self.settings.max_upload_size_mb * 1024 * 1024
+        max_bytes = (self.settings.max_upload_size_mb if self.settings else 50) * 1024 * 1024
         while True:
             chunk = response.read(GITHUB_DOWNLOAD_CHUNK_SIZE)
             if not chunk:
                 break
             total += len(chunk)
             if total > max_bytes:
-                raise ValueError(f'文件超过大小限制，当前单文件最大支持 {self.settings.max_upload_size_mb}MB。')
+                max_mb = self.settings.max_upload_size_mb if self.settings else 50
+                raise ValueError(f'文件超过大小限制，当前单文件最大支持 {max_mb}MB。')
             chunks.append(chunk)
         return b''.join(chunks)
 
@@ -270,7 +619,7 @@ class FileService:
         except ValueError as exc:
             raise ValueError('Unable to decode GitHub file content.') from exc
 
-        if len(decoded) > self.settings.max_upload_size_mb * 1024 * 1024:
+        if self.settings is not None and len(decoded) > self.settings.max_upload_size_mb * 1024 * 1024:
             raise ValueError(f'文件超过大小限制，当前单文件最大支持 {self.settings.max_upload_size_mb}MB。')
         return decoded
 
@@ -282,7 +631,23 @@ class FileService:
         raw_url, file_name = self._normalize_github_raw_url(url)
         content = self._download_remote_file(raw_url)
         self._validate_file_name_and_content(file_name, content)
-        file_record = self._create_file_record(submission_id=submission_id, file_name=file_name, content=content)
+
+        # Dedup check for GitHub imports
+        content_hash = self._compute_hash(content)
+        existing = self._check_duplicate(file_name, content_hash)
+        if existing is not None:
+            uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
+            raise ValueError(
+                f'重复文件: 此文件已由其他人在 {uploaded_at} 提交 '
+                f'(duplicate existing_file_id={existing.id})'
+            )
+
+        file_record = self._create_file_record(
+            submission_id=submission_id,
+            file_name=file_name,
+            content=content,
+            content_hash=content_hash,
+        )
         self._mark_submission_uploaded(submission)
         self.db.commit()
         self.db.refresh(file_record)
@@ -301,22 +666,37 @@ class FileService:
 
         content = upload.file.read()
         self.validate_upload(upload, content)
-        self.storage.delete(file_record.storage_key)
+
+        # Dedup check for replacement (exclude current file)
+        content_hash = self._compute_hash(content)
+        next_file_name = upload.filename or file_record.file_name
+        existing = self._check_duplicate(next_file_name, content_hash, exclude_file_id=file_id)
+        if existing is not None:
+            uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
+            raise ValueError(
+                f'重复文件: 此文件已由其他人在 {uploaded_at} 提交 '
+                f'(duplicate existing_file_id={existing.id})'
+            )
+
+        if self.storage is not None:
+            self.storage.delete(file_record.storage_key)
         self.delete_submission_evidence_for_file(file_record.submission_id, file_record.id)
         submission = self.get_submission(file_record.submission_id)
         if submission is None:
             raise ValueError('Submission not found.')
 
-        next_file_name = upload.filename or file_record.file_name
-        new_storage_key = self.storage.save_bytes(
-            submission_id=file_record.submission_id,
-            file_name=self._storage_file_name(next_file_name, content),
-            content=content,
-        )
+        new_storage_key = ''
+        if self.storage is not None:
+            new_storage_key = self.storage.save_bytes(
+                submission_id=file_record.submission_id,
+                file_name=self._storage_file_name(next_file_name, content),
+                content=content,
+            )
         file_record.file_name = next_file_name
         file_record.file_type = self._infer_file_type(next_file_name, content)
-        file_record.storage_key = new_storage_key
+        file_record.storage_key = new_storage_key or file_record.storage_key
         file_record.parse_status = 'pending'
+        file_record.content_hash = content_hash
         self._mark_submission_uploaded(submission)
         self.db.add(file_record)
         self.db.commit()
@@ -329,7 +709,8 @@ class FileService:
             raise ValueError('File not found.')
 
         submission = self.get_submission(file_record.submission_id)
-        self.storage.delete(file_record.storage_key)
+        if self.storage is not None:
+            self.storage.delete(file_record.storage_key)
         self.delete_submission_evidence_for_file(file_record.submission_id, file_record.id)
         self.db.delete(file_record)
 
@@ -353,4 +734,6 @@ class FileService:
         file_record = self.get_file(file_id)
         if file_record is None:
             return None
+        if self.storage is None:
+            return file_record, ''
         return file_record, self.storage.preview_url(file_record.storage_key)

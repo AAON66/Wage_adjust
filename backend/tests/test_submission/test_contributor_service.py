@@ -1,7 +1,5 @@
-"""RED test stubs for SUB-02 (contributor CRUD), SUB-03 (shared file visibility),
+"""Tests for SUB-02 (contributor CRUD), SUB-03 (shared file visibility),
 and D-06 (dispute mechanism).
-
-All tests are marked xfail because the contributor service logic is not yet implemented.
 """
 from __future__ import annotations
 
@@ -35,7 +33,9 @@ def _build_db():
 
 
 def _seed_two_employees(session_factory):
-    """Seed DB with 2 employees, 1 cycle, 2 submissions, 1 uploaded file on emp1's submission."""
+    """Seed DB with 2 employees, 1 cycle, 2 submissions, 1 uploaded file on emp1's submission.
+    Returns string IDs to avoid detached instance errors.
+    """
     db = session_factory()
     cycle = EvaluationCycle(
         name='2026 Review', review_period='2026',
@@ -54,15 +54,22 @@ def _seed_two_employees(session_factory):
     for obj in [cycle, emp1, emp2]:
         db.refresh(obj)
 
-    sub1 = EmployeeSubmission(employee_id=emp1.id, cycle_id=cycle.id, status='collecting')
-    sub2 = EmployeeSubmission(employee_id=emp2.id, cycle_id=cycle.id, status='collecting')
+    cycle_id = cycle.id
+    emp1_id = emp1.id
+    emp2_id = emp2.id
+
+    sub1 = EmployeeSubmission(employee_id=emp1_id, cycle_id=cycle_id, status='collecting')
+    sub2 = EmployeeSubmission(employee_id=emp2_id, cycle_id=cycle_id, status='collecting')
     db.add_all([sub1, sub2])
     db.commit()
     db.refresh(sub1)
     db.refresh(sub2)
 
+    sub1_id = sub1.id
+    sub2_id = sub2.id
+
     file1 = UploadedFile(
-        submission_id=sub1.id,
+        submission_id=sub1_id,
         file_name='team_project.pptx',
         file_type='pptx',
         storage_key=f'uploads/{uuid4().hex}',
@@ -71,126 +78,124 @@ def _seed_two_employees(session_factory):
     db.add(file1)
     db.commit()
     db.refresh(file1)
+    file1_id = file1.id
     db.close()
-    return cycle, emp1, emp2, sub1, sub2, file1
+    return cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id
 
 
 # ---------------------------------------------------------------------------
 # SUB-02: Contributor CRUD and validation
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason='RED: SUB-02 contributor save not implemented')
 def test_contributors_saved():
     """Uploading with contributor list should create project_contributor rows."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
-
-    from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
-    svc.add_contributors(
-        uploaded_file_id=file1.id,
-        contributors=[{'employee_id': emp2.id, 'contribution_pct': 40.0}],
-    )
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
     db = sf()
-    contribs = db.query(ProjectContributor).filter_by(uploaded_file_id=file1.id).all()
+    from backend.app.services.file_service import FileService
+    svc = FileService(db)
+    svc.add_contributors(
+        uploaded_file_id=file1_id,
+        contributors=[{'employee_id': emp2_id, 'contribution_pct': 40.0}],
+    )
+
+    contribs = db.query(ProjectContributor).filter_by(uploaded_file_id=file1_id).all()
     assert len(contribs) == 1
-    assert contribs[0].submission_id == sub2.id
+    assert contribs[0].submission_id == sub2_id
     assert contribs[0].contribution_pct == 40.0
 
     # owner_contribution_pct should be auto-computed
-    file_obj = db.query(UploadedFile).get(file1.id)
+    file_obj = db.query(UploadedFile).get(file1_id)
     assert file_obj.owner_contribution_pct == 60.0
     db.close()
 
 
-@pytest.mark.xfail(reason='RED: SUB-02 contributor pct sum validation not implemented')
 def test_contributor_pct_sum_exceeds_100_rejected():
     """If sum of contributor pcts >= 100, should be rejected."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
+    db = sf()
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
+    svc = FileService(db)
     with pytest.raises((ValueError, Exception)):
         svc.add_contributors(
-            uploaded_file_id=file1.id,
-            contributors=[{'employee_id': emp2.id, 'contribution_pct': 100.0}],
+            uploaded_file_id=file1_id,
+            contributors=[{'employee_id': emp2_id, 'contribution_pct': 100.0}],
         )
+    db.close()
 
 
-@pytest.mark.xfail(reason='RED: SUB-02 zero pct validation not implemented')
 def test_contributor_pct_zero_rejected():
     """0% contribution should be rejected."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
+    db = sf()
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
+    svc = FileService(db)
     with pytest.raises((ValueError, Exception)):
         svc.add_contributors(
-            uploaded_file_id=file1.id,
-            contributors=[{'employee_id': emp2.id, 'contribution_pct': 0.0}],
+            uploaded_file_id=file1_id,
+            contributors=[{'employee_id': emp2_id, 'contribution_pct': 0.0}],
         )
+    db.close()
 
 
-@pytest.mark.xfail(reason='RED: SUB-02 owner pct auto-compute not implemented')
 def test_owner_pct_computed():
     """owner_contribution_pct = 100 - sum(contributor_pcts), auto-computed."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
-
-    from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
-    svc.add_contributors(
-        uploaded_file_id=file1.id,
-        contributors=[{'employee_id': emp2.id, 'contribution_pct': 30.0}],
-    )
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
     db = sf()
-    file_obj = db.query(UploadedFile).get(file1.id)
+    from backend.app.services.file_service import FileService
+    svc = FileService(db)
+    svc.add_contributors(
+        uploaded_file_id=file1_id,
+        contributors=[{'employee_id': emp2_id, 'contribution_pct': 30.0}],
+    )
+
+    file_obj = db.query(UploadedFile).get(file1_id)
     assert file_obj.owner_contribution_pct == 70.0
     db.close()
 
 
-@pytest.mark.xfail(reason='RED: SUB-02/D-07 contribution lock after evaluation not implemented')
 def test_contribution_locked_after_evaluation():
     """After evaluation is submitted, contribution percentages cannot be modified."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
     # Set submission status to evaluated
     db = sf()
-    sub1_obj = db.query(EmployeeSubmission).get(sub1.id)
+    sub1_obj = db.query(EmployeeSubmission).get(sub1_id)
     sub1_obj.status = 'evaluated'
     db.commit()
-    db.close()
 
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
+    svc = FileService(db)
     with pytest.raises((ValueError, Exception)) as exc_info:
         svc.add_contributors(
-            uploaded_file_id=file1.id,
-            contributors=[{'employee_id': emp2.id, 'contribution_pct': 50.0}],
+            uploaded_file_id=file1_id,
+            contributors=[{'employee_id': emp2_id, 'contribution_pct': 50.0}],
         )
     assert 'locked' in str(exc_info.value).lower() or 'evaluated' in str(exc_info.value).lower()
+    db.close()
 
 
 # ---------------------------------------------------------------------------
 # D-06: Dispute mechanism
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason='RED: D-06 dispute status change not implemented')
 def test_dispute_changes_status():
     """POST dispute endpoint should change contributor status from accepted to disputed."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
-    # Manually add a contributor record
     db = sf()
     contrib = ProjectContributor(
-        uploaded_file_id=file1.id,
-        submission_id=sub2.id,
+        uploaded_file_id=file1_id,
+        submission_id=sub2_id,
         contribution_pct=40.0,
         status='accepted',
     )
@@ -198,28 +203,25 @@ def test_dispute_changes_status():
     db.commit()
     db.refresh(contrib)
     contrib_id = contrib.id
-    db.close()
 
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
-    svc.dispute_contribution(contributor_id=contrib_id, disputant_id=emp2.id)
+    svc = FileService(db)
+    svc.dispute_contribution(contributor_id=contrib_id, disputant_id=emp2_id)
 
-    db = sf()
     updated = db.query(ProjectContributor).get(contrib_id)
     assert updated.status == 'disputed'
     db.close()
 
 
-@pytest.mark.xfail(reason='RED: D-06 all-confirm resolve not implemented')
 def test_dispute_resolve_all_confirm():
     """All members confirming should resolve the dispute (status -> resolved)."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
     db = sf()
     contrib = ProjectContributor(
-        uploaded_file_id=file1.id,
-        submission_id=sub2.id,
+        uploaded_file_id=file1_id,
+        submission_id=sub2_id,
         contribution_pct=40.0,
         status='disputed',
     )
@@ -227,30 +229,27 @@ def test_dispute_resolve_all_confirm():
     db.commit()
     db.refresh(contrib)
     contrib_id = contrib.id
-    db.close()
 
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
+    svc = FileService(db)
     # Both owner and contributor confirm
-    svc.confirm_contribution(contributor_id=contrib_id, confirmer_id=emp1.id)
-    svc.confirm_contribution(contributor_id=contrib_id, confirmer_id=emp2.id)
+    svc.confirm_contribution(contributor_id=contrib_id, confirmer_id=emp1_id)
+    svc.confirm_contribution(contributor_id=contrib_id, confirmer_id=emp2_id)
 
-    db = sf()
     resolved = db.query(ProjectContributor).get(contrib_id)
     assert resolved.status == 'resolved'
     db.close()
 
 
-@pytest.mark.xfail(reason='RED: D-06 manager override not implemented')
 def test_dispute_resolve_manager_override():
     """Manager override should directly resolve a disputed contribution."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
     db = sf()
     contrib = ProjectContributor(
-        uploaded_file_id=file1.id,
-        submission_id=sub2.id,
+        uploaded_file_id=file1_id,
+        submission_id=sub2_id,
         contribution_pct=40.0,
         status='disputed',
     )
@@ -258,13 +257,11 @@ def test_dispute_resolve_manager_override():
     db.commit()
     db.refresh(contrib)
     contrib_id = contrib.id
-    db.close()
 
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
+    svc = FileService(db)
     svc.resolve_dispute_manager(contributor_id=contrib_id, manager_id='manager-001')
 
-    db = sf()
     resolved = db.query(ProjectContributor).get(contrib_id)
     assert resolved.status == 'resolved'
     db.close()
@@ -274,57 +271,53 @@ def test_dispute_resolve_manager_override():
 # SUB-03: Shared file visibility
 # ---------------------------------------------------------------------------
 
-@pytest.mark.xfail(reason='RED: SUB-03 shared file visibility not implemented')
 def test_contributor_sees_shared_file():
     """Contributor should see the shared project file in their list_files result."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
     db = sf()
     contrib = ProjectContributor(
-        uploaded_file_id=file1.id,
-        submission_id=sub2.id,
+        uploaded_file_id=file1_id,
+        submission_id=sub2_id,
         contribution_pct=40.0,
         status='accepted',
     )
     db.add(contrib)
     db.commit()
-    db.close()
 
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
-    files = svc.list_files(submission_id=sub2.id, include_shared=True)
+    svc = FileService(db)
+    files = svc.list_files(submission_id=sub2_id, include_shared=True)
     shared_ids = [f.id for f in files]
-    assert file1.id in shared_ids
+    assert file1_id in shared_ids
+    db.close()
 
 
-@pytest.mark.xfail(reason='RED: SUB-03 supplementary upload not implemented')
 def test_contributor_can_upload_supplementary():
     """Contributor should be able to upload supplementary material to their own submission."""
     _settings, sf = _build_db()
-    cycle, emp1, emp2, sub1, sub2, file1 = _seed_two_employees(sf)
+    cycle_id, emp1_id, emp2_id, sub1_id, sub2_id, file1_id = _seed_two_employees(sf)
 
-    # emp2 is contributor on file1
     db = sf()
     contrib = ProjectContributor(
-        uploaded_file_id=file1.id,
-        submission_id=sub2.id,
+        uploaded_file_id=file1_id,
+        submission_id=sub2_id,
         contribution_pct=40.0,
         status='accepted',
     )
     db.add(contrib)
     db.commit()
-    db.close()
 
     from backend.app.services.file_service import FileService
-    svc = FileService(session_factory=sf)
-    # Contributor uploads supplementary material to their OWN submission
+    svc = FileService(db)
     supplementary = svc.upload_file(
-        submission_id=sub2.id,
+        submission_id=sub2_id,
         file_name='my_contribution_notes.pdf',
         file_type='pdf',
         content=b'supplementary content',
         content_hash='supplementary_hash_001',
     )
-    assert supplementary.submission_id == sub2.id
+    assert supplementary.submission_id == sub2_id
     assert supplementary.file_name == 'my_contribution_notes.pdf'
+    db.close()
