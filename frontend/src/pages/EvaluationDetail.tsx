@@ -479,6 +479,7 @@ export function EvaluationDetailPage() {
   const [reviewLevel, setReviewLevel] = useState('Level 3');
   const [reviewComment, setReviewComment] = useState('请填写主管评分依据；如进入 HR 审核，请填写同意或打回原因。');
   const [isUploading, setIsUploading] = useState(false);
+  const [pendingContributors, setPendingContributors] = useState<import('../types/api').ContributorInput[]>([]);
   const [isGithubImporting, setIsGithubImporting] = useState(false);
   const [isParsingAll, setIsParsingAll] = useState(false);
   const [batchParseTotal, setBatchParseTotal] = useState(0);
@@ -1025,7 +1026,11 @@ export function EvaluationDetailPage() {
     setErrorMessage(null);
     setSuccessMessage(null);
     try {
-      const uploadResponse = await uploadSubmissionFiles(submission.id, Array.from(selectedFiles));
+      const uploadResponse = await uploadSubmissionFiles(
+        submission.id,
+        Array.from(selectedFiles),
+        pendingContributors.length > 0 ? pendingContributors : undefined,
+      );
       await reloadCurrentCycleData();
       const summary = await parseFilesInParallel(uploadResponse.items, { showBatchProgress: false });
       await reloadCurrentCycleData();
@@ -1036,7 +1041,7 @@ export function EvaluationDetailPage() {
       }
     } catch (error) {
       if (error instanceof DuplicateFileException) {
-        setErrorMessage(`重复文件：${error.data.message}`);
+        setErrorMessage(`重复文件：${error.detail.message}`);
       } else {
         setErrorMessage(resolveError(error));
       }
@@ -1543,6 +1548,8 @@ export function EvaluationDetailPage() {
                 isUploading={isUploading}
                 onFilesSelected={handleFilesSelected}
                 onGitHubImport={handleGitHubImport}
+                showContributorPicker
+                onContributorsChange={setPendingContributors}
               />
             </div>
             <div className="surface px-6 py-6 lg:px-7">
