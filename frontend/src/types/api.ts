@@ -354,6 +354,7 @@ export interface ApprovalRecord {
   defer_target_score: number | null;
   defer_reason: string | null;
   dimension_scores: DimensionScoreRecord[];
+  project_contributors?: ProjectContributorSummary[];
 }
 
 export interface ApprovalListResponse {
@@ -596,6 +597,27 @@ export interface BulkUserDeleteResponse {
   deleted_user_ids: string[];
   failed: BulkFailureRecord[];
   total_requested: number;
+}
+
+export interface ContributorInput {
+  employee_id: string;
+  contribution_pct: number;
+}
+
+export interface ProjectContributorSummary {
+  employee_id: string;
+  employee_name: string;
+  contribution_pct: number;
+  file_name: string;
+  is_owner: boolean;
+}
+
+export interface DuplicateFileError {
+  error: 'duplicate_file';
+  existing_file_id: string;
+  uploaded_by: string;
+  uploaded_at: string;
+  message: string;
 }
 
 export interface AuditLogRead {

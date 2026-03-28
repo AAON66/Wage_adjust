@@ -1,20 +1,50 @@
-﻿import api from './api';
-import type { EvidenceListResponse, FileDeleteResponse, ParseResultRecord, UploadedFileListResponse, UploadedFileRecord } from '../types/api';
+﻿import axios from 'axios';
+
+import api from './api';
+import type { ContributorInput, DuplicateFileError, EvidenceListResponse, FileDeleteResponse, ParseResultRecord, UploadedFileListResponse, UploadedFileRecord } from '../types/api';
 
 const LONG_RUNNING_TIMEOUT = 120000;
+
+export class DuplicateFileException extends Error {
+  readonly detail: DuplicateFileError;
+
+  constructor(detail: DuplicateFileError) {
+    const uploadedAt = new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium' }).format(new Date(detail.uploaded_at));
+    super(`此文件已由 ${detail.uploaded_by} 在 ${uploadedAt} 提交`);
+    this.name = 'DuplicateFileException';
+    this.detail = detail;
+  }
+}
 
 export async function fetchSubmissionFiles(submissionId: string): Promise<UploadedFileListResponse> {
   const response = await api.get<UploadedFileListResponse>(`/submissions/${submissionId}/files`);
   return response.data;
 }
 
-export async function uploadSubmissionFiles(submissionId: string, files: File[]): Promise<UploadedFileListResponse> {
+export async function uploadSubmissionFiles(
+  submissionId: string,
+  files: File[],
+  contributors?: ContributorInput[],
+): Promise<UploadedFileListResponse> {
   const formData = new FormData();
   files.forEach((file) => formData.append('files', file));
-  const response = await api.post<UploadedFileListResponse>(`/submissions/${submissionId}/files`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return response.data;
+  if (contributors && contributors.length > 0) {
+    formData.append('contributors', JSON.stringify(contributors));
+  }
+  try {
+    const response = await api.post<UploadedFileListResponse>(`/submissions/${submissionId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 409) {
+      const data = error.response.data as DuplicateFileError;
+      if (data.error === 'duplicate_file') {
+        throw new DuplicateFileException(data);
+      }
+    }
+    throw error;
+  }
 }
 
 export async function importGitHubSubmissionFile(submissionId: string, url: string): Promise<UploadedFileRecord> {

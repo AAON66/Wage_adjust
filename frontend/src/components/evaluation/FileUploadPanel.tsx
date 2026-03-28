@@ -1,13 +1,29 @@
-﻿import { useId, useState } from 'react';
+import { useId, useState } from 'react';
+
+import { ContributorPicker } from './ContributorPicker';
+import type { ContributorInput } from '../../types/api';
 
 interface FileUploadPanelProps {
   isGithubImporting?: boolean;
   isUploading: boolean;
   onFilesSelected: (files: FileList | null) => void;
   onGitHubImport?: (url: string) => void;
+  contributors?: ContributorInput[];
+  onContributorsChange?: (contributors: ContributorInput[]) => void;
+  showContributorPicker?: boolean;
+  duplicateError?: string | null;
 }
 
-export function FileUploadPanel({ isGithubImporting = false, isUploading, onFilesSelected, onGitHubImport }: FileUploadPanelProps) {
+export function FileUploadPanel({
+  isGithubImporting = false,
+  isUploading,
+  onFilesSelected,
+  onGitHubImport,
+  contributors,
+  onContributorsChange,
+  showContributorPicker = false,
+  duplicateError,
+}: FileUploadPanelProps) {
   const inputId = useId();
   const [githubUrl, setGitHubUrl] = useState('');
 
@@ -36,6 +52,23 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
         }}
         type="file"
       />
+
+      {duplicateError ? (
+        <div className="mt-4 rounded-[10px] bg-[var(--color-danger-bg,#fef2f2)] px-4 py-3 text-sm text-[var(--color-danger)]">
+          {duplicateError}
+        </div>
+      ) : null}
+
+      {showContributorPicker && onContributorsChange ? (
+        <div className="mt-5 rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-4">
+          <ContributorPicker
+            contributors={contributors ?? []}
+            disabled={isUploading}
+            onChange={onContributorsChange}
+          />
+        </div>
+      ) : null}
+
       <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
         <input
           className="toolbar-input"
@@ -69,4 +102,3 @@ export function FileUploadPanel({ isGithubImporting = false, isUploading, onFile
     </section>
   );
 }
-
