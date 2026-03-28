@@ -22,6 +22,7 @@ const ROLE_HOME_PATHS: Record<string, string> = {
 
 const SETTINGS_MODULE = { title: '账号设置', description: '查看账号信息并修改密码。', href: '/settings' };
 const EMPLOYEE_ARCHIVE_MODULE = { title: '员工档案', description: '处理档案、绑定、导入和手册。', href: '/employee-admin' };
+const IMPORT_CENTER_MODULE = { title: '导入中心', description: '模板下载、批量导入与结果追踪。', href: '/import-center' };
 
 const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
   admin: [
@@ -33,6 +34,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '平台账号', description: '管理账号与权限范围。', href: '/user-admin' },
     { title: '审计日志', description: '查看所有操作与变更记录。', href: '/audit-log' },
     EMPLOYEE_ARCHIVE_MODULE,
+    IMPORT_CENTER_MODULE,
     SETTINGS_MODULE,
   ],
   hrbp: [
@@ -42,6 +44,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '组织看板', description: '查看组织分布与人才表现。', href: '/dashboard' },
     { title: '平台账号', description: '管理员工账号。', href: '/user-admin' },
     EMPLOYEE_ARCHIVE_MODULE,
+    IMPORT_CENTER_MODULE,
     SETTINGS_MODULE,
   ],
   manager: [
@@ -50,6 +53,7 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '组织看板', description: '查看团队分布与表现。', href: '/dashboard' },
     { title: '平台账号', description: '管理员工账号。', href: '/user-admin' },
     EMPLOYEE_ARCHIVE_MODULE,
+    IMPORT_CENTER_MODULE,
     SETTINGS_MODULE,
   ],
   employee: [
