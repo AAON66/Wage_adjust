@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { ApprovalTable } from '../components/approval/ApprovalTable';
+import { ContributorTags } from '../components/approval/ContributorTags';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
 import { decideApproval, deferApproval, fetchApprovalCandidates, fetchApprovals, submitDefaultApproval, updateApprovalRoute } from '../services/approvalService';
@@ -705,6 +706,15 @@ export function ApprovalsPage() {
                   <p className="text-sm text-gray-400 mt-2">暂无维度评分数据</p>
                 )}
               </div>
+
+              {selectedApproval.project_contributors && selectedApproval.project_contributors.length > 0 ? (
+                <div>
+                  <div className="text-sm font-semibold text-ink">项目协作者</div>
+                  <div className="mt-2">
+                    <ContributorTags contributors={selectedApproval.project_contributors} />
+                  </div>
+                </div>
+              ) : null}
 
               <div className="grid gap-2">
                 <div className="text-sm font-semibold text-ink">审批动作</div>
