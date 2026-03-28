@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to execute
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-03-28T03:24:03.435Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-28T03:34:00Z"
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 19
-  completed_plans: 18
+  completed_plans: 19
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-25)
 ## Current Position
 
 Phase: 05 (document-deduplication-and-multi-author) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Plan: 2 of 4
 | Phase 02 P04 | 12min | 2 tasks | 9 files |
 | Phase 02 P06 | 8min | 1 tasks | 1 files |
 | Phase 05 P01 | 5min | 2 tasks | 12 files |
+| Phase 05 P02 | 7min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,9 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 02]: Re-evaluation deletes old DimensionScore rows with synchronize_session=fetch + flush before inserting new rows
 - [Phase 02-evaluation-pipeline-integrity]: test_evaluation_api_response_contract uses full TestClient integration with create_app + dependency_overrides to verify API contract shape
 - [Phase 05]: Global dedup scope (D-02): content_hash uniqueness checked across all employees, not per-employee
+- [Phase 05]: FileService constructor accepts optional settings to support test usage without storage layer
+- [Phase 05]: Dispute confirmation uses in-memory tracking on service instance for simplicity
+- [Phase 05]: Duplicate detection returns HTTP 409 Conflict (not 400) with descriptive message
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T03:24:03.430Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-03-28T03:34:00Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None

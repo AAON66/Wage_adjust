@@ -113,7 +113,7 @@ Plans:
 **Plans**: 4 plans
 Plans:
 - [x] 05-01-PLAN.md — Schema migration + ProjectContributor model + UploadedFile extension + RED test stubs (SUB-01..SUB-05)
-- [ ] 05-02-PLAN.md — FileService dedup logic + contributor management + API endpoint update (SUB-01, SUB-02, SUB-03)
+- [x] 05-02-PLAN.md — FileService dedup logic + contributor management + API endpoint update (SUB-01, SUB-02, SUB-03)
 - [ ] 05-03-PLAN.md — EvaluationService score scaling + ApprovalService contributor display (SUB-04, SUB-05)
 - [ ] 05-04-PLAN.md — Frontend: ContributorPicker, dedup UX, approval ContributorTags (SUB-01, SUB-02, SUB-03, SUB-05)
 **UI hint**: yes
