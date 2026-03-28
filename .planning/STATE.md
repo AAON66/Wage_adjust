@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Phase 5 context gathered
-last_updated: "2026-03-27T15:49:23.442Z"
+status: Ready to execute
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-28T03:24:03.435Z"
 progress:
   total_phases: 10
   completed_phases: 4
   total_plans: 19
-  completed_plans: 17
+  completed_plans: 18
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 02 — evaluation-pipeline-integrity
+**Current focus:** Phase 05 — document-deduplication-and-multi-author
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
+Phase: 05 (document-deduplication-and-multi-author) — EXECUTING
+Plan: 2 of 4
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Plan: Not started
 | Phase 02-evaluation-pipeline-integrity P03 | 8min | 2 tasks | 4 files |
 | Phase 02 P04 | 12min | 2 tasks | 9 files |
 | Phase 02 P06 | 8min | 1 tasks | 1 files |
+| Phase 05 P01 | 5min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,7 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 02]: Evidence sanitization via scan_for_prompt_manipulation wired into LLM prompt construction path; redacts flagged content before embedding
 - [Phase 02]: Re-evaluation deletes old DimensionScore rows with synchronize_session=fetch + flush before inserting new rows
 - [Phase 02-evaluation-pipeline-integrity]: test_evaluation_api_response_contract uses full TestClient integration with create_app + dependency_overrides to verify API contract shape
+- [Phase 05]: Global dedup scope (D-02): content_hash uniqueness checked across all employees, not per-employee
 
 ### Pending Todos
 
@@ -120,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-27T15:49:23.437Z
-Stopped at: Phase 5 context gathered
-Resume file: .planning/phases/05-document-deduplication-and-multi-author/05-CONTEXT.md
+Last session: 2026-03-28T03:24:03.430Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
