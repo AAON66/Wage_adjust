@@ -68,13 +68,13 @@
 
 ### 看板与数据分析
 
-- [ ] **DASH-01**：看板查询使用 SQL 侧聚合（`GROUP BY`、`func.count`、`func.sum`），消除 `DashboardService` 中的全表扫描模式
-- [ ] **DASH-02**：看板数据使用 Redis 缓存，每张图表 TTL 5-15 分钟；缓存 key 包含 `cycle_id` 和请求用户角色，防止跨角色数据泄漏
+- [x] **DASH-01**：看板查询使用 SQL 侧聚合（`GROUP BY`、`func.count`、`func.sum`），消除 `DashboardService` 中的全表扫描模式
+- [x] **DASH-02**：看板数据使用 Redis 缓存，每张图表 TTL 5-15 分钟；缓存 key 包含 `cycle_id` 和请求用户角色，防止跨角色数据泄漏
 - [x] **DASH-03**：看板展示各 AI 等级的人才分布（每个等级人数和占比）图表
 - [x] **DASH-04**：看板展示调薪幅度分布（直方图或区间图），展示建议调薪比例的分布情况
 - [x] **DASH-05**：看板展示审批流水线状态——各工作流状态下的评估数量（草稿、已提交、经理审核中、HR 审核中、已批准、已拒绝）
 - [ ] **DASH-06**：看板支持按部门下钻——HR/HRBP 可查看各部门的等级分布和调薪平均值
-- [ ] **DASH-07**：待审批数量 KPI 卡片每 30 秒刷新一次；其他图表数据使用缓存 TTL 更新
+- [x] **DASH-07**：待审批数量 KPI 卡片每 30 秒刷新一次；其他图表数据使用缓存 TTL 更新
 
 ### 外部 API
 
@@ -167,13 +167,13 @@
 | IMP-04 | Phase 6 | Complete |
 | IMP-05 | Phase 6 | Complete |
 | IMP-06 | Phase 6 | Complete |
-| DASH-01 | Phase 7 | Pending |
-| DASH-02 | Phase 7 | Pending |
+| DASH-01 | Phase 7 | Complete |
+| DASH-02 | Phase 7 | Complete |
 | DASH-03 | Phase 7 | Complete |
 | DASH-04 | Phase 7 | Complete |
 | DASH-05 | Phase 7 | Complete |
 | DASH-06 | Phase 7 | Pending |
-| DASH-07 | Phase 7 | Pending |
+| DASH-07 | Phase 7 | Complete |
 | EMP-01 | Phase 8 | Pending |
 | EMP-02 | Phase 8 | Pending |
 | EMP-03 | Phase 8 | Pending |

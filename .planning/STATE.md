@@ -68,6 +68,7 @@ Plan: 2 of 3
 | Phase 06 P01 | 4min | 2 tasks | 3 files |
 | Phase 06 P02 | 5min | 2 tasks | 9 files |
 | Phase 06 P03 | 2min | 2 tasks | 6 files |
+| Phase 07 P01 | 6min | 2 tasks | 8 files |
 | Phase 07 P02 | 3min | 2 tasks | 11 files |
 
 ## Accumulated Context
@@ -124,6 +125,10 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 06]: Tests follow existing standalone test DB pattern (uuid SQLite per test) for isolation
 - [Phase 06]: RED tests define expected behaviors (207, error_column, xlsx templates, audit logging) for Plan 01/03 implementation
 - [Phase 06]: ImportRowResult 类型添加到 api.ts 保持类型集中管理；ImportJobRecord.status 添加 partial；模板下载改为双格式 chip-button
+- [Phase 07]: 缓存 key 使用 user_id 而非 role，防止 manager 跨部门数据泄漏
+- [Phase 07]: KPI 摘要端点不走 Redis 缓存，直接查库支持 30 秒轮询
+- [Phase 07]: Redis 不可用时缓存端点返回 503，不静默降级
+- [Phase 07]: 所有看板端点统一使用 require_roles 鉴权，employee 角色返回 403
 - [Phase 07]: ServiceUnavailableBanner exported from AILevelChart and reused across chart components
 - [Phase 07]: KpiCards uses inline style tag for responsive grid (4/2/1 columns at breakpoints)
 
@@ -139,6 +144,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:53:00.323Z
-Stopped at: Completed 07-02-PLAN.md
+Last session: 2026-03-28T16:55:00.000Z
+Stopped at: Completed 07-01-PLAN.md and 07-02-PLAN.md
 Resume file: None

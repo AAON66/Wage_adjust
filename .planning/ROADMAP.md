@@ -147,7 +147,7 @@ Plans:
   5. The pending-approvals count refreshes every 30 seconds without a full page reload; other charts use Redis cache with TTL-based refresh
 **Plans**: 3 plans
 Plans:
-- [ ] 07-01-PLAN.md — 后端 SQL 聚合 + Redis 缓存层 + 新 API 端点 (DASH-01, DASH-02, DASH-05, DASH-07)
+- [x] 07-01-PLAN.md — 后端 SQL 聚合 + Redis 缓存层 + 新 API 端点 (DASH-01, DASH-02, DASH-05, DASH-07)
 - [x] 07-02-PLAN.md — 前端 ECharts 图表组件 + usePolling hook + API 客户端 (DASH-03, DASH-04)
 - [ ] 07-03-PLAN.md — Dashboard.tsx 重构 + 部门下钻 + KPI 卡片 + 人工验证 (DASH-06, DASH-07)
 **UI hint**: yes
