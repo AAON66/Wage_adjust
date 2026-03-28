@@ -3,9 +3,10 @@
 from collections import Counter, defaultdict
 from decimal import Decimal, ROUND_HALF_UP
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.orm import Session, selectinload
 
+from backend.app.models.employee import Employee
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evaluation_cycle import EvaluationCycle
 from backend.app.models.salary_recommendation import SalaryRecommendation
@@ -21,6 +22,204 @@ class DashboardService:
 
     def __init__(self, db: Session):
         self.db = db
+
+    # ---------------------------------------------------------------
+    # Permission helper for SQL-based methods
+    # ---------------------------------------------------------------
+
+    def _department_filter(self, current_user: User | None) -> set[str] | None:
+        """Return department names to filter by, or None for no filter.
+
+        - admin / hrbp / None -> None (see all data)
+        - manager -> set of managed department names
+        - employee / other -> empty set (no data visible per D-11)
+        """
+        if current_user is None:
+            return None
+        if current_user.role in {'admin', 'hrbp'}:
+            return None
+        if current_user.role == 'manager':
+            return AccessScopeService(self.db)._department_names(current_user)
+        return set()  # employee and unknown roles see nothing
+
+    # ---------------------------------------------------------------
+    # SQL aggregation methods (new -- coexist with legacy methods)
+    # ---------------------------------------------------------------
+
+    def _apply_filters(self, query, cycle_id: str | None, department_filter: set[str] | None):
+        """Apply optional cycle_id and department filters to a query that
+        already JOINs through EmployeeSubmission -> Employee."""
+        if cycle_id:
+            query = query.where(EmployeeSubmission.cycle_id == cycle_id)
+        if department_filter is not None:
+            if not department_filter:
+                # Empty set -> no rows
+                query = query.where(Employee.department.in_([]))
+            else:
+                query = query.where(Employee.department.in_(department_filter))
+        return query
+
+    def get_ai_level_distribution_sql(
+        self,
+        cycle_id: str | None,
+        department_filter: set[str] | None,
+    ) -> list[dict]:
+        query = (
+            select(AIEvaluation.ai_level, func.count(AIEvaluation.id).label('count'))
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+        )
+        query = self._apply_filters(query, cycle_id, department_filter)
+        query = query.group_by(AIEvaluation.ai_level)
+        rows = self.db.execute(query).all()
+        count_map = {row.ai_level: row.count for row in rows}
+        total = sum(count_map.values())
+        return [
+            {
+                'label': level,
+                'value': count_map.get(level, 0),
+                'percentage': round(count_map.get(level, 0) / total * 100, 1) if total > 0 else 0,
+            }
+            for level in self.AI_LEVEL_ORDER
+        ]
+
+    def get_salary_distribution_sql(
+        self,
+        cycle_id: str | None,
+        department_filter: set[str] | None,
+    ) -> list[dict]:
+        bucket = case(
+            (SalaryRecommendation.final_adjustment_ratio < 0.05, '0-5%'),
+            (SalaryRecommendation.final_adjustment_ratio < 0.10, '5-10%'),
+            (SalaryRecommendation.final_adjustment_ratio < 0.15, '10-15%'),
+            (SalaryRecommendation.final_adjustment_ratio < 0.20, '15-20%'),
+            else_='20%+',
+        )
+        query = (
+            select(bucket.label('bucket'), func.count(SalaryRecommendation.id).label('count'))
+            .join(SalaryRecommendation.evaluation)
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+            .where(SalaryRecommendation.status.in_(self.ACTIVE_RECOMMENDATION_STATUSES))
+        )
+        query = self._apply_filters(query, cycle_id, department_filter)
+        query = query.group_by('bucket')
+        rows = self.db.execute(query).all()
+        count_map = {row.bucket: row.count for row in rows}
+        bucket_order = ['0-5%', '5-10%', '10-15%', '15-20%', '20%+']
+        return [{'label': b, 'value': count_map.get(b, 0)} for b in bucket_order]
+
+    def get_approval_pipeline_sql(
+        self,
+        cycle_id: str | None,
+        department_filter: set[str] | None,
+    ) -> list[dict]:
+        query = (
+            select(SalaryRecommendation.status, func.count(SalaryRecommendation.id).label('count'))
+            .join(SalaryRecommendation.evaluation)
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+        )
+        query = self._apply_filters(query, cycle_id, department_filter)
+        query = query.group_by(SalaryRecommendation.status)
+        rows = self.db.execute(query).all()
+        return [{'label': row.status, 'value': row.count} for row in rows]
+
+    def get_kpi_summary_sql(
+        self,
+        cycle_id: str | None,
+        department_filter: set[str] | None,
+    ) -> dict:
+        # Pending approvals
+        pending_q = (
+            select(func.count(SalaryRecommendation.id))
+            .join(SalaryRecommendation.evaluation)
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+            .where(SalaryRecommendation.status == 'pending_approval')
+        )
+        pending_q = self._apply_filters(pending_q, cycle_id, department_filter)
+        pending_approvals = self.db.scalar(pending_q) or 0
+
+        # Total employees with submissions
+        total_q = (
+            select(func.count(EmployeeSubmission.employee_id.distinct()))
+            .join(EmployeeSubmission.employee)
+        )
+        total_q = self._apply_filters(total_q, cycle_id, department_filter)
+        total_employees = self.db.scalar(total_q) or 0
+
+        # Evaluated employees
+        eval_q = (
+            select(func.count(AIEvaluation.id))
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+        )
+        eval_q = self._apply_filters(eval_q, cycle_id, department_filter)
+        evaluated_employees = self.db.scalar(eval_q) or 0
+
+        # Average adjustment ratio
+        avg_q = (
+            select(func.avg(SalaryRecommendation.final_adjustment_ratio))
+            .join(SalaryRecommendation.evaluation)
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+            .where(SalaryRecommendation.status.in_(self.ACTIVE_RECOMMENDATION_STATUSES))
+        )
+        avg_q = self._apply_filters(avg_q, cycle_id, department_filter)
+        avg_ratio = self.db.scalar(avg_q) or 0.0
+
+        # Level summary (top 3)
+        level_dist = self.get_ai_level_distribution_sql(cycle_id, department_filter)
+        level_summary = sorted(level_dist, key=lambda x: x['value'], reverse=True)[:3]
+
+        return {
+            'pending_approvals': pending_approvals,
+            'total_employees': total_employees,
+            'evaluated_employees': evaluated_employees,
+            'avg_adjustment_ratio': round(float(avg_ratio), 4),
+            'level_summary': level_summary,
+        }
+
+    def get_department_drilldown_sql(
+        self,
+        department: str,
+        cycle_id: str | None,
+    ) -> dict:
+        dept_filter = {department}
+
+        # Level distribution for this department
+        level_dist = self.get_ai_level_distribution_sql(cycle_id, dept_filter)
+
+        # Average adjustment ratio
+        avg_q = (
+            select(func.avg(SalaryRecommendation.final_adjustment_ratio))
+            .join(SalaryRecommendation.evaluation)
+            .join(AIEvaluation.submission)
+            .join(EmployeeSubmission.employee)
+            .where(SalaryRecommendation.status.in_(self.ACTIVE_RECOMMENDATION_STATUSES))
+            .where(Employee.department == department)
+        )
+        if cycle_id:
+            avg_q = avg_q.where(EmployeeSubmission.cycle_id == cycle_id)
+        avg_ratio = self.db.scalar(avg_q) or 0.0
+
+        # Employee count
+        count_q = (
+            select(func.count(EmployeeSubmission.employee_id.distinct()))
+            .join(EmployeeSubmission.employee)
+            .where(Employee.department == department)
+        )
+        if cycle_id:
+            count_q = count_q.where(EmployeeSubmission.cycle_id == cycle_id)
+        employee_count = self.db.scalar(count_q) or 0
+
+        return {
+            'department': department,
+            'level_distribution': level_dist,
+            'avg_adjustment_ratio': round(float(avg_ratio), 4),
+            'employee_count': employee_count,
+        }
 
     def _is_accessible(self, current_user: User | None, submission: EmployeeSubmission) -> bool:
         if current_user is None:
