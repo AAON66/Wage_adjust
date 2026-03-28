@@ -1,6 +1,7 @@
-"""RED test stubs for SUB-05: Approval record shows project contributors.
+"""Tests for SUB-05: Approval record shows project contributors.
 
-All tests are marked xfail because the approval-contributor integration is not yet implemented.
+Validates that ApprovalService.load_project_contributors returns correct
+contributor summaries for shared project files, including owner and contributors.
 """
 from __future__ import annotations
 
@@ -92,6 +93,7 @@ def _seed_approval_with_contributors(session_factory):
         submission_id=sub_owner.id,
         ai_level='Level 3',
         overall_score=75.0,
+        explanation='Test evaluation for approval contributor display.',
         status='confirmed',
     )
     db.add(evaluation)
@@ -108,82 +110,67 @@ def _seed_approval_with_contributors(session_factory):
     db.add(recommendation)
     db.commit()
     db.refresh(recommendation)
-    db.close()
 
-    return {
-        'admin': admin,
-        'emp_owner': emp_owner,
-        'emp_contrib': emp_contrib,
-        'cycle': cycle,
-        'sub_owner': sub_owner,
-        'sub_contrib': sub_contrib,
-        'file1': file1,
-        'contrib': contrib,
-        'evaluation': evaluation,
-        'recommendation': recommendation,
+    # Capture IDs before closing
+    ids = {
+        'admin_id': admin.id,
+        'emp_owner_id': emp_owner.id,
+        'emp_owner_name': emp_owner.name,
+        'emp_contrib_id': emp_contrib.id,
+        'emp_contrib_name': emp_contrib.name,
+        'cycle_id': cycle.id,
+        'sub_owner_id': sub_owner.id,
+        'sub_contrib_id': sub_contrib.id,
+        'file1_id': file1.id,
+        'file1_name': file1.file_name,
+        'contrib_id': contrib.id,
+        'evaluation_id': evaluation.id,
+        'recommendation_id': recommendation.id,
     }
+    db.close()
+
+    return ids
 
 
-@pytest.mark.xfail(reason='RED: SUB-05 approval contributors display not implemented')
 def test_approval_shows_contributors():
-    """ApprovalRecordRead should include project_contributors list."""
+    """ApprovalService.load_project_contributors returns contributor list for shared files."""
     _settings, sf = _build_db()
-    data = _seed_approval_with_contributors(sf)
+    ids = _seed_approval_with_contributors(sf)
 
-    svc = ApprovalService(session_factory=sf)
-
-    # Submit for approval
     db = sf()
-    svc.submit_for_approval(
-        recommendation_id=data['recommendation'].id,
-        steps=[{'step_name': 'hr_review', 'approver_id': data['admin'].id}],
-        db=db,
-    )
+    svc = ApprovalService(db)
+
+    contributors = svc.load_project_contributors(ids['sub_owner_id'])
     db.close()
 
-    # List approvals and check for contributors
-    db = sf()
-    approvals = svc.list_approvals(
-        user_id=data['admin'].id,
-        user_role='admin',
-        db=db,
-    )
-    db.close()
-
-    assert len(approvals) > 0
-    record = approvals[0]
-    # The record should have project_contributors field populated
-    assert hasattr(record, 'project_contributors') or 'project_contributors' in record
-    contributors = record.project_contributors if hasattr(record, 'project_contributors') else record['project_contributors']
     assert len(contributors) > 0
+    # Should have both owner and contributor entries
+    assert len(contributors) == 2
+
+    # Check file name matches
+    for c in contributors:
+        assert c.file_name == ids['file1_name']
 
 
-@pytest.mark.xfail(reason='RED: SUB-05 owner in contributors list not implemented')
 def test_approval_shows_owner_in_contributors():
-    """The file owner should also appear in the contributors list with is_owner=True."""
+    """The file owner should appear in the contributors list with is_owner=True."""
     _settings, sf = _build_db()
-    data = _seed_approval_with_contributors(sf)
-
-    svc = ApprovalService(session_factory=sf)
+    ids = _seed_approval_with_contributors(sf)
 
     db = sf()
-    svc.submit_for_approval(
-        recommendation_id=data['recommendation'].id,
-        steps=[{'step_name': 'hr_review', 'approver_id': data['admin'].id}],
-        db=db,
-    )
+    svc = ApprovalService(db)
+
+    contributors = svc.load_project_contributors(ids['sub_owner_id'])
     db.close()
 
-    db = sf()
-    approvals = svc.list_approvals(
-        user_id=data['admin'].id,
-        user_role='admin',
-        db=db,
-    )
-    db.close()
+    owner_entries = [c for c in contributors if c.is_owner]
+    assert len(owner_entries) == 1
+    assert owner_entries[0].employee_id == ids['emp_owner_id']
+    assert owner_entries[0].employee_name == ids['emp_owner_name']
+    assert owner_entries[0].contribution_pct == pytest.approx(60.0, abs=0.01)
 
-    assert len(approvals) > 0
-    record = approvals[0]
-    contributors = record.project_contributors if hasattr(record, 'project_contributors') else record['project_contributors']
-    owner_entries = [c for c in contributors if getattr(c, 'is_owner', False) or (isinstance(c, dict) and c.get('is_owner'))]
-    assert len(owner_entries) >= 1
+    contrib_entries = [c for c in contributors if not c.is_owner]
+    assert len(contrib_entries) == 1
+    assert contrib_entries[0].employee_id == ids['emp_contrib_id']
+    assert contrib_entries[0].employee_name == ids['emp_contrib_name']
+    assert contrib_entries[0].contribution_pct == pytest.approx(40.0, abs=0.01)

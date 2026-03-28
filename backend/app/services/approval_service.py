@@ -8,15 +8,86 @@ from sqlalchemy.orm import Session, selectinload
 from backend.app.models.approval import ApprovalRecord
 from backend.app.models.audit_log import AuditLog
 from backend.app.models.evaluation import AIEvaluation
+from backend.app.models.project_contributor import ProjectContributor
 from backend.app.models.salary_recommendation import SalaryRecommendation
 from backend.app.models.submission import EmployeeSubmission
+from backend.app.models.uploaded_file import UploadedFile
 from backend.app.models.user import User
+from backend.app.schemas.approval import ProjectContributorSummary
 from backend.app.services.access_scope_service import AccessScopeService
 
 
 class ApprovalService:
     def __init__(self, db: Session):
         self.db = db
+
+    def load_project_contributors(self, submission_id: str) -> list[ProjectContributorSummary]:
+        """Load all project contributors for a submission's shared files (per D-11).
+
+        For each uploaded file with contributors:
+        - Add the file owner as is_owner=True with owner_contribution_pct
+        - Add each contributor with their contribution_pct
+        Returns a deduplicated list of ProjectContributorSummary.
+        """
+        uploaded_files = list(
+            self.db.scalars(
+                select(UploadedFile)
+                .options(
+                    selectinload(UploadedFile.contributors)
+                    .selectinload(ProjectContributor.submission)
+                    .selectinload(EmployeeSubmission.employee),
+                    selectinload(UploadedFile.submission)
+                    .selectinload(EmployeeSubmission.employee),
+                )
+                .where(UploadedFile.submission_id == submission_id)
+            )
+        )
+
+        summaries: list[ProjectContributorSummary] = []
+        seen: set[tuple[str, str]] = set()  # (employee_id, file_name) dedup key
+
+        for uploaded_file in uploaded_files:
+            if not uploaded_file.contributors:
+                continue
+
+            # Add owner entry
+            owner_submission = uploaded_file.submission
+            if owner_submission and owner_submission.employee:
+                owner_emp = owner_submission.employee
+                key = (owner_emp.id, uploaded_file.file_name)
+                if key not in seen:
+                    seen.add(key)
+                    summaries.append(
+                        ProjectContributorSummary(
+                            employee_id=owner_emp.id,
+                            employee_name=owner_emp.name,
+                            contribution_pct=uploaded_file.owner_contribution_pct,
+                            file_name=uploaded_file.file_name,
+                            is_owner=True,
+                        )
+                    )
+
+            # Add each contributor
+            for contributor in uploaded_file.contributors:
+                if contributor.status != 'accepted':
+                    continue
+                contrib_submission = contributor.submission
+                if contrib_submission and contrib_submission.employee:
+                    contrib_emp = contrib_submission.employee
+                    key = (contrib_emp.id, uploaded_file.file_name)
+                    if key not in seen:
+                        seen.add(key)
+                        summaries.append(
+                            ProjectContributorSummary(
+                                employee_id=contrib_emp.id,
+                                employee_name=contrib_emp.name,
+                                contribution_pct=contributor.contribution_pct,
+                                file_name=uploaded_file.file_name,
+                                is_owner=False,
+                            )
+                        )
+
+        return summaries
 
     def _approval_query(self):
         return (

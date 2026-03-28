@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 from sqlalchemy import select
@@ -11,7 +12,9 @@ from backend.app.models.audit_log import AuditLog
 from backend.app.models.dimension_score import DimensionScore
 from backend.app.models.evaluation import AIEvaluation
 from backend.app.models.evidence import EvidenceItem
+from backend.app.models.project_contributor import ProjectContributor
 from backend.app.models.submission import EmployeeSubmission
+from backend.app.models.uploaded_file import UploadedFile
 from backend.app.models.user import User
 from backend.app.services.llm_service import DeepSeekService
 
@@ -68,8 +71,9 @@ class EvaluationService:
         if existing is not None and not force:
             raise ValueError('Evaluation already exists for submission.')
 
+        all_evidence = self._load_evidence_for_evaluation(submission)
         employee_profile = self._build_employee_profile(submission)
-        baseline_result = self.engine.evaluate(list(submission.evidence_items), employee_profile=employee_profile)
+        baseline_result = self.engine.evaluate(all_evidence, employee_profile=employee_profile)
         result, used_fallback, prompt_hash = self._generate_llm_backed_result(submission, baseline_result, employee_profile=employee_profile)
 
         evaluation = existing or AIEvaluation(submission_id=submission_id)
@@ -114,6 +118,129 @@ class EvaluationService:
         self.db.add(submission)
         self.db.commit()
         return self.get_evaluation(evaluation.id)  # type: ignore[return-value]
+
+    def _load_evidence_for_evaluation(self, submission: EmployeeSubmission) -> list[EvidenceItem]:
+        """Build a complete evidence pool with contribution-scaled scores.
+
+        Three evidence sources:
+          A. Own files without contributors -> 100% weight
+          B. Own files with contributors -> owner_contribution_pct weight
+          C. Shared projects as contributor -> contributor.contribution_pct weight
+             (includes original file evidence + supplementary materials per D-10)
+        """
+        evidence_with_weights: list[tuple[EvidenceItem, float]] = []
+
+        # Build file_id -> uploaded_file lookup for the submission
+        uploaded_files = list(submission.uploaded_files) if submission.uploaded_files else []
+        evidence_items = list(submission.evidence_items) if submission.evidence_items else []
+
+        # Index evidence items by file_id from metadata_json
+        evidence_by_file: dict[str, list[EvidenceItem]] = {}
+        unlinked_evidence: list[EvidenceItem] = []
+        for item in evidence_items:
+            metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+            file_id = metadata.get('file_id')
+            if file_id:
+                evidence_by_file.setdefault(file_id, []).append(item)
+            else:
+                unlinked_evidence.append(item)
+
+        # Source A & B: Own files
+        for uploaded_file in uploaded_files:
+            has_contributors = bool(uploaded_file.contributors)
+            scale_factor = (uploaded_file.owner_contribution_pct / 100.0) if has_contributors else 1.0
+            file_evidence = evidence_by_file.get(uploaded_file.id, [])
+            for item in file_evidence:
+                evidence_with_weights.append((item, scale_factor))
+
+        # Unlinked evidence (no file_id in metadata) -> 100% weight
+        for item in unlinked_evidence:
+            evidence_with_weights.append((item, 1.0))
+
+        # Source C: As contributor on shared projects
+        contributor_records = list(
+            self.db.scalars(
+                select(ProjectContributor)
+                .options(
+                    selectinload(ProjectContributor.uploaded_file)
+                    .selectinload(UploadedFile.submission),
+                )
+                .where(ProjectContributor.submission_id == submission.id)
+                .where(ProjectContributor.status == 'accepted')
+            )
+        )
+
+        for contributor in contributor_records:
+            scale_factor = contributor.contribution_pct / 100.0
+            original_file = contributor.uploaded_file
+            if original_file is None:
+                continue
+
+            # Get evidence from the original file's submission linked to this file
+            original_submission = original_file.submission
+            if original_submission is not None:
+                original_evidence = list(
+                    self.db.scalars(
+                        select(EvidenceItem)
+                        .where(EvidenceItem.submission_id == original_submission.id)
+                    )
+                )
+                for item in original_evidence:
+                    metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+                    if metadata.get('file_id') == original_file.id:
+                        evidence_with_weights.append((item, scale_factor))
+
+            # D-10: Supplementary materials from contributor's own submission
+            supplementary_evidence = list(
+                self.db.scalars(
+                    select(EvidenceItem)
+                    .where(EvidenceItem.submission_id == submission.id)
+                )
+            )
+            for item in supplementary_evidence:
+                metadata = item.metadata_json if isinstance(item.metadata_json, dict) else {}
+                if metadata.get('supplementary_for_file_id') == original_file.id:
+                    evidence_with_weights.append((item, scale_factor))
+
+        # Apply scaling
+        all_evidence: list[EvidenceItem] = []
+        for item, scale_factor in evidence_with_weights:
+            if scale_factor >= 1.0:
+                all_evidence.append(item)
+            else:
+                all_evidence.append(self._scale_evidence_item(item, scale_factor))
+
+        # If no evidence was collected through this logic (e.g., no metadata),
+        # fall back to all submission evidence unscaled for backward compatibility
+        if not all_evidence and evidence_items:
+            return list(evidence_items)
+
+        return all_evidence
+
+    @staticmethod
+    def _scale_evidence_item(item: EvidenceItem, scale_factor: float) -> EvidenceItem:
+        """Create an in-memory shallow copy of an EvidenceItem with scaled confidence_score.
+
+        Does NOT persist the copy to the database. Only used for scoring purposes.
+        """
+        scaled = copy.copy(item)
+        # Detach from SQLAlchemy session to avoid accidental persistence
+        from sqlalchemy.orm import make_transient
+        make_transient(scaled)
+        scaled.confidence_score = round(item.confidence_score * scale_factor, 4)
+        metadata = dict(item.metadata_json) if isinstance(item.metadata_json, dict) else {}
+        metadata['contribution_pct'] = round(scale_factor * 100, 2)
+        metadata['is_shared'] = True
+        scaled.metadata_json = metadata
+        return scaled
+
+    @staticmethod
+    def compute_effective_score(*, raw_score: float, contribution_pct: float) -> float:
+        """Compute effective score for a shared project (per D-08).
+
+        effective_score = raw_score * (contribution_pct / 100)
+        """
+        return round(raw_score * (contribution_pct / 100.0), 2)
 
     def _build_employee_profile(self, submission: EmployeeSubmission) -> dict[str, Any]:
         employee = submission.employee
