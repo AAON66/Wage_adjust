@@ -26,6 +26,7 @@ class DashboardOverviewResponse(BaseModel):
 class DistributionItemRead(BaseModel):
     label: str
     value: int
+    percentage: float = 0.0
 
 
 class DistributionResponse(BaseModel):
@@ -70,6 +71,26 @@ class ActionItemRead(BaseModel):
     value: str
     note: str
     severity: str
+
+
+class KpiSummaryResponse(BaseModel):
+    pending_approvals: int
+    total_employees: int
+    evaluated_employees: int
+    avg_adjustment_ratio: float
+    level_summary: list[DistributionItemRead]
+
+
+class ApprovalPipelineResponse(BaseModel):
+    items: list[DistributionItemRead]
+    total: int
+
+
+class DepartmentDrilldownResponse(BaseModel):
+    department: str
+    level_distribution: list[DistributionItemRead]
+    avg_adjustment_ratio: float
+    employee_count: int
 
 
 class DashboardSnapshotResponse(BaseModel):

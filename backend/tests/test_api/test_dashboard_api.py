@@ -1,8 +1,12 @@
 ﻿from __future__ import annotations
 
+import fnmatch
+import json
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import redis as redis_lib
 from fastapi.testclient import TestClient
 
 from backend.app.core.config import Settings
@@ -111,56 +115,231 @@ def seed_dashboard_data(context: ApiDatabaseContext) -> str:
 
 
 def test_dashboard_snapshot_and_child_endpoints() -> None:
+    mock_redis = _make_mock_redis()
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        client, context = build_client()
+        with client:
+            token = register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+            cycle_id = seed_dashboard_data(context)
+
+            snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
+            assert snapshot_response.status_code == 200
+            body = snapshot_response.json()
+            assert body['cycle_summary']['cycle_id'] == cycle_id
+            assert body['overview']['items'][0]['label'] == '覆盖员工数'
+            assert body['overview']['items'][0]['value'] == '1'
+            assert body['ai_level_distribution']['total'] == 1
+            assert body['heatmap']['total'] == 1
+            assert body['roi_distribution']['total'] == 1
+            assert body['department_insights'][0]['department'] == 'Engineering'
+            assert body['top_talents'][0]['employee_name'] == 'Dana'
+            assert body['action_items'][0]['title'] == '待人工复核'
+
+            overview_response = client.get(f'/api/v1/dashboard/overview?cycle_id={cycle_id}', headers=headers)
+            assert overview_response.status_code == 200
+            assert overview_response.json()['items'][1]['label'] == '已用预算'
+
+            distribution_response = client.get(f'/api/v1/dashboard/ai-level-distribution?cycle_id={cycle_id}', headers=headers)
+            assert distribution_response.status_code == 200
+            assert distribution_response.json()['items'][3]['label'] == 'Level 4'
+
+            heatmap_response = client.get(f'/api/v1/dashboard/department-heatmap?cycle_id={cycle_id}', headers=headers)
+            assert heatmap_response.status_code == 200
+            assert heatmap_response.json()['items'][0]['department'] == 'Engineering'
+
+            roi_response = client.get(f'/api/v1/dashboard/roi-distribution?cycle_id={cycle_id}', headers=headers)
+            assert roi_response.status_code == 200
+            assert roi_response.json()['total'] == 1
+
+
+def test_dashboard_is_scoped_by_bound_departments() -> None:
+    mock_redis = _make_mock_redis()
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        client, context = build_client()
+        with client:
+            manager_token = register_user(client, email='manager@example.com', role='manager')
+            bind_user_departments(context, email='manager@example.com', department_names=['Sales'])
+            headers = {'Authorization': f'Bearer {manager_token}'}
+            cycle_id = seed_dashboard_data(context)
+
+            snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
+            assert snapshot_response.status_code == 200
+            body = snapshot_response.json()
+            assert body['overview']['items'][0]['value'] == '0'
+            assert body['ai_level_distribution']['total'] == 0
+            assert body['heatmap']['total'] == 0
+            assert body['department_insights'] == []
+            assert body['top_talents'] == []
+
+
+# ---------------------------------------------------------------
+# Helper: mock Redis for new cached endpoints
+# ---------------------------------------------------------------
+
+def _make_mock_redis() -> MagicMock:
+    """Dict-backed mock Redis."""
+    store: dict[str, str] = {}
+    mock = MagicMock(spec=redis_lib.Redis)
+    mock.get = MagicMock(side_effect=lambda k: store.get(k))
+    mock.setex = MagicMock(side_effect=lambda k, t, v: store.__setitem__(k, v))
+    mock.keys = MagicMock(side_effect=lambda p: [k for k in store if fnmatch.fnmatch(k, p)])
+    mock.delete = MagicMock(side_effect=lambda *ks: sum(1 for k in ks if store.pop(k, None) is not None))
+    mock.ping = MagicMock(return_value=True)
+    return mock
+
+
+def _build_client_with_redis(mock_redis=None):
+    """Build test client with Redis mock injected."""
+    client, context = build_client()
+    if mock_redis is None:
+        mock_redis = _make_mock_redis()
+    # Patch get_redis to return our mock
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        yield client, context, mock_redis
+
+
+# ---------------------------------------------------------------
+# New endpoint tests
+# ---------------------------------------------------------------
+
+def test_kpi_summary_endpoint_returns_200() -> None:
     client, context = build_client()
     with client:
         token = register_and_login_admin(client)
         headers = {'Authorization': f'Bearer {token}'}
         cycle_id = seed_dashboard_data(context)
 
-        snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
-        assert snapshot_response.status_code == 200
-        body = snapshot_response.json()
-        assert body['cycle_summary']['cycle_id'] == cycle_id
-        assert body['overview']['items'][0]['label'] == '覆盖员工数'
-        assert body['overview']['items'][0]['value'] == '1'
-        assert body['ai_level_distribution']['total'] == 1
-        assert body['heatmap']['total'] == 1
-        assert body['roi_distribution']['total'] == 1
-        assert body['department_insights'][0]['department'] == 'Engineering'
-        assert body['top_talents'][0]['employee_name'] == 'Dana'
-        assert body['action_items'][0]['title'] == '待人工复核'
-
-        overview_response = client.get(f'/api/v1/dashboard/overview?cycle_id={cycle_id}', headers=headers)
-        assert overview_response.status_code == 200
-        assert overview_response.json()['items'][1]['label'] == '已用预算'
-
-        distribution_response = client.get(f'/api/v1/dashboard/ai-level-distribution?cycle_id={cycle_id}', headers=headers)
-        assert distribution_response.status_code == 200
-        assert distribution_response.json()['items'][3]['label'] == 'Level 4'
-
-        heatmap_response = client.get(f'/api/v1/dashboard/department-heatmap?cycle_id={cycle_id}', headers=headers)
-        assert heatmap_response.status_code == 200
-        assert heatmap_response.json()['items'][0]['department'] == 'Engineering'
-
-        roi_response = client.get(f'/api/v1/dashboard/roi-distribution?cycle_id={cycle_id}', headers=headers)
-        assert roi_response.status_code == 200
-        assert roi_response.json()['total'] == 1
+        response = client.get(f'/api/v1/dashboard/kpi-summary?cycle_id={cycle_id}', headers=headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert 'pending_approvals' in body
+        assert 'total_employees' in body
+        assert 'evaluated_employees' in body
+        assert 'avg_adjustment_ratio' in body
+        assert 'level_summary' in body
 
 
-def test_dashboard_is_scoped_by_bound_departments() -> None:
-    client, context = build_client()
+def test_salary_distribution_endpoint_returns_200() -> None:
+    mock_redis = _make_mock_redis()
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        client, context = build_client()
+        with client:
+            token = register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+            cycle_id = seed_dashboard_data(context)
+
+            response = client.get(f'/api/v1/dashboard/salary-distribution?cycle_id={cycle_id}', headers=headers)
+            assert response.status_code == 200
+            body = response.json()
+            assert 'items' in body
+            assert 'total' in body
+
+
+def test_approval_pipeline_endpoint_returns_200() -> None:
+    mock_redis = _make_mock_redis()
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        client, context = build_client()
+        with client:
+            token = register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+            cycle_id = seed_dashboard_data(context)
+
+            response = client.get(f'/api/v1/dashboard/approval-pipeline?cycle_id={cycle_id}', headers=headers)
+            assert response.status_code == 200
+            body = response.json()
+            assert 'items' in body
+            assert 'total' in body
+
+
+def test_department_drilldown_endpoint_returns_200() -> None:
+    mock_redis = _make_mock_redis()
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        client, context = build_client()
+        with client:
+            token = register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+            seed_dashboard_data(context)
+
+            response = client.get('/api/v1/dashboard/department-drilldown?department=Engineering', headers=headers)
+            assert response.status_code == 200
+            body = response.json()
+            assert body['department'] == 'Engineering'
+            assert 'level_distribution' in body
+            assert 'employee_count' in body
+
+
+def test_dashboard_endpoints_require_auth() -> None:
+    client, _ = build_client()
     with client:
-        manager_token = register_user(client, email='manager@example.com', role='manager')
-        bind_user_departments(context, email='manager@example.com', department_names=['Sales'])
-        headers = {'Authorization': f'Bearer {manager_token}'}
-        cycle_id = seed_dashboard_data(context)
+        endpoints = [
+            '/api/v1/dashboard/overview',
+            '/api/v1/dashboard/ai-level-distribution',
+            '/api/v1/dashboard/kpi-summary',
+            '/api/v1/dashboard/salary-distribution',
+            '/api/v1/dashboard/approval-pipeline',
+            '/api/v1/dashboard/department-drilldown?department=X',
+            '/api/v1/dashboard/snapshot',
+        ]
+        for endpoint in endpoints:
+            response = client.get(endpoint)
+            assert response.status_code == 401, f'{endpoint} should require auth'
 
-        snapshot_response = client.get(f'/api/v1/dashboard/snapshot?cycle_id={cycle_id}', headers=headers)
-        assert snapshot_response.status_code == 200
-        body = snapshot_response.json()
-        assert body['overview']['items'][0]['value'] == '0'
-        assert body['ai_level_distribution']['total'] == 0
-        assert body['heatmap']['total'] == 0
-        assert body['department_insights'] == []
-        assert body['top_talents'] == []
+
+def test_employee_role_gets_403() -> None:
+    """Employee role should get 403 on all dashboard endpoints (review fix #3)."""
+    mock_redis = _make_mock_redis()
+    with patch('backend.app.api.v1.dashboard.get_redis', return_value=mock_redis):
+        client, context = build_client()
+        with client:
+            employee_token = register_user(client, email='emp@example.com', role='employee')
+            headers = {'Authorization': f'Bearer {employee_token}'}
+
+            endpoints = [
+                '/api/v1/dashboard/overview',
+                '/api/v1/dashboard/kpi-summary',
+                '/api/v1/dashboard/salary-distribution',
+                '/api/v1/dashboard/approval-pipeline',
+                '/api/v1/dashboard/snapshot',
+            ]
+            for endpoint in endpoints:
+                response = client.get(endpoint, headers=headers)
+                assert response.status_code == 403, f'{endpoint} should return 403 for employee, got {response.status_code}'
+
+
+def test_cached_endpoint_returns_503_when_redis_down() -> None:
+    """Cached endpoints should return 503 when Redis is unavailable (per D-03)."""
+    def raise_connection_error():
+        raise redis_lib.ConnectionError('Redis down')
+
+    with patch('backend.app.api.v1.dashboard.get_redis', side_effect=raise_connection_error):
+        client, context = build_client()
+        with client:
+            token = register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+
+            cached_endpoints = [
+                '/api/v1/dashboard/salary-distribution',
+                '/api/v1/dashboard/approval-pipeline',
+                '/api/v1/dashboard/department-drilldown?department=Engineering',
+            ]
+            for endpoint in cached_endpoints:
+                response = client.get(endpoint, headers=headers)
+                assert response.status_code == 503, f'{endpoint} should return 503 when Redis down, got {response.status_code}'
+
+
+def test_kpi_summary_works_without_redis() -> None:
+    """KPI summary does NOT use Redis -- should work even when Redis is down (review fix #2)."""
+    def raise_connection_error():
+        raise redis_lib.ConnectionError('Redis down')
+
+    with patch('backend.app.api.v1.dashboard.get_redis', side_effect=raise_connection_error):
+        client, context = build_client()
+        with client:
+            token = register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+            cycle_id = seed_dashboard_data(context)
+
+            response = client.get(f'/api/v1/dashboard/kpi-summary?cycle_id={cycle_id}', headers=headers)
+            assert response.status_code == 200, f'kpi-summary should work without Redis, got {response.status_code}'
 

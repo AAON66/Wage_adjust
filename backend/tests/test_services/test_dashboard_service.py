@@ -89,3 +89,140 @@ def test_dashboard_service_returns_overview_distribution_and_heatmap() -> None:
         assert sum(int(item['value']) for item in roi_distribution) == 3
     finally:
         db.close()
+
+
+def _seed_data(db):
+    """Seed test data and return (cycle, employees, evaluations, recommendations)."""
+    cycle = EvaluationCycle(name='2026 SQL', review_period='2026', budget_amount='10000.00', status='published')
+    db.add(cycle)
+    db.commit()
+    db.refresh(cycle)
+
+    employees = [
+        Employee(employee_no='SQL-001', name='Alice', department='Engineering', job_family='Platform', job_level='P6', status='active'),
+        Employee(employee_no='SQL-002', name='Bob', department='Engineering', job_family='Platform', job_level='P5', status='active'),
+        Employee(employee_no='SQL-003', name='Cara', department='Product', job_family='Product', job_level='P5', status='active'),
+    ]
+    db.add_all(employees)
+    db.commit()
+    for e in employees:
+        db.refresh(e)
+
+    submissions = [EmployeeSubmission(employee_id=e.id, cycle_id=cycle.id, status='evaluated') for e in employees]
+    db.add_all(submissions)
+    db.commit()
+    for s in submissions:
+        db.refresh(s)
+
+    evaluations = [
+        AIEvaluation(submission_id=submissions[0].id, overall_score=92, ai_level='Level 5', confidence_score=0.91, explanation='Top', status='confirmed'),
+        AIEvaluation(submission_id=submissions[1].id, overall_score=84, ai_level='Level 4', confidence_score=0.82, explanation='Strong', status='reviewed'),
+        AIEvaluation(submission_id=submissions[2].id, overall_score=68, ai_level='Level 3', confidence_score=0.73, explanation='Solid', status='needs_review'),
+    ]
+    db.add_all(evaluations)
+    db.commit()
+    for ev in evaluations:
+        db.refresh(ev)
+
+    recommendations = [
+        SalaryRecommendation(evaluation_id=evaluations[0].id, current_salary='60000.00', recommended_ratio=0.15, recommended_salary='69000.00', ai_multiplier=1.18, certification_bonus=0.0, final_adjustment_ratio=0.15, status='approved'),
+        SalaryRecommendation(evaluation_id=evaluations[1].id, current_salary='45000.00', recommended_ratio=0.10, recommended_salary='49500.00', ai_multiplier=1.13, certification_bonus=0.0, final_adjustment_ratio=0.10, status='pending_approval'),
+        SalaryRecommendation(evaluation_id=evaluations[2].id, current_salary='45000.00', recommended_ratio=0.06, recommended_salary='47700.00', ai_multiplier=1.08, certification_bonus=0.0, final_adjustment_ratio=0.06, status='recommended'),
+    ]
+    db.add_all(recommendations)
+    db.commit()
+    return cycle, employees, evaluations, recommendations
+
+
+def test_ai_level_distribution_sql_returns_grouped_counts() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        cycle, _, _, _ = _seed_data(db)
+        service = DashboardService(db)
+        result = service.get_ai_level_distribution_sql(cycle.id, None)
+        count_map = {item['label']: item['value'] for item in result}
+        assert count_map['Level 5'] == 1
+        assert count_map['Level 4'] == 1
+        assert count_map['Level 3'] == 1
+        assert count_map['Level 1'] == 0
+        # Verify percentage
+        assert result[4]['percentage'] > 0  # Level 5 should have ~33%
+    finally:
+        db.close()
+
+
+def test_salary_distribution_sql_returns_buckets() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        cycle, _, _, _ = _seed_data(db)
+        service = DashboardService(db)
+        result = service.get_salary_distribution_sql(cycle.id, None)
+        total = sum(item['value'] for item in result)
+        assert total == 3  # all 3 recommendations are active
+        labels = [item['label'] for item in result]
+        assert '0-5%' in labels
+        assert '20%+' in labels
+    finally:
+        db.close()
+
+
+def test_approval_pipeline_sql_returns_status_counts() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        cycle, _, _, _ = _seed_data(db)
+        service = DashboardService(db)
+        result = service.get_approval_pipeline_sql(cycle.id, None)
+        status_map = {item['label']: item['value'] for item in result}
+        assert status_map.get('approved', 0) == 1
+        assert status_map.get('pending_approval', 0) == 1
+        assert status_map.get('recommended', 0) == 1
+    finally:
+        db.close()
+
+
+def test_kpi_summary_sql_returns_four_metrics() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        cycle, _, _, _ = _seed_data(db)
+        service = DashboardService(db)
+        result = service.get_kpi_summary_sql(cycle.id, None)
+        assert result['pending_approvals'] == 1
+        assert result['total_employees'] == 3
+        assert result['evaluated_employees'] == 3
+        assert result['avg_adjustment_ratio'] > 0
+        assert len(result['level_summary']) <= 3
+    finally:
+        db.close()
+
+
+def test_department_drilldown_sql_returns_dept_data() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        cycle, _, _, _ = _seed_data(db)
+        service = DashboardService(db)
+        result = service.get_department_drilldown_sql('Engineering', cycle.id)
+        assert result['department'] == 'Engineering'
+        assert result['employee_count'] == 2
+        assert result['avg_adjustment_ratio'] > 0
+        level_map = {item['label']: item['value'] for item in result['level_distribution']}
+        assert level_map['Level 5'] == 1
+        assert level_map['Level 4'] == 1
+    finally:
+        db.close()
+
+
+def test_department_filter_empty_set_returns_no_data() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        cycle, _, _, _ = _seed_data(db)
+        service = DashboardService(db)
+        result = service.get_ai_level_distribution_sql(cycle.id, set())
+        assert all(item['value'] == 0 for item in result)
+    finally:
+        db.close()
