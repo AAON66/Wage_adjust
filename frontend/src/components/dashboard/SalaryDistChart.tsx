@@ -62,8 +62,6 @@ export function SalaryDistChart({ data, isServiceUnavailable }: SalaryDistChartP
     },
     yAxis: {
       type: 'value' as const,
-      name: '人数',
-      nameTextStyle: { fontSize: 11, color: '#646A73' },
       splitLine: { lineStyle: { color: '#F0F1F3' } },
     },
     series: [
