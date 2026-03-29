@@ -1,0 +1,24 @@
+export const DIMENSION_LABELS: Record<string, string> = {
+  TOOL_MASTERY: 'AI工具掌握度',
+  APPLICATION_DEPTH: 'AI应用深度',
+  LEARNING_ABILITY: 'AI学习能力',
+  SHARING_CONTRIBUTION: 'AI分享贡献',
+  OUTCOME_CONVERSION: 'AI成果转化',
+};
+
+export const DIMENSION_WEIGHTS: Record<string, number> = {
+  TOOL_MASTERY: 0.15,
+  APPLICATION_DEPTH: 0.15,
+  LEARNING_ABILITY: 0.20,
+  SHARING_CONTRIBUTION: 0.20,
+  OUTCOME_CONVERSION: 0.30,
+};
+
+// 雷达图固定顺序（UI-SPEC 五维度顺序）
+export const DIMENSION_ORDER = [
+  'TOOL_MASTERY',
+  'APPLICATION_DEPTH',
+  'LEARNING_ABILITY',
+  'SHARING_CONTRIBUTION',
+  'OUTCOME_CONVERSION',
+] as const;
