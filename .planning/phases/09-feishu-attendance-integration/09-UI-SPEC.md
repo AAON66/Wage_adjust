@@ -26,46 +26,71 @@ created: 2026-03-29
 
 ---
 
+## 主视觉焦点 / Primary Visual Anchor
+
+**SyncStatusCard 为本页面的视觉锚点。** 该组件位于考勤管理页顶部全宽区域，通过同步状态 pill 的语义色彩变化（成功绿 / 进行中蓝 / 失败红 / 未配置灰）为用户提供即时的系统状态感知。用户进入页面后，视线首先被 SyncStatusCard 的状态信息吸引，再向下浏览考勤数据网格。
+
+---
+
 ## 间距规范 / Spacing Scale
 
-沿用项目现有间距体系（基于 Tailwind 默认 4px 倍数 + `index.css` 自定义）：
+### 标准间距 Token
+
+本阶段新组件严格使用以下标准集（基于 4px 倍数）：
 
 | Token | 值 | 用途 |
 |-------|-----|------|
 | xs | 4px | 图标与文字间距、内联元素间距 |
-| sm | 8px | 紧凑元素间距、metric-note margin-top |
-| md | 12px | 卡片网格 gap、section-head gap |
-| lg | 16px | 默认元素间距、app-main gap、卡片内 padding |
-| xl | 20px | app-main 顶部 padding |
-| 2xl | 24px | section padding、dashboard-hero padding |
-| 3xl | 32px | app-main 底部 padding |
-| 4xl | 40px | empty-state 上下 padding |
+| sm | 8px | 紧凑元素间距、按钮间距、metric-note margin-top |
+| md | 16px | 默认元素间距、app-main gap、卡片内 padding、表单字段堆叠间距 |
+| lg | 24px | section padding、dashboard-hero padding |
+| xl | 32px | app-main 底部 padding |
+| 2xl | 48px | 页面级大块分隔（如有需要） |
+| 3xl | 64px | 最大间距保留（本阶段暂未使用） |
 
-例外：考勤 KPI 卡片内部使用 `18px` padding（复用 `metric-tile` 的 `padding: 16px 18px`）。
+### 项目已有间距例外（本阶段不改动，仅沿用）
+
+以下值来自项目既有组件和 Tailwind spacing scale，本阶段仅在复用已有组件时出现，新组件不使用这些值：
+
+| 值 | 来源 | 沿用理由 |
+|-----|------|---------|
+| 12px | `section-head` gap、卡片网格 gap（Tailwind `gap-3`） | 项目已有卡片网格使用 12px gap，更改会导致全局卡片布局不一致 |
+| 18px | `metric-tile` 的 `padding: 16px 18px` | 考勤 KPI 卡片复用 `metric-tile` 样式，该 padding 为全局 metric 组件统一值 |
+| 20px | `app-main` 顶部 padding（Tailwind `pt-5`） | 页面外壳的顶部 padding 为全局布局统一值 |
+| 40px | `empty-state` 上下 padding | 空状态组件的既有视觉节奏，全项目统一 |
 
 ---
 
 ## 排版规范 / Typography
 
-沿用项目已有排版层级（来源：`index.css` @layer components）：
+### 排版合约（4 个字号 + 2 个字重）
+
+本阶段排版合约限定以下 4 个字号和 2 个字重：
 
 | 角色 | 尺寸 | 字重 | 行高 | CSS class |
 |------|------|------|------|-----------|
-| 正文 / Body | 13.5px | 400 (normal) | 1.5 | `table-lite td`、`toolbar-input` |
-| 标签 / Label | 12px | 500 (medium) | 1.5 | `metric-label`、`metric-note` |
+| 正文 / Body | 13.5px | 400 (regular) | 1.5 | `table-lite td`、`toolbar-input`、同步状态文本、表单字段标签 |
+| 标签 / Label | 12px | 400 (regular) | 1.5 | `metric-label`、`metric-note`、时间戳标注、表单帮助文本 |
 | 小标题 / Section Title | 15px | 600 (semibold) | 1.4 | `section-title` |
 | 页面标题 / Page Title | 20px | 600 (semibold) | 1.3 | `page-title` |
 
-本阶段新增元素的排版规则：
+**字重规则：** 仅允许 400 (regular) 和 600 (semibold) 两个字重。项目中已有的 `font-weight: 500` (medium) 样式在本阶段新组件中一律替换为 400 (regular)。
 
-| 元素 | 尺寸 | 字重 | 行高 |
-|------|------|------|------|
-| 考勤 KPI 数值 | 26px | 600 | 1.1 |
-| 考勤 KPI 标签 | 12px | 500 | 1.5 |
-| 时间戳标注 | 12px | 400 | 1.5 |
-| 同步状态文本 | 13.5px | 500 | 1.5 |
-| 表单字段标签 | 13.5px | 500 | 1.4 |
-| 表单帮助文本 | 12px | 400 | 1.6 |
+### 排版例外
+
+| 元素 | 尺寸 | 字重 | 行高 | 说明 |
+|------|------|------|------|------|
+| 考勤 KPI 数值 | 26px | 600 | 1.1 | 仅 `metric-value` 组件例外，不计入排版合约。此尺寸为全项目 KPI 大数值的统一规格，服务于数据仪表板的视觉冲击力。 |
+
+### 本阶段新增元素排版对照
+
+| 元素 | 映射到合约角色 | 尺寸 | 字重 | 行高 |
+|------|--------------|------|------|------|
+| 考勤 KPI 标签 | 标签 / Label | 12px | 400 | 1.5 |
+| 时间戳标注 | 标签 / Label | 12px | 400 | 1.5 |
+| 同步状态文本 | 正文 / Body | 13.5px | 400 | 1.5 |
+| 表单字段标签 | 正文 / Body | 13.5px | 600 | 1.4 |
+| 表单帮助文本 | 标签 / Label | 12px | 400 | 1.6 |
 
 ---
 
@@ -111,7 +136,7 @@ created: 2026-03-29
 | 组件 | 路径 | 复用位置 | 描述 |
 |------|------|----------|------|
 | AttendanceKpiCard | `components/attendance/AttendanceKpiCard.tsx` | 考勤管理页 + SalarySimulator 内嵌 | 单员工考勤 KPI 卡片，展示 5 项指标 + 时间戳 |
-| SyncStatusCard | `components/attendance/SyncStatusCard.tsx` | 考勤管理页顶部 | 同步状态 + 上次同步时间 + 记录数 + 手动同步按钮 |
+| SyncStatusCard | `components/attendance/SyncStatusCard.tsx` | 考勤管理页顶部（**页面视觉锚点**） | 同步状态 + 上次同步时间 + 记录数 + 手动同步按钮 |
 | FieldMappingTable | `components/attendance/FieldMappingTable.tsx` | 飞书配置页 | 双列字段映射表（飞书字段名 - 系统字段名） |
 
 ### 组件交互规格
@@ -135,8 +160,8 @@ created: 2026-03-29
 
 - 使用 `surface` class 作为外层容器
 - KPI 指标使用 `metric-tile` 布局模式
-- 数值使用 `metric-value` 样式（26px / 600 weight）
-- 标签使用 `metric-label` 样式（12px / 500 weight）
+- 数值使用 `metric-value` 样式（26px / 600 weight — 排版例外，见排版规范）
+- 标签使用 `metric-label` 样式（12px / 400 weight）
 - 时间戳标注使用 `metric-note` 样式（12px / `--color-placeholder`）
 - 无数据时展示 `--`（不是 0）
 - 响应式：>=768px 3 列，<768px 2 列
@@ -152,6 +177,7 @@ created: 2026-03-29
 ```
 
 - 使用 `surface` class 作为外层容器
+- **作为页面视觉锚点**，位于页面首屏最顶部，用户进入页面后第一眼聚焦此处
 - 同步状态使用 `status-pill` class + 语义色
 - 状态值枚举：`成功`（success）、`进行中`（info）、`失败`（danger）、`未配置`（placeholder 灰色）
 - 「增量同步」使用 `action-primary` class
@@ -191,7 +217,7 @@ AppShell
 +-- eyebrow: "ATTENDANCE"
 +-- page-title: "考勤管理"
 +-- page-desc: "查看员工考勤数据，手动或定时从飞书同步最新记录。"
-+-- section 1: SyncStatusCard（全宽）
++-- section 1: SyncStatusCard（全宽，页面视觉锚点）
 +-- section 2: 工具栏
 |   +-- toolbar-input 搜索框（按姓名/工号搜索）
 |   +-- chip-button 筛选器（部门）
@@ -273,9 +299,9 @@ AppShell
 
 ```
 [空闲] --点击增量同步--> [同步中] --成功--> [空闲 + 成功 toast]
-                                  --失败--> [空闲 + 失败 toast]
+                                 --失败--> [空闲 + 失败 toast]
 [空闲] --点击全量同步--> [确认弹窗] --确认--> [同步中]
-                                   --取消--> [空闲]
+                                  --取消--> [空闲]
 [同步中] --再次点击--> [按钮 disabled, 无响应]
 ```
 
@@ -300,7 +326,7 @@ AppShell
 | 定时同步 - 分 | 0-59 整数 | 请输入 0~59 之间的整数 |
 | 字段映射 - employee_no | 必填 | 员工工号映射为必填项 |
 
-验证时机：点击「保存配置」时统一校验，错误字段下方显示红色提示文本（13px, `--color-danger`）。
+验证时机：点击「保存配置」时统一校验，错误字段下方显示红色提示文本（13.5px, `--color-danger`）。
 
 ### 考勤 KPI 卡片数据状态
 
