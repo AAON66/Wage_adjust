@@ -38,7 +38,7 @@ created: 2026-03-29
 | md | 16px | 默认元素间距、卡片内边距、metric-tile padding |
 | lg | 24px | 区域内边距（surface px-6）、页面主区域 padding |
 | xl | 32px | 页面底部 padding |
-| 2xl | 40px | empty-state 上下 padding |
+| 2xl | 48px | empty-state 上下 padding |
 | 3xl | 64px | 未使用（本阶段不需要） |
 
 例外：步骤条圆形节点直径 28px（非标准倍数，用于视觉平衡）
@@ -47,19 +47,21 @@ created: 2026-03-29
 
 ## 排版 / Typography
 
-沿用项目现有排版体系（`index.css` 中定义）：
+沿用项目现有排版体系（`index.css` 中定义），本阶段严格限定 4 个字号、2 个字重：
 
 | 角色 | 大小 | 字重 | 行高 | 来源 |
 |------|------|------|------|------|
+| Caption / 辅助文字 | 12px | 400 (regular) | 1.5 | `.metric-label`、`.status-pill`、eyebrow 标签 |
 | Body / 正文 | 13.5px | 400 (regular) | 1.5 | `.table-lite`、`.toolbar-input` |
-| Label / 标签 | 12px | 500 (medium) | 1.5 | `.metric-label`、`.status-pill` |
 | Section Title / 区域标题 | 15px | 600 (semibold) | 1.4 | `.section-title` |
 | Page Title / 页面标题 | 20px | 600 (semibold) | 1.3 | `.page-title` |
 
 补充说明：
-- Eyebrow 文字：11px, weight 600, letter-spacing 0.10em, 大写, `var(--color-primary)` 色
-- 调薪百分比数字：26px, weight 600, letter-spacing -0.02em（复用 `.metric-value` 样式）
-- 雷达图标签：13px, weight 400（ECharts 内部渲染）
+- Eyebrow 文字：12px, weight 600, letter-spacing 0.10em, 大写, `var(--color-primary)` 色（统一使用 Caption 字号）
+- 调薪百分比数字：26px, weight 600, letter-spacing -0.02em（仅 `SalaryResultCard` 组件例外，复用 `.metric-value` 样式）
+- 雷达图轴标签：ECharts 内部渲染，不纳入排版合约管控
+
+**字重限定：** 仅使用 400 (regular) 和 600 (semibold)，不使用 500 (medium)。
 
 ---
 
@@ -100,6 +102,17 @@ created: 2026-03-29
 | 已完成 | `#E8FFEA` (`--color-success-bg`) | `#00B42A` (`--color-success`) 勾号 | `#00B42A` | `#1F2329` (`--color-ink`) |
 | 当前阶段 | `#1456F0` (`--color-primary`) | `#FFFFFF` 数字 | `#E0E4EA` | `#1456F0` (`--color-primary`) |
 | 未到达 | `#F2F3F5` (`--color-bg-subtle`) | `#8F959E` (`--color-placeholder`) 数字 | `#E0E4EA` | `#8F959E` (`--color-placeholder`) |
+
+---
+
+## 主视觉焦点 / Primary Visual Focus
+
+本阶段的主视觉焦点为 **雷达图 (DimensionRadarChart)**。
+
+- 雷达图位于评估结果区域左侧，占据 60% 宽度（`1.2fr`），是用户进入页面后第一个视觉吸引点
+- 蓝色填充区域 `rgba(20, 86, 240, 0.18)` 在白色 surface 卡片上形成鲜明对比
+- 雷达图上方无其他蓝色大面积元素干扰，确保视觉层级最高
+- 步骤条作为辅助导航位于雷达图上方，但使用小尺寸节点（28px）不抢夺视觉焦点
 
 ---
 
@@ -163,7 +176,7 @@ created: 2026-03-29
 
 - **结构**：`surface` 卡片，居中展示调薪百分比
 - **百分比格式**：`+12.00%`（正数带加号，保留 2 位小数）
-- **百分比字号**：26px, weight 600, `--color-primary` 色
+- **百分比字号**：26px, weight 600, `--color-primary` 色（仅此组件例外，不计入排版合约 4 字号限定）
 - **副标题**：`text-sm text-steel`，文案见文案合约
 - **仅在 approved 状态渲染**
 - **Props**：`adjustmentRatio: number`（0.12 表示 12%）
@@ -198,8 +211,8 @@ MyReview 页面扩展后的区域排列顺序（自上而下）：
 ```
 
 - 外层：`surface px-6 py-6`
-- 上半部分：`grid gap-5 lg:grid-cols-[1.2fr_0.8fr]`
-- 下半部分：`grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-5`
+- 上半部分：`grid gap-6 lg:grid-cols-[1.2fr_0.8fr]`
+- 下半部分：`grid gap-4 md:grid-cols-2 xl:grid-cols-3 mt-4`
 
 ---
 
