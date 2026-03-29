@@ -86,9 +86,9 @@
 
 ### 员工自助
 
-- [ ] **EMP-01**：员工可查看自己的评估状态及当前所处审批流程阶段
-- [ ] **EMP-02**：评估完成后，员工可查看自己的评估结果（含 5 个维度分项）
-- [ ] **EMP-03**：审批通过后，员工可查看自己的调薪建议（仅显示调整幅度百分比，不显示绝对薪资数字）
+- [x] **EMP-01**：员工可查看自己的评估状态及当前所处审批流程阶段
+- [x] **EMP-02**：评估完成后，员工可查看自己的评估结果（含 5 个维度分项）
+- [x] **EMP-03**：审批通过后，员工可查看自己的调薪建议（仅显示调整幅度百分比，不显示绝对薪资数字）
 
 ### 项目材料查重与多作者
 
@@ -174,9 +174,9 @@
 | DASH-05 | Phase 7 | Complete |
 | DASH-06 | Phase 7 | Pending |
 | DASH-07 | Phase 7 | Complete |
-| EMP-01 | Phase 8 | Pending |
-| EMP-02 | Phase 8 | Pending |
-| EMP-03 | Phase 8 | Pending |
+| EMP-01 | Phase 8 | Complete |
+| EMP-02 | Phase 8 | Complete |
+| EMP-03 | Phase 8 | Complete |
 | ATT-01 | Phase 9 | Pending |
 | ATT-02 | Phase 9 | Pending |
 | ATT-03 | Phase 9 | Pending |

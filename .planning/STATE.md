@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 07-01-PLAN.md and 07-02-PLAN.md
-last_updated: "2026-03-29T03:19:24.227Z"
+status: Ready to execute
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-29T04:08:14.583Z"
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 25
-  completed_plans: 27
+  total_plans: 27
+  completed_plans: 28
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-25)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 07 — dashboard-and-cache-layer
+**Current focus:** Phase 08 — employee-self-service-ui
 
 ## Current Position
 
-Phase: 8
-Plan: Not started
+Phase: 08 (employee-self-service-ui) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Plan: Not started
 | Phase 06 P03 | 2min | 2 tasks | 6 files |
 | Phase 07 P01 | 6min | 2 tasks | 8 files |
 | Phase 07 P02 | 3min | 2 tasks | 11 files |
+| Phase 08 P01 | 2min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,8 @@ Key technical decisions pending confirmation before Phase 1:
 - [Phase 07]: 所有看板端点统一使用 require_roles 鉴权，employee 角色返回 403
 - [Phase 07]: ServiceUnavailableBanner exported from AILevelChart and reused across chart components
 - [Phase 07]: KpiCards uses inline style tag for responsive grid (4/2/1 columns at breakpoints)
+- [Phase 08]: 维度常量集中管理在 dimensionConstants.ts，组件通过 import 引用避免重复定义
+- [Phase 08]: 雷达图按 DIMENSION_ORDER 固定顺序排列，缺失维度默认 0 分
 
 ### Pending Todos
 
@@ -144,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-28T16:55:00.000Z
-Stopped at: Completed 07-01-PLAN.md and 07-02-PLAN.md
+Last session: 2026-03-29T04:08:14.579Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None

@@ -203,6 +203,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 5. Document Deduplication and Multi-Author | 0/4 | Not started | - |
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
 | 7. Dashboard and Cache Layer | 1/3 | In Progress|  |
-| 8. Employee Self-Service UI | 0/TBD | Not started | - |
+| 8. Employee Self-Service UI | 1/2 | In Progress|  |
 | 9. Feishu Attendance Integration | 0/TBD | Not started | - |
 | 10. External API Hardening | 0/TBD | Not started | - |
