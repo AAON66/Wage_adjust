@@ -2,13 +2,20 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { useEffect, useMemo, useState } from 'react';
 
+import { DimensionCard } from '../components/evaluation/DimensionCard';
+import { DimensionRadarChart } from '../components/evaluation/DimensionRadarChart';
+import { EvaluationStepBar } from '../components/evaluation/EvaluationStepBar';
 import { EvidenceCard } from '../components/evaluation/EvidenceCard';
 import { FileList } from '../components/evaluation/FileList';
 import { FileUploadPanel } from '../components/evaluation/FileUploadPanel';
+import { SalaryResultCard } from '../components/evaluation/SalaryResultCard';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
+import { fetchApprovalHistory } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
+import { fetchEmployees } from '../services/employeeService';
+import { fetchEvaluationBySubmission } from '../services/evaluationService';
 import {
   deleteSubmissionFile,
   fetchSubmissionEvidence,
@@ -18,9 +25,18 @@ import {
   replaceSubmissionFile,
   uploadSubmissionFiles,
 } from '../services/fileService';
-import { fetchEmployees } from '../services/employeeService';
+import { fetchSalaryRecommendationByEvaluation } from '../services/salaryService';
 import { ensureSubmission, fetchEmployeeSubmissions } from '../services/submissionService';
-import type { CycleRecord, EmployeeRecord, EvidenceRecord, SubmissionRecord, UploadedFileRecord } from '../types/api';
+import type {
+  ApprovalRecord,
+  CycleRecord,
+  EmployeeRecord,
+  EvaluationRecord,
+  EvidenceRecord,
+  SalaryRecommendationRecord,
+  SubmissionRecord,
+  UploadedFileRecord,
+} from '../types/api';
 import { findEmployeeForUser } from '../utils/employeeIdentity';
 import { getRoleLabel } from '../utils/roleAccess';
 
@@ -43,6 +59,26 @@ function mapEvidence(item: EvidenceRecord): EvidenceRecord {
   return { ...item, tags };
 }
 
+function resolveCurrentStep(
+  salaryStatus: string | null,
+  approvals: ApprovalRecord[],
+): number {
+  // Step 3: completed
+  if (salaryStatus === 'approved') return 3;
+
+  // Determine from approval records
+  const currentPending = approvals.find(
+    (r) => r.is_current_step && r.decision === 'pending',
+  );
+  if (currentPending) {
+    if (currentPending.step_order === 1) return 1;
+    if (currentPending.step_order >= 2) return 2;
+  }
+
+  // Default: submitted
+  return 0;
+}
+
 export function MyReviewPage() {
   const { user } = useAuth();
   const [employee, setEmployee] = useState<EmployeeRecord | null>(null);
@@ -52,6 +88,9 @@ export function MyReviewPage() {
   const [currentSubmission, setCurrentSubmission] = useState<SubmissionRecord | null>(null);
   const [files, setFiles] = useState<UploadedFileRecord[]>([]);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceRecord[]>([]);
+  const [evaluation, setEvaluation] = useState<EvaluationRecord | null>(null);
+  const [salaryRecommendation, setSalaryRecommendation] = useState<SalaryRecommendationRecord | null>(null);
+  const [approvalRecords, setApprovalRecords] = useState<ApprovalRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isGithubImporting, setIsGithubImporting] = useState(false);
@@ -70,6 +109,45 @@ export function MyReviewPage() {
     setSubmissions(submissionListResponse.items);
     setFiles(fileResponse.items);
     setEvidenceItems(evidenceResponse.items.map(mapEvidence));
+
+    // Fetch evaluation (404 = no evaluation yet, not an error)
+    let evalData: EvaluationRecord | null = null;
+    try {
+      evalData = await fetchEvaluationBySubmission(submissionResponse.id);
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 404) {
+        evalData = null;
+      } else {
+        throw err;
+      }
+    }
+    setEvaluation(evalData);
+
+    // When evaluation exists, fetch salary recommendation, then approval history
+    let salaryData: SalaryRecommendationRecord | null = null;
+    if (evalData) {
+      try {
+        salaryData = await fetchSalaryRecommendationByEvaluation(evalData.id);
+      } catch (err) {
+        if (axios.isAxiosError(err) && err.response?.status === 404) {
+          salaryData = null;
+        } else {
+          throw err;
+        }
+      }
+    }
+    setSalaryRecommendation(salaryData);
+
+    let approvalItems: ApprovalRecord[] = [];
+    if (salaryData) {
+      try {
+        const historyResponse = await fetchApprovalHistory(salaryData.id);
+        approvalItems = historyResponse.items;
+      } catch {
+        approvalItems = [];
+      }
+    }
+    setApprovalRecords(approvalItems);
   }
 
   useEffect(() => {
@@ -95,6 +173,9 @@ export function MyReviewPage() {
           setSubmissions([]);
           setFiles([]);
           setEvidenceItems([]);
+          setEvaluation(null);
+          setSalaryRecommendation(null);
+          setApprovalRecords([]);
         }
       } catch (error) {
         if (!cancelled) {
@@ -262,6 +343,22 @@ export function MyReviewPage() {
 
       {employee ? (
         <>
+          {currentSubmission && currentSubmission.status !== 'collecting' ? (
+            <section className="surface px-6 py-5 animate-fade-up">
+              <EvaluationStepBar
+                currentStep={resolveCurrentStep(
+                  salaryRecommendation?.status ?? null,
+                  approvalRecords,
+                )}
+              />
+            </section>
+          ) : currentSubmission && currentSubmission.status === 'collecting' && !evaluation ? (
+            <section className="surface px-6 py-8 text-center animate-fade-up">
+              <h3 className="text-lg font-semibold text-ink">暂无评估记录</h3>
+              <p className="mt-2 text-sm text-steel">您当前没有进行中的评估。请上传材料开始评估流程。</p>
+            </section>
+          ) : null}
+
           <section className="metric-strip animate-fade-up">
             {[
               ['所属部门', employee.department, '当前所属组织单元。'],
@@ -276,6 +373,53 @@ export function MyReviewPage() {
               </article>
             ))}
           </section>
+
+          {evaluation && (evaluation.status === 'confirmed' || salaryRecommendation?.status === 'approved') && evaluation.dimension_scores.length > 0 ? (
+            <section className="surface px-6 py-6 animate-fade-up">
+              <p className="eyebrow">评估结果</p>
+              <h2 className="mt-2 section-title text-ink">AI 能力五维评估</h2>
+              <div className="mt-4 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <DimensionRadarChart
+                  scores={evaluation.dimension_scores.map((d) => ({
+                    dimension_code: d.dimension_code,
+                    raw_score: d.raw_score,
+                    weight: d.weight,
+                  }))}
+                />
+                <div className="surface-subtle px-5 py-5 flex flex-col items-center justify-center gap-3">
+                  <p className="text-sm text-steel">综合得分</p>
+                  <p className="text-[26px] font-semibold text-ink">{Math.round(evaluation.overall_score)}</p>
+                  <p className="text-sm text-steel">AI 能力等级</p>
+                  <p className="text-lg font-semibold" style={{ color: 'var(--color-primary)' }}>{evaluation.ai_level}</p>
+                </div>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {evaluation.dimension_scores.map((d) => (
+                  <DimensionCard
+                    key={d.dimension_code}
+                    dimensionCode={d.dimension_code}
+                    rawScore={d.raw_score}
+                    weight={d.weight}
+                    rationale={d.rationale || d.ai_rationale}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : evaluation === null && currentSubmission && currentSubmission.status !== 'collecting' ? (
+            <section className="surface px-6 py-8 text-center animate-fade-up">
+              <h3 className="text-lg font-semibold text-ink">评估审核中</h3>
+              <p className="mt-2 text-sm text-steel">您的评估正在审核中，请耐心等待。评估完成后结果将在此处展示。</p>
+            </section>
+          ) : null}
+
+          {salaryRecommendation && salaryRecommendation.status === 'approved' ? (
+            <SalaryResultCard adjustmentRatio={salaryRecommendation.final_adjustment_ratio} />
+          ) : salaryRecommendation && salaryRecommendation.status !== 'approved' ? (
+            <section className="surface px-6 py-8 text-center animate-fade-up">
+              <h3 className="text-lg font-semibold text-ink">调薪建议审核中</h3>
+              <p className="mt-2 text-sm text-steel">调薪建议正在审批流程中。审批通过后，您将在此处看到最终调整幅度。</p>
+            </section>
+          ) : null}
 
           <section className="grid gap-5 lg:grid-cols-[1.08fr_0.92fr]">
             <article className="surface px-6 py-6 lg:px-7">
