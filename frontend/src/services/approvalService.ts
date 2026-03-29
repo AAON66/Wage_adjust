@@ -63,3 +63,8 @@ export async function deferApproval(payload: {
   });
   return response.data;
 }
+
+export async function fetchApprovalHistory(recommendationId: string): Promise<ApprovalListResponse> {
+  const response = await api.get<ApprovalListResponse>(`/approvals/recommendations/${recommendationId}/history`);
+  return response.data;
+}
