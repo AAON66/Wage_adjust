@@ -1,8 +1,11 @@
 ﻿from __future__ import annotations
 
 from datetime import datetime
+from typing import Generic, TypeVar
 
 from pydantic import BaseModel
+
+T = TypeVar('T')
 
 
 class PublicDimensionScoreRead(BaseModel):
@@ -95,3 +98,22 @@ class PublicDashboardSummaryResponse(BaseModel):
     ai_level_distribution: list[dict[str, int | str]]
     roi_distribution: list[dict[str, int | str]]
     heatmap: list[dict[str, int | str]]
+
+
+class CursorPaginatedResponse(BaseModel, Generic[T]):
+    """游标分页通用 wrapper（per D-05, D-06）"""
+    items: list[T]
+    next_cursor: str | None = None
+    has_more: bool = False
+    total: int | None = None
+
+
+class PaginatedSalaryResultsResponse(BaseModel):
+    """游标分页版调薪结果（替代原 PublicSalaryResultsResponse 用于分页端点）"""
+    cycle_id: str
+    cycle_name: str
+    cycle_status: str
+    items: list[PublicSalaryResultItem]
+    next_cursor: str | None = None
+    has_more: bool = False
+    total: int | None = None
