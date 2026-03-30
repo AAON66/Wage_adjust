@@ -175,8 +175,8 @@ Plans:
   5. If Feishu sync fails, the admin panel shows the last sync status and error message — the salary adjustment workflow continues unaffected
 **Plans**: 3 plans
 Plans:
-- [ ] 09-01-PLAN.md — 数据基础: ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (ATT-01, ATT-04, ATT-06, ATT-07)
-- [ ] 09-02-PLAN.md — 服务层: FeishuService + AttendanceService + APScheduler + API 端点 (ATT-01, ATT-02, ATT-03, ATT-05, ATT-06, ATT-07)
+- [x] 09-01-PLAN.md — 数据基础: ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (ATT-01, ATT-04, ATT-06, ATT-07)
+- [x] 09-02-PLAN.md — 服务层: FeishuService + AttendanceService + APScheduler + API 端点 (ATT-01, ATT-02, ATT-03, ATT-05, ATT-06, ATT-07)
 - [ ] 09-03-PLAN.md — 前端: 考勤管理页 + 飞书配置页 + SalarySimulator 内嵌 + 路由权限 (ATT-02, ATT-04, ATT-05, ATT-06, ATT-07)
 **UI hint**: yes
 
@@ -208,5 +208,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
 | 7. Dashboard and Cache Layer | 1/3 | In Progress|  |
 | 8. Employee Self-Service UI | 1/2 | In Progress|  |
-| 9. Feishu Attendance Integration | 0/3 | Not started | - |
+| 9. Feishu Attendance Integration | 2/3 | In Progress|  |
 | 10. External API Hardening | 0/TBD | Not started | - |
