@@ -1,0 +1,280 @@
+import { useEffect, useState } from 'react';
+
+import { FieldMappingTable } from '../components/attendance/FieldMappingTable';
+import { AppShell } from '../components/layout/AppShell';
+import { createFeishuConfig, getFeishuConfig, updateFeishuConfig } from '../services/feishuService';
+import type { FeishuConfigRead, FieldMappingItem } from '../types/api';
+
+const DEFAULT_FIELD_MAPPINGS: FieldMappingItem[] = [
+  { feishu_field: '', system_field: 'employee_no' },
+  { feishu_field: '', system_field: 'attendance_rate' },
+  { feishu_field: '', system_field: 'absence_days' },
+  { feishu_field: '', system_field: 'overtime_hours' },
+  { feishu_field: '', system_field: 'late_count' },
+  { feishu_field: '', system_field: 'early_leave_count' },
+];
+
+interface FormErrors {
+  app_id?: string;
+  app_secret?: string;
+  bitable_app_token?: string;
+  bitable_table_id?: string;
+  sync_hour?: string;
+  sync_minute?: string;
+  field_mapping?: string;
+}
+
+export function FeishuConfigPage() {
+  const [existingConfig, setExistingConfig] = useState<FeishuConfigRead | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errors, setErrors] = useState<FormErrors>({});
+
+  // Form state
+  const [appId, setAppId] = useState('');
+  const [appSecret, setAppSecret] = useState('');
+  const [bitableAppToken, setBitableAppToken] = useState('');
+  const [bitableTableId, setBitableTableId] = useState('');
+  const [syncHour, setSyncHour] = useState(6);
+  const [syncMinute, setSyncMinute] = useState(0);
+  const [syncTimezone, setSyncTimezone] = useState('Asia/Shanghai');
+  const [fieldMapping, setFieldMapping] = useState<FieldMappingItem[]>(DEFAULT_FIELD_MAPPINGS);
+
+  useEffect(() => {
+    async function loadConfig() {
+      try {
+        const config = await getFeishuConfig();
+        setExistingConfig(config);
+        setAppId(config.app_id);
+        setBitableAppToken(config.bitable_app_token);
+        setBitableTableId(config.bitable_table_id);
+        setSyncHour(config.sync_hour);
+        setSyncMinute(config.sync_minute);
+        setSyncTimezone(config.sync_timezone);
+        if (config.field_mapping.length > 0) {
+          setFieldMapping(config.field_mapping);
+        }
+      } catch {
+        // No config exists — use defaults (create mode)
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    void loadConfig();
+  }, []);
+
+  function validate(): FormErrors {
+    const errs: FormErrors = {};
+    if (!appId.trim()) errs.app_id = '请输入飞书 App ID';
+    if (!existingConfig && !appSecret.trim()) errs.app_secret = '请输入飞书 App Secret';
+    if (!bitableAppToken.trim()) errs.bitable_app_token = '请输入多维表格 App Token';
+    if (!bitableTableId.trim()) errs.bitable_table_id = '请输入多维表格 Table ID';
+    if (syncHour < 0 || syncHour > 23 || !Number.isInteger(syncHour)) errs.sync_hour = '请输入 0~23 之间的整数';
+    if (syncMinute < 0 || syncMinute > 59 || !Number.isInteger(syncMinute)) errs.sync_minute = '请输入 0~59 之间的整数';
+    const hasEmployeeNo = fieldMapping.some((m) => m.system_field === 'employee_no' && m.feishu_field.trim() !== '');
+    if (!hasEmployeeNo) errs.field_mapping = '员工工号映射为必填项';
+    return errs;
+  }
+
+  async function handleSave() {
+    setSuccessMessage(null);
+    setErrorMessage(null);
+    const errs = validate();
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setIsSaving(true);
+    try {
+      if (existingConfig) {
+        // Update mode
+        const updated = await updateFeishuConfig(existingConfig.id, {
+          app_id: appId,
+          app_secret: appSecret || undefined,
+          bitable_app_token: bitableAppToken,
+          bitable_table_id: bitableTableId,
+          field_mapping: fieldMapping,
+          sync_hour: syncHour,
+          sync_minute: syncMinute,
+          sync_timezone: syncTimezone,
+        });
+        setExistingConfig(updated);
+        setAppSecret('');
+        setSuccessMessage('配置已保存');
+      } else {
+        // Create mode
+        const created = await createFeishuConfig({
+          app_id: appId,
+          app_secret: appSecret,
+          bitable_app_token: bitableAppToken,
+          bitable_table_id: bitableTableId,
+          field_mapping: fieldMapping,
+          sync_hour: syncHour,
+          sync_minute: syncMinute,
+          sync_timezone: syncTimezone,
+        });
+        setExistingConfig(created);
+        setAppSecret('');
+        setSuccessMessage('配置已创建');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage('保存失败');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <AppShell title="飞书考勤配置" description="配置飞书应用凭证和字段映射，系统将据此从飞书多维表格同步考勤数据。">
+        <div className="surface px-6 py-10" style={{ textAlign: 'center' }}>
+          <p className="text-sm text-steel">正在加载配置...</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell title="飞书考勤配置" description="配置飞书应用凭证和字段映射，系统将据此从飞书多维表格同步考勤数据。">
+      <div className="surface px-6 py-6 lg:px-7">
+        {/* Connection config section */}
+        <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 16, marginBottom: 20 }}>
+          <p className="section-title" style={{ fontSize: 15, fontWeight: 600 }}>连接配置</p>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div>
+            <label htmlFor="feishu-app-id" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>App ID</label>
+            <input
+              className="toolbar-input"
+              id="feishu-app-id"
+              style={{ width: '100%' }}
+              type="text"
+              value={appId}
+              onChange={(e) => setAppId(e.target.value)}
+            />
+            {errors.app_id ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 4 }}>{errors.app_id}</p> : null}
+          </div>
+
+          <div>
+            <label htmlFor="feishu-app-secret" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>App Secret</label>
+            <input
+              className="toolbar-input"
+              id="feishu-app-secret"
+              style={{ width: '100%' }}
+              type="password"
+              value={appSecret}
+              onChange={(e) => setAppSecret(e.target.value)}
+              placeholder={existingConfig ? '留空保留当前值' : ''}
+            />
+            {errors.app_secret ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 4 }}>{errors.app_secret}</p> : null}
+          </div>
+
+          <div>
+            <label htmlFor="feishu-bitable-app-token" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>多维表格 App Token</label>
+            <input
+              className="toolbar-input"
+              id="feishu-bitable-app-token"
+              style={{ width: '100%' }}
+              type="text"
+              value={bitableAppToken}
+              onChange={(e) => setBitableAppToken(e.target.value)}
+            />
+            {errors.bitable_app_token ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 4 }}>{errors.bitable_app_token}</p> : null}
+          </div>
+
+          <div>
+            <label htmlFor="feishu-bitable-table-id" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>多维表格 Table ID</label>
+            <input
+              className="toolbar-input"
+              id="feishu-bitable-table-id"
+              style={{ width: '100%' }}
+              type="text"
+              value={bitableTableId}
+              onChange={(e) => setBitableTableId(e.target.value)}
+            />
+            {errors.bitable_table_id ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 4 }}>{errors.bitable_table_id}</p> : null}
+          </div>
+
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="feishu-sync-hour" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>定时同步 - 时</label>
+              <input
+                className="toolbar-input"
+                id="feishu-sync-hour"
+                style={{ width: '100%' }}
+                type="number"
+                min={0}
+                max={23}
+                step={1}
+                value={syncHour}
+                onChange={(e) => setSyncHour(Number(e.target.value))}
+              />
+              {errors.sync_hour ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 4 }}>{errors.sync_hour}</p> : null}
+            </div>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="feishu-sync-minute" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>定时同步 - 分</label>
+              <input
+                className="toolbar-input"
+                id="feishu-sync-minute"
+                style={{ width: '100%' }}
+                type="number"
+                min={0}
+                max={59}
+                step={1}
+                value={syncMinute}
+                onChange={(e) => setSyncMinute(Number(e.target.value))}
+              />
+              {errors.sync_minute ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 4 }}>{errors.sync_minute}</p> : null}
+            </div>
+            <div style={{ flex: 1 }}>
+              <label htmlFor="feishu-sync-timezone" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>时区</label>
+              <select
+                className="toolbar-input"
+                id="feishu-sync-timezone"
+                style={{ width: '100%' }}
+                value={syncTimezone}
+                onChange={(e) => setSyncTimezone(e.target.value)}
+              >
+                <option value="Asia/Shanghai">Asia/Shanghai</option>
+                <option value="Asia/Tokyo">Asia/Tokyo</option>
+                <option value="UTC">UTC</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div style={{ borderTop: '1px solid var(--color-border)', margin: '24px 0' }} />
+
+        {/* Field mapping section */}
+        <div style={{ marginBottom: 16 }}>
+          <p className="section-title" style={{ fontSize: 15, fontWeight: 600 }}>字段映射</p>
+        </div>
+        <FieldMappingTable value={fieldMapping} onChange={setFieldMapping} />
+        {errors.field_mapping ? <p style={{ fontSize: 13, color: 'var(--color-danger)', marginTop: 8 }}>{errors.field_mapping}</p> : null}
+
+        {/* Actions */}
+        <div style={{ marginTop: 24, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <button className="action-primary" disabled={isSaving} onClick={() => void handleSave()} type="button">
+            {isSaving ? '保存中...' : '保存配置'}
+          </button>
+        </div>
+
+        {successMessage ? (
+          <p className="mt-3 text-sm" style={{ color: 'var(--color-success, #00B42A)' }}>{successMessage}</p>
+        ) : null}
+        {errorMessage ? (
+          <p className="mt-3 text-sm" style={{ color: 'var(--color-danger)' }}>{errorMessage}</p>
+        ) : null}
+      </div>
+    </AppShell>
+  );
+}
+
+export default FeishuConfigPage;

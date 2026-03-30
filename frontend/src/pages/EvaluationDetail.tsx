@@ -11,6 +11,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { CalibrationCompareTable, type CalibrationCompareRow } from '../components/review/CalibrationCompareTable';
 import { DimensionScoreEditor, type DimensionScoreDraft } from '../components/review/DimensionScoreEditor';
 import { ReviewPanel } from '../components/review/ReviewPanel';
+import { AttendanceKpiCard } from '../components/attendance/AttendanceKpiCard';
 import { SalaryHistoryPanel } from '../components/salary/SalaryHistoryPanel';
 import { useAuth } from '../hooks/useAuth';
 import { submitDefaultApproval } from '../services/approvalService';
@@ -1777,6 +1778,11 @@ export function EvaluationDetailPage() {
     }
 
     return (
+      <>
+      {/* 考勤概览 — 仅审批参考，不影响调薪计算 */}
+      {(user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager') && employee?.id ? (
+        <AttendanceKpiCard employeeId={employee.id} />
+      ) : null}
       <section className="surface px-6 py-6 lg:px-7">
         <div className="flex flex-wrap items-start justify-between gap-4" style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 20 }}>
           <div>
@@ -1976,6 +1982,7 @@ export function EvaluationDetailPage() {
           </div>
         ) : null}
       </section>
+      </>
     );
   })();
 

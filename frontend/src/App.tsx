@@ -7,12 +7,14 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AppShell } from "./components/layout/AppShell";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { ApprovalsPage } from "./pages/Approvals";
+import { AttendanceManagementPage } from "./pages/AttendanceManagement";
 import { ApiDocsPage } from "./pages/ApiDocs";
 import { CreateCyclePage } from "./pages/CreateCycle";
 import { DashboardPage } from "./pages/Dashboard";
 import { EmployeesPage } from "./pages/Employees";
 import { EmployeeAdminPage } from "./pages/EmployeeAdmin";
 import { EvaluationDetailPage } from "./pages/EvaluationDetail";
+import { FeishuConfigPage } from "./pages/FeishuConfig";
 import { ImportCenterPage } from "./pages/ImportCenter";
 import { LoginPage } from "./pages/Login";
 import { MyReviewPage } from "./pages/MyReview";
@@ -442,6 +444,11 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin", "hrbp"]} />}>
             <Route element={<SalarySimulatorPage />} path="/salary-simulator" />
             <Route element={<ImportCenterPage />} path="/import-center" />
+            <Route element={<AttendanceManagementPage />} path="/attendance" />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
+            <Route element={<FeishuConfigPage />} path="/feishu-config" />
           </Route>
         </Routes>
       </ErrorBoundary>
