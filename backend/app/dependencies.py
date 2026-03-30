@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Generator
 
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -52,11 +52,33 @@ def get_public_api_key(
     x_api_key: str | None = Header(default=None, alias='X-API-Key'),
     settings: Settings = Depends(get_app_settings),
 ) -> str:
+    """Deprecated: use require_public_api_key instead (multi-key DB validation)."""
     if not x_api_key:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='X-API-Key header is required.')
     if x_api_key != settings.public_api_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Invalid public API key.')
     return x_api_key
+
+
+def require_public_api_key(
+    request: Request,
+    x_api_key: str | None = Header(default=None, alias='X-API-Key'),
+    db: Session = Depends(get_db),
+):
+    """Validate X-API-Key header with multi-key DB lookup (per D-01).
+
+    Revoked or expired keys return 401 immediately (per API-04).
+    Returns the ApiKey ORM model on success.
+    """
+    if not x_api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='X-API-Key header is required.')
+    from backend.app.services.api_key_service import ApiKeyService
+    service = ApiKeyService(db)
+    client_ip = request.client.host if request.client else None
+    api_key = service.validate_key(x_api_key, client_ip=client_ip)
+    if api_key is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid, revoked, or expired API key.')
+    return api_key
 
 
 

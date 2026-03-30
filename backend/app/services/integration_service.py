@@ -62,9 +62,54 @@ class IntegrationService:
         cycle = self.db.get(EvaluationCycle, cycle_id)
         if cycle is None:
             return None, []
-        query = self._submission_query().where(EmployeeSubmission.cycle_id == cycle_id).order_by(EmployeeSubmission.created_at.asc())
+        query = (
+            self._submission_query()
+            .join(EmployeeSubmission.ai_evaluation)
+            .join(AIEvaluation.salary_recommendation)
+            .where(SalaryRecommendation.status == 'approved')
+            .where(EmployeeSubmission.cycle_id == cycle_id)
+            .order_by(EmployeeSubmission.created_at.asc())
+        )
         submissions = [item for item in self.db.scalars(query) if item.ai_evaluation is not None]
         return cycle, submissions
+
+    def get_approved_salary_results_paginated(
+        self,
+        *,
+        cycle_id: str | None = None,
+        department: str | None = None,
+        cursor: str | None = None,
+        page_size: int = 20,
+    ) -> tuple[list[EmployeeSubmission], str | None, bool]:
+        """Cursor-paginated query for approved salary results (per D-07, D-08).
+
+        Returns (items, next_cursor, has_more).
+        """
+        from backend.app.utils.cursor_pagination import apply_cursor_pagination, encode_cursor
+
+        query = (
+            self._submission_query()
+            .join(EmployeeSubmission.ai_evaluation)
+            .join(AIEvaluation.salary_recommendation)
+            .where(SalaryRecommendation.status == 'approved')
+        )
+        if cycle_id:
+            query = query.where(EmployeeSubmission.cycle_id == cycle_id)
+        if department:
+            query = query.join(EmployeeSubmission.employee).where(Employee.department == department)
+
+        query, page_size = apply_cursor_pagination(
+            query,
+            cursor=cursor,
+            page_size=page_size,
+            id_column=EmployeeSubmission.id,
+        )
+        results = list(self.db.scalars(query))
+        has_more = len(results) > page_size
+        if has_more:
+            results = results[:page_size]
+        next_cursor = encode_cursor(results[-1].id) if has_more else None
+        return results, next_cursor, has_more
 
     def get_cycle_approval_status(self, cycle_id: str) -> tuple[EvaluationCycle | None, list[EmployeeSubmission]]:
         return self.get_cycle_salary_results(cycle_id)

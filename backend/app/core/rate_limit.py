@@ -33,6 +33,17 @@ def create_limiter(settings) -> Limiter:
         return Limiter(key_func=get_remote_address)
 
 
+def get_api_key_identifier(request) -> str:
+    """Extract API key identifier for per-key rate limiting (per D-04).
+
+    Falls back to IP address when no API key is present on the request.
+    """
+    api_key = getattr(request.state, 'api_key', None) if hasattr(request, 'state') else None
+    if api_key is not None:
+        return f'apikey:{api_key.id}'
+    return get_remote_address(request)
+
+
 # Module-level limiter instance used as a decorator source in public.py.
 # This instance is created with in-memory storage by default; create_app() calls
 # create_limiter(settings) and assigns the real instance to app.state.limiter.
