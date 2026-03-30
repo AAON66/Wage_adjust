@@ -1,0 +1,191 @@
+# 需求文档：公司综合调薪工具 v1
+
+**创建日期：** 2026-03-25
+**范围：** 完善并加固现有系统，使其达到生产可用状态。
+
+---
+
+## 范围说明
+
+现有代码库架构健全，但以下 6 个领域的实现存在问题或不完整：安全加固、AI 评估流水线、审批工作流与审计、批量导入、看板分析、外部 API。v1 完成的标志是：HR 可以完整跑通一个调薪周期（从员工提交材料到最终审批），所有评估结果可解释可追溯，系统可安全部署到生产环境。
+
+---
+
+## v1 需求清单
+
+### 安全加固
+
+- [x] **SEC-01**：应用在生产环境中若检测到 `jwt_secret_key` 等于默认值 `"change_me"`，则拒绝启动并打印清晰的配置错误提示
+- [x] **SEC-02**：登录接口（`POST /api/v1/auth/login`）使用 `slowapi` 进行频率限制，同一 IP 15 分钟内失败超过 10 次则返回 `429`
+- [x] **SEC-03**：居民身份证号码在存入数据库前使用 SM4（或 AES-256-GCM）加密；非管理员角色的 API 响应中显示脱敏格式（如 `330104********1234`）
+- [x] **SEC-04**：调薪建议接口按角色返回不同字段：`admin`/`hrbp` 可见完整薪资数字；`manager` 仅见调整幅度百分比；`employee` 仅见自己的调整幅度
+- [x] **SEC-05**：公开 API 的频率限制配置（`public_api_rate_limit`）真正生效，`/api/v1/public/` 接口执行该限制
+- [x] **SEC-06**：`.env` 文件从 git 追踪中移除（`git rm --cached .env`），`.gitignore` 排除所有 `.env*` 文件，所有默认占位密钥均在文档中标注为必填配置项
+- [x] **SEC-07**：`LocalStorageService.resolve_path()` 在读取或删除前断言解析路径在 `base_dir` 范围内，防止路径穿越攻击
+- [x] **SEC-08**：密码复杂度在后端进行校验（最少 8 位，需包含大小写字母 + 数字或符号），不能仅在前端校验
+
+### 数据库与迁移
+
+- [x] **DB-01**：配置 Alembic 并生成当前 schema 的基线迁移，将 `ensure_schema_compatibility()` 启动时的 DDL 操作迁移到正式 migration 文件中
+- [x] **DB-02**：后续所有 schema 变更均通过 Alembic migration 执行，生产环境不再有启动时的直接 DDL 操作
+- [x] **DB-03**：认证记录导入幂等——重复导入同一员工同一周期的认证文件，不产生重复行，不导致 `certification_bonus` 虚增
+
+### AI 评估流水线
+
+- [x] **EVAL-01**：DeepSeek LLM 调用使用带抖动的指数退避重试策略，替换当前的线性退避（0.2s/0.4s），正确处理 429/503 响应
+- [x] **EVAL-02**：LLM 频率限制器改用 Redis 后端，支持多 worker 部署下正确计数，消除每进程内存计数的问题
+- [x] **EVAL-03**：图片文件解析能真正提取文字内容用于 LLM 评估，替换当前仅返回图片尺寸的占位实现（使用 pytesseract OCR 或 DeepSeek 多模态视觉 API）
+- [x] **EVAL-04**：修复 `_normalize_llm_evaluation_payload` 中的分值归一化逻辑，正确区分 5 分制和 100 分制，消除低分时的 20 倍虚增 bug
+- [x] **EVAL-05**：LLM 返回的每个维度分数存储时附带对应 prompt 的 SHA-256 哈希，支持评估结果的可复现与审计
+- [x] **EVAL-06**：当 DeepSeek 未配置或调用出错时，前端明确显示当前结果为"模拟数据"，不以真实评估结果呈现
+- [x] **EVAL-07**：评估结果页面展示 5 个维度的得分、权重和 LLM 给出的文字说明，而不仅显示最终 AI 等级
+- [x] **EVAL-08**：用户上传的文档内容在拼入 LLM prompt 前进行净化处理，防止提示词注入（验证并完善现有 `prompt_safety.py`）
+
+### 审批工作流
+
+- [x] **APPR-01**：`decide_approval` 使用 `SELECT ... FOR UPDATE` 悲观锁，防止两个审批人同时操作时的竞态条件
+- [x] **APPR-02**：已审批的评估被退回修改后重新提交，不覆盖原有审批步骤记录，保留完整修改历史
+- [x] **APPR-03**：每次审批操作（通过、拒绝、退回修改、覆写）均写入 `AuditLog`，现有 `ApprovalService` 接入审计日志
+- [x] **APPR-04**：每次调薪建议变更（系统建议值 vs 最终审批值）均写入 `AuditLog`
+- [x] **APPR-05**：管理员可查看自己权限范围内的待审批评估列表，支持按状态、员工、部门筛选
+- [x] **APPR-06**：HR/HRBP 可跨部门查看所有评估，支持相同筛选条件及跨部门对比
+- [x] **APPR-07**：审批界面在调薪建议旁展示完整评估明细（5 个维度 + 分数 + 说明），为审批人提供决策依据
+
+### 审计日志与可追溯性
+
+- [x] **AUDIT-01**：每次评估分数变更、审批决定、薪资覆写均写入 `AuditLog`，包含：实体类型、实体 ID、操作类型、操作人（用户 ID + 角色）、旧值、新值、时间戳、请求 ID
+- [x] **AUDIT-02**：管理员可通过 `GET /api/v1/audit/` 按实体、操作人、操作类型和日期范围查询审计日志
+- [x] **AUDIT-03**：审计日志写入与业务变更在同一数据库事务中提交，不存在"业务成功但日志未写入"的窗口期
+
+### 批量导入
+
+- [x] **IMP-01**：批量导入使用惰性验证，收集所有行级错误后一次性返回，不在第一个错误时中断
+- [x] **IMP-02**：批量导入使用每行独立 savepoint，有效行在部分失败时仍然提交，返回 HTTP 207 附带每行状态
+- [x] **IMP-03**：导入响应包含汇总信息：总行数、成功行数、失败行数，以及每条失败行的具体错误原因
+- [x] **IMP-04**：批量导入正确处理中文字符编码，支持 UTF-8 和 GBK/GB2312 格式的 Excel 文件，不出现乱码
+- [x] **IMP-05**：员工导入幂等——对 `employee_id` 进行 upsert，重复导入不产生重复数据
+- [x] **IMP-06**：前端提供导入模板文件下载（包含必填列和示例数据的 Excel 格式）
+
+### 看板与数据分析
+
+- [x] **DASH-01**：看板查询使用 SQL 侧聚合（`GROUP BY`、`func.count`、`func.sum`），消除 `DashboardService` 中的全表扫描模式
+- [x] **DASH-02**：看板数据使用 Redis 缓存，每张图表 TTL 5-15 分钟；缓存 key 包含 `cycle_id` 和请求用户角色，防止跨角色数据泄漏
+- [x] **DASH-03**：看板展示各 AI 等级的人才分布（每个等级人数和占比）图表
+- [x] **DASH-04**：看板展示调薪幅度分布（直方图或区间图），展示建议调薪比例的分布情况
+- [x] **DASH-05**：看板展示审批流水线状态——各工作流状态下的评估数量（草稿、已提交、经理审核中、HR 审核中、已批准、已拒绝）
+- [ ] **DASH-06**：看板支持按部门下钻——HR/HRBP 可查看各部门的等级分布和调薪平均值
+- [x] **DASH-07**：待审批数量 KPI 卡片每 30 秒刷新一次；其他图表数据使用缓存 TTL 更新
+
+### 外部 API
+
+- [ ] **API-01**：公开 API（`/api/v1/public/`）仅返回已审批的调薪建议，草稿和审核中的记录不对外暴露
+- [ ] **API-02**：公开 API 支持基于游标的分页，外部系统可可靠地遍历大量记录
+- [ ] **API-03**：支持 API Key 管理：管理员可通过 UI 创建、轮换、撤销 API Key；每个 Key 记录名称、创建时间、最后使用时间和可选过期时间
+- [ ] **API-04**：API Key 鉴权在每次请求时校验 Key 未过期且未撤销
+- [ ] **API-05**：公开 API 响应结构有文档记录（OpenAPI 规范准确，包含所有 `/api/v1/public/` 接口及示例响应）
+
+### 员工自助
+
+- [x] **EMP-01**：员工可查看自己的评估状态及当前所处审批流程阶段
+- [x] **EMP-02**：评估完成后，员工可查看自己的评估结果（含 5 个维度分项）
+- [x] **EMP-03**：审批通过后，员工可查看自己的调薪建议（仅显示调整幅度百分比，不显示绝对薪资数字）
+
+### 项目材料查重与多作者
+
+- [x] **SUB-01**：员工上传项目材料时，系统对「项目名称 + 文件内容哈希」进行查重；若与该员工已上传的项目完全匹配，则拒绝重复上传并提示已存在的记录
+- [x] **SUB-02**：上传项目材料时可设置多位合作者（从员工列表中选择），并为每位合作者填写贡献比例；所有合作者的贡献比例之和必须等于 100%
+- [x] **SUB-03**：被设为合作者的员工可在自己的材料列表中看到该共享项目，并可查看或补充上传相关材料
+- [x] **SUB-04**：AI 评估计分时，共享项目对各合作者的维度得分按其贡献比例折算——例如某项目评分 80 分、某员工贡献比例 60%，则该员工该项目的有效得分为 48 分
+- [x] **SUB-05**：项目详情页展示所有合作者及其贡献比例，审批人在审批时可见完整的合作信息
+
+### 飞书考勤集成
+
+- [x] **ATT-01**：系统通过飞书多维表格 API 接入员工考勤数据，同步以下字段：出勤率、缺勤天数、加班时长/次数、迟到次数、早退次数
+- [ ] **ATT-02**：支持手动触发同步——HR 可在系统内点击「同步考勤数据」按钮，立即从飞书拉取最新数据
+- [ ] **ATT-03**：支持定时自动同步——系统每天定时（可配置时间）自动从飞书多维表格拉取最新考勤数据
+- [x] **ATT-04**：飞书连接配置（App ID、App Secret、多维表格 ID、字段映射）在后台管理页面中可配置，无需修改代码
+- [ ] **ATT-05**：人工调薪页面在薪资调整区域展示该员工当前考勤概览（出勤率、缺勤天数、加班情况、迟到/早退次数），仅作审批参考，不自动影响调薪计算
+- [x] **ATT-06**：考勤数据展示说明同步时间（「数据截至：YYYY-MM-DD HH:mm」），避免使用过期数据做判断
+- [x] **ATT-07**：若飞书同步失败（网络异常、Token 过期等），系统记录错误日志并在管理页面展示上次同步状态，不影响调薪流程正常使用
+
+---
+
+## v2 待规划（v1 范围外）
+
+- 外部 HR 系统的 Webhook 事件通知
+- 支持多个并发调薪周期
+- 移动端响应式 UI
+- LDAP/SSO 单点登录
+- 绩效系统集成（从外部绩效系统拉取数据）
+- 自动识别上传证书并填充认证字段（OCR 自动化）
+- 员工历史薪资趋势可视化
+- 生产环境迁移到 PostgreSQL（v1 开发环境保持 SQLite）
+
+---
+
+## 需求追踪索引
+
+| 需求 ID | 阶段 | 状态 |
+|---------|------|------|
+| SEC-01 | Phase 1 | Complete |
+| SEC-02 | Phase 1 | Complete |
+| SEC-03 | Phase 1 | Complete |
+| SEC-04 | Phase 1 | Complete |
+| SEC-05 | Phase 1 | Complete |
+| SEC-06 | Phase 1 | Complete |
+| SEC-07 | Phase 1 | Complete |
+| SEC-08 | Phase 1 | Complete |
+| DB-01 | Phase 1 | Complete |
+| DB-02 | Phase 1 | Complete |
+| DB-03 | Phase 1 | Complete |
+| EVAL-01 | Phase 2 | Complete |
+| EVAL-02 | Phase 2 | Complete |
+| EVAL-03 | Phase 2 | Complete |
+| EVAL-04 | Phase 2 | Complete |
+| EVAL-05 | Phase 2 | Complete |
+| EVAL-06 | Phase 2 | Complete |
+| EVAL-07 | Phase 2 | Complete |
+| EVAL-08 | Phase 2 | Complete |
+| APPR-01 | Phase 3 | Complete |
+| APPR-02 | Phase 3 | Complete |
+| APPR-03 | Phase 3 | Complete |
+| APPR-04 | Phase 3 | Complete |
+| APPR-05 | Phase 3 | Complete |
+| APPR-06 | Phase 3 | Complete |
+| APPR-07 | Phase 3 | Complete |
+| AUDIT-01 | Phase 4 | Complete |
+| AUDIT-02 | Phase 4 | Complete |
+| AUDIT-03 | Phase 4 | Complete |
+| SUB-01 | Phase 5 | Complete |
+| SUB-02 | Phase 5 | Complete |
+| SUB-03 | Phase 5 | Complete |
+| SUB-04 | Phase 5 | Complete |
+| SUB-05 | Phase 5 | Complete |
+| IMP-01 | Phase 6 | Complete |
+| IMP-02 | Phase 6 | Complete |
+| IMP-03 | Phase 6 | Complete |
+| IMP-04 | Phase 6 | Complete |
+| IMP-05 | Phase 6 | Complete |
+| IMP-06 | Phase 6 | Complete |
+| DASH-01 | Phase 7 | Complete |
+| DASH-02 | Phase 7 | Complete |
+| DASH-03 | Phase 7 | Complete |
+| DASH-04 | Phase 7 | Complete |
+| DASH-05 | Phase 7 | Complete |
+| DASH-06 | Phase 7 | Pending |
+| DASH-07 | Phase 7 | Complete |
+| EMP-01 | Phase 8 | Complete |
+| EMP-02 | Phase 8 | Complete |
+| EMP-03 | Phase 8 | Complete |
+| ATT-01 | Phase 9 | Complete |
+| ATT-02 | Phase 9 | Pending |
+| ATT-03 | Phase 9 | Pending |
+| ATT-04 | Phase 9 | Complete |
+| ATT-05 | Phase 9 | Pending |
+| ATT-06 | Phase 9 | Complete |
+| ATT-07 | Phase 9 | Complete |
+| API-01 | Phase 10 | Pending |
+| API-02 | Phase 10 | Pending |
+| API-03 | Phase 10 | Pending |
+| API-04 | Phase 10 | Pending |
+| API-05 | Phase 10 | Pending |
