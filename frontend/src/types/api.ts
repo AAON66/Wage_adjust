@@ -753,3 +753,68 @@ export interface AttendanceListResponse {
   items: AttendanceRecordRead[];
   total: number;
 }
+
+// === API Key Management (Phase 10) ===
+
+export interface ApiKeyRead {
+  id: string;
+  name: string;
+  key_prefix: string;
+  is_active: boolean;
+  rate_limit: number;
+  expires_at: string | null;
+  last_used_at: string | null;
+  last_used_ip: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+}
+
+export interface ApiKeyCreatePayload {
+  name: string;
+  rate_limit?: number;
+  expires_at?: string | null;
+}
+
+export interface ApiKeyCreateResponse {
+  key: ApiKeyRead;
+  plain_key: string;
+}
+
+export interface ApiKeyRotateResponse {
+  key: ApiKeyRead;
+  plain_key: string;
+  old_key_id: string;
+}
+
+// === Webhook Management (Phase 10) ===
+
+export interface WebhookEndpointRead {
+  id: string;
+  url: string;
+  is_active: boolean;
+  description: string | null;
+  events: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WebhookEndpointCreatePayload {
+  url: string;
+  description?: string;
+  events?: string[];
+}
+
+export interface WebhookDeliveryLogRead {
+  id: string;
+  webhook_id: string;
+  event_type: string;
+  payload: Record<string, unknown>;
+  response_status: number | null;
+  response_body: string | null;
+  attempt: number;
+  success: boolean;
+  error_message: string | null;
+  created_at: string;
+}
