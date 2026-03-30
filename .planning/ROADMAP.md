@@ -25,7 +25,7 @@ attendance, external API). Nothing is built from scratch — everything lands on
 - [ ] **Phase 7: Dashboard and Cache Layer** - Complete all dashboard charts with SQL aggregation and Redis caching
 - [ ] **Phase 8: Employee Self-Service UI** - Give employees visibility into their evaluation status and results
 - [ ] **Phase 9: Feishu Attendance Integration** - Sync attendance data from Feishu for use during salary review
-- [ ] **Phase 10: External API Hardening** - Validate and harden the public REST API for external HR system integration
+- [x] **Phase 10: External API Hardening** - Validate and harden the public REST API for external HR system integration (completed 2026-03-30)
 
 ## Phase Details
 
@@ -194,7 +194,7 @@ Plans:
 Plans:
 - [x] 10-01-PLAN.md — 数据基础: ApiKey/Webhook ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (API-01, API-02, API-03, API-04)
 - [x] 10-02-PLAN.md — 服务层: ApiKeyService + WebhookService + 游标分页 + approved-only 过滤 + API 端点加固 (API-01, API-02, API-03, API-04, API-05)
-- [ ] 10-03-PLAN.md — 前端: API Key 管理页 + Webhook 管理页 + API 使用指南增强 + 路由注册 (API-03, API-05)
+- [x] 10-03-PLAN.md — 前端: API Key 管理页 + Webhook 管理页 + API 使用指南增强 + 路由注册 (API-03, API-05)
 **UI hint**: yes
 
 ## Progress
@@ -213,4 +213,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Dashboard and Cache Layer | 1/3 | In Progress|  |
 | 8. Employee Self-Service UI | 1/2 | In Progress|  |
 | 9. Feishu Attendance Integration | 2/3 | In Progress|  |
-| 10. External API Hardening | 2/3 | In Progress|  |
+| 10. External API Hardening | 3/3 | Complete   | 2026-03-30 |
