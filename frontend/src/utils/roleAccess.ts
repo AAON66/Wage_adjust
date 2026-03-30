@@ -34,6 +34,8 @@ const ROLE_MODULES: Record<string, WorkspaceModuleLink[]> = {
     { title: '组织看板', description: '查看分布、热力和 ROI。', href: '/dashboard' },
     { title: '平台账号', description: '管理账号与权限范围。', href: '/user-admin' },
     { title: '审计日志', description: '查看所有操作与变更记录。', href: '/audit-log' },
+    { title: 'API Key 管理', description: '创建、轮换和撤销外部 API 访问密钥。', href: '/api-key-management' },
+    { title: 'Webhook 管理', description: '注册回调 URL，查看通知投递日志。', href: '/webhook-management' },
     EMPLOYEE_ARCHIVE_MODULE,
     IMPORT_CENTER_MODULE,
     SETTINGS_MODULE,

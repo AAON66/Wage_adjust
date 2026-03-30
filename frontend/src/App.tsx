@@ -20,8 +20,10 @@ import { LoginPage } from "./pages/Login";
 import { MyReviewPage } from "./pages/MyReview";
 import { SalarySimulatorPage } from "./pages/SalarySimulator";
 import { SettingsPage } from "./pages/Settings";
+import { ApiKeyManagementPage } from "./pages/ApiKeyManagement";
 import { AuditLogPage } from "./pages/AuditLog";
 import { UserAdminPage } from "./pages/UserAdmin";
+import { WebhookManagementPage } from "./pages/WebhookManagement";
 import { fetchEmployees } from "./services/employeeService";
 import type { EmployeeRecord } from "./types/api";
 import { findEmployeeForUser } from "./utils/employeeIdentity";
@@ -441,6 +443,8 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
             <Route element={<CreateCyclePage />} path="/cycles/create" />
             <Route element={<AuditLogPage />} path="/audit-log" />
+            <Route element={<ApiKeyManagementPage />} path="/api-key-management" />
+            <Route element={<WebhookManagementPage />} path="/webhook-management" />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["admin", "hrbp"]} />}>

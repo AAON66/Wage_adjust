@@ -996,6 +996,249 @@ export function ApiDocsPage() {
           </div>
         </section>
 
+        {/* === External API Guide Sections === */}
+        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '80ms' }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 14, marginBottom: 20 }}>
+            <p className="eyebrow">外部 API 指南</p>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">快速开始</h2>
+            <p className="mt-2 text-sm leading-6 text-steel">三步完成外部系统对接。</p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              ['01', '获取 API Key', '联系管理员在「API Key 管理」页面创建 Key，创建后一次性显示明文，请妥善保存。'],
+              ['02', '调用接口', '使用 X-API-Key 请求头访问 /api/v1/public/ 下的端点，拉取已审批调薪数据。'],
+              ['03', '分页遍历', '使用游标分页参数（cursor, page_size）遍历全部结果，直到 has_more 为 false。'],
+            ].map(([step, title, desc]) => (
+              <div className="surface-subtle px-5 py-5" key={step}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, background: 'var(--color-primary-light)', fontSize: 13, fontWeight: 700, color: 'var(--color-primary)' }}>{step}</span>
+                  <span className="text-sm font-semibold text-ink">{title}</span>
+                </div>
+                <p className="text-sm leading-6 text-steel">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 20 }}>
+            <p className="text-sm font-semibold text-ink" style={{ marginBottom: 8 }}>完整 curl 示例</p>
+            <pre style={{ overflowX: 'auto', borderRadius: 8, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', padding: '14px 16px', fontSize: 12.5, lineHeight: 1.75, color: 'var(--color-ink)' }}>
+              <code>{`curl -H "X-API-Key: your_api_key_here" \\
+  "${baseUrl.replace('/api/v1', '')}/api/v1/public/salary-results?page_size=50"
+
+# 带游标翻页
+curl -H "X-API-Key: your_api_key_here" \\
+  "${baseUrl.replace('/api/v1', '')}/api/v1/public/salary-results?page_size=50&cursor=<next_cursor>"`}</code>
+            </pre>
+          </div>
+        </section>
+
+        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '90ms' }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 14, marginBottom: 20 }}>
+            <p className="eyebrow">认证方式</p>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">外部 API 认证</h2>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="surface-subtle px-5 py-5">
+              <p className="text-sm font-semibold text-ink">请求方式</p>
+              <p className="mt-2 text-sm leading-6 text-steel">
+                所有 <code style={{ padding: '1px 4px', borderRadius: 3, background: 'var(--color-bg-subtle)', fontSize: 12 }}>/api/v1/public/</code> 端点需要在请求头中携带 API Key。
+              </p>
+              <pre style={{ marginTop: 12, overflowX: 'auto', borderRadius: 8, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', padding: '12px 14px', fontSize: 12.5, lineHeight: 1.7, color: 'var(--color-ink)' }}>
+                <code>{`curl -H "X-API-Key: your_api_key_here" \\
+  ${baseUrl.replace('/api/v1', '')}/api/v1/public/salary-results`}</code>
+              </pre>
+              <p className="mt-3 text-sm leading-6 text-steel">API Key 由管理员在「API Key 管理」页面创建，每个 Key 拥有独立的限流额度。</p>
+            </div>
+
+            <div className="surface-subtle px-5 py-5">
+              <p className="text-sm font-semibold text-ink">错误码说明</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  ['401', 'Key 无效、已撤销或已过期'],
+                  ['403', '权限不足，无法访问该资源'],
+                  ['404', '资源不存在'],
+                  ['429', '超过限流，请降低请求频率后重试'],
+                ].map(([code, desc]) => (
+                  <div key={code} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    <code style={{ fontSize: 13, fontWeight: 600, color: Number(code) >= 400 ? 'var(--color-danger)' : 'var(--color-ink)' }}>{code}</code>
+                    <span className="text-sm text-steel">{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '100ms' }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 14, marginBottom: 20 }}>
+            <p className="eyebrow">分页方式</p>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">游标分页</h2>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="surface-subtle px-5 py-5">
+              <p className="text-sm font-semibold text-ink">参数说明</p>
+              <div className="mt-3 space-y-2">
+                {[
+                  ['cursor', '分页游标（首次请求不传，后续使用响应中的 next_cursor）'],
+                  ['page_size', '每页条数，默认 20，最大 100'],
+                ].map(([param, desc]) => (
+                  <div key={param} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    <code style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>{param}</code>
+                    <span className="text-sm text-steel">{desc}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 text-sm font-semibold text-ink">响应结构</p>
+              <div className="mt-2 space-y-2">
+                {[
+                  ['items', '当前页数据数组'],
+                  ['next_cursor', '下一页游标（最后一页为 null）'],
+                  ['has_more', '是否还有更多数据（boolean）'],
+                ].map(([field, desc]) => (
+                  <div key={field} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    <code style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-primary)' }}>{field}</code>
+                    <span className="text-sm text-steel">{desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="surface-subtle px-5 py-5">
+              <p className="text-sm font-semibold text-ink">Python 遍历示例</p>
+              <pre style={{ marginTop: 10, overflowX: 'auto', borderRadius: 8, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', padding: '12px 14px', fontSize: 12.5, lineHeight: 1.7, color: 'var(--color-ink)' }}>
+                <code>{`import requests
+
+url = "${baseUrl.replace('/api/v1', '')}/api/v1/public/salary-results"
+headers = {"X-API-Key": "your_api_key_here"}
+cursor = None
+
+while True:
+    params = {"page_size": 50}
+    if cursor:
+        params["cursor"] = cursor
+    resp = requests.get(url, headers=headers, params=params)
+    data = resp.json()
+    process(data["items"])
+    if not data["has_more"]:
+        break
+    cursor = data["next_cursor"]`}</code>
+              </pre>
+            </div>
+          </div>
+        </section>
+
+        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '105ms' }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 14, marginBottom: 20 }}>
+            <p className="eyebrow">端点参考</p>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">公开 API 端点</h2>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                method: 'GET',
+                path: '/api/v1/public/salary-results',
+                desc: '获取已审批的调薪结果（支持游标分页）',
+                params: 'cursor, page_size, cycle_id, department',
+                response: '{ items: SalaryResult[], next_cursor, has_more }',
+                example: `curl -H "X-API-Key: key" "${baseUrl.replace('/api/v1', '')}/api/v1/public/salary-results?page_size=20"`,
+              },
+              {
+                method: 'GET',
+                path: '/api/v1/public/evaluations/latest',
+                desc: '获取员工最新评估结果',
+                params: 'employee_ids (逗号分隔)',
+                response: 'LatestEvaluation[]',
+                example: `curl -H "X-API-Key: key" "${baseUrl.replace('/api/v1', '')}/api/v1/public/evaluations/latest?employee_ids=id1,id2"`,
+              },
+              {
+                method: 'GET',
+                path: '/api/v1/public/evaluations/{evaluation_id}',
+                desc: '获取指定评估详情',
+                params: 'evaluation_id (路径参数)',
+                response: 'EvaluationDetail',
+                example: `curl -H "X-API-Key: key" "${baseUrl.replace('/api/v1', '')}/api/v1/public/evaluations/eval_001"`,
+              },
+              {
+                method: 'GET',
+                path: '/api/v1/public/cycles',
+                desc: '获取评估周期列表',
+                params: '无',
+                response: 'Cycle[]',
+                example: `curl -H "X-API-Key: key" "${baseUrl.replace('/api/v1', '')}/api/v1/public/cycles"`,
+              },
+            ].map((ep) => (
+              <div className="surface-subtle px-5 py-4" key={ep.path}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700, background: ep.method === 'GET' ? '#e6f7ff' : '#fff7e6', color: ep.method === 'GET' ? '#0050b3' : '#d46b08' }}>{ep.method}</span>
+                  <code style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-ink)' }}>{ep.path}</code>
+                </div>
+                <p className="mt-2 text-sm text-steel">{ep.desc}</p>
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-placeholder)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>参数</p>
+                    <p className="mt-1 text-sm text-steel">{ep.params}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-placeholder)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>响应</p>
+                    <p className="mt-1 text-sm text-steel">{ep.response}</p>
+                  </div>
+                </div>
+                <pre style={{ marginTop: 10, overflowX: 'auto', borderRadius: 6, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', padding: '8px 12px', fontSize: 12, lineHeight: 1.6, color: 'var(--color-ink)' }}>
+                  <code>{ep.example}</code>
+                </pre>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="surface animate-fade-up px-6 py-6 lg:px-7" style={{ animationDelay: '110ms' }}>
+          <div style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 14, marginBottom: 20 }}>
+            <p className="eyebrow">推送模式</p>
+            <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">Webhook 通知</h2>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="surface-subtle px-5 py-5">
+              <p className="text-sm font-semibold text-ink">工作方式</p>
+              <p className="mt-2 text-sm leading-6 text-steel">
+                管理员可在「Webhook 管理」页面注册回调 URL。当调薪建议审批通过（<code style={{ padding: '1px 4px', borderRadius: 3, background: 'var(--color-bg-subtle)', fontSize: 12 }}>recommendation.approved</code>）时，系统会自动 POST 事件数据到注册的 URL。
+              </p>
+              <p className="mt-3 text-sm leading-6 text-steel">
+                每次投递会携带 <code style={{ padding: '1px 4px', borderRadius: 3, background: 'var(--color-bg-subtle)', fontSize: 12 }}>X-Signature-256</code> 请求头，值为 <code style={{ padding: '1px 4px', borderRadius: 3, background: 'var(--color-bg-subtle)', fontSize: 12 }}>sha256=hmac_hex</code> 格式的 HMAC 签名，用于接收端验证请求来源。
+              </p>
+              <p className="mt-3 text-sm leading-6 text-steel">投递失败时最多重试 3 次，间隔分别为 1s、5s、30s。可在投递日志中查看每次投递的详情。</p>
+            </div>
+
+            <div className="surface-subtle px-5 py-5">
+              <p className="text-sm font-semibold text-ink">Python Flask 签名验证示例</p>
+              <pre style={{ marginTop: 10, overflowX: 'auto', borderRadius: 8, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', padding: '12px 14px', fontSize: 12.5, lineHeight: 1.7, color: 'var(--color-ink)' }}>
+                <code>{`import hmac, hashlib
+
+def verify_signature(payload: bytes, signature: str, secret: str) -> bool:
+    expected = "sha256=" + hmac.new(
+        secret.encode(), payload, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature)
+
+# Flask example
+@app.route("/webhook", methods=["POST"])
+def handle_webhook():
+    sig = request.headers.get("X-Signature-256", "")
+    if not verify_signature(request.data, sig, WEBHOOK_SECRET):
+        abort(401)
+    event = request.json
+    # Process event...
+    return "", 200`}</code>
+              </pre>
+            </div>
+          </div>
+        </section>
+        {/* === End External API Guide === */}
+
         <section className="metric-strip animate-fade-up" style={{ animationDelay: '120ms' }}>
           {[
             [String(API_MODULES.length), '接口分组', '按业务模块拆分查看。'],
