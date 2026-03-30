@@ -607,7 +607,6 @@ export interface BulkUserDeleteResponse {
   total_requested: number;
 }
 
-<<<<<<< HEAD
 export interface ContributorInput {
   employee_id: string;
   contribution_pct: number;
