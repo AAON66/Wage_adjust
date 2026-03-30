@@ -149,7 +149,7 @@ Plans:
 Plans:
 - [x] 07-01-PLAN.md — 后端 SQL 聚合 + Redis 缓存层 + 新 API 端点 (DASH-01, DASH-02, DASH-05, DASH-07)
 - [x] 07-02-PLAN.md — 前端 ECharts 图表组件 + usePolling hook + API 客户端 (DASH-03, DASH-04)
-- [ ] 07-03-PLAN.md — Dashboard.tsx 重构 + 部�—�下钻 + KPI 卡片 + 人工验证 (DASH-06, DASH-07)
+- [ ] 07-03-PLAN.md — Dashboard.tsx 重构 + 部门下钻 + KPI 卡片 + 人工验证 (DASH-06, DASH-07)
 **UI hint**: yes
 
 ### Phase 8: Employee Self-Service UI
@@ -190,7 +190,11 @@ Plans:
   3. An admin can create, rotate, and revoke API keys through the admin UI; each key shows name, created date, last used date, and optional expiry
   4. A revoked or expired API key immediately returns HTTP 401 on the next request
   5. The OpenAPI documentation at `/docs` accurately reflects all `/api/v1/public/` endpoints with example request and response bodies
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 10-01-PLAN.md — 数据基础: ApiKey/Webhook ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (API-01, API-02, API-03, API-04)
+- [ ] 10-02-PLAN.md — 服务层: ApiKeyService + WebhookService + 游标分页 + approved-only 过滤 + API 端点加固 (API-01, API-02, API-03, API-04, API-05)
+- [ ] 10-03-PLAN.md — 前端: API Key 管理页 + Webhook 管理页 + API 使用指南增强 + 路由注册 (API-03, API-05)
 **UI hint**: yes
 
 ## Progress
@@ -209,4 +213,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 7. Dashboard and Cache Layer | 1/3 | In Progress|  |
 | 8. Employee Self-Service UI | 1/2 | In Progress|  |
 | 9. Feishu Attendance Integration | 2/3 | In Progress|  |
-| 10. External API Hardening | 0/TBD | Not started | - |
+| 10. External API Hardening | 0/3 | Not started | - |
