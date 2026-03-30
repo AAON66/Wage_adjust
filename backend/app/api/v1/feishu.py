@@ -176,34 +176,16 @@ def trigger_sync(
 
     service = FeishuService(db)
 
-    # Concurrent sync guard
+    # Concurrent sync guard — also expire stale 'running' logs older than 30 min
+    service.expire_stale_running_logs(timeout_minutes=30)
+
     if service.is_sync_running():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={'error': 'sync_in_progress', 'message': '同步正在进行中，请稍后再试'},
         )
 
-    # Create initial running log for immediate response
-    from datetime import datetime, timezone
-    from backend.app.models.feishu_sync_log import FeishuSyncLog
-
-    sync_log = FeishuSyncLog(
-        mode=data.mode,
-        status='running',
-        total_fetched=0,
-        synced_count=0,
-        updated_count=0,
-        skipped_count=0,
-        unmatched_count=0,
-        failed_count=0,
-        started_at=datetime.now(timezone.utc),
-        triggered_by=current_user.id,
-    )
-    db.add(sync_log)
-    db.commit()
-    db.refresh(sync_log)
-
-    # Launch background thread
+    # Launch background thread (sync_attendance creates its own log)
     thread = threading.Thread(
         target=_run_sync_in_background,
         args=(data.mode, current_user.id),
@@ -212,7 +194,7 @@ def trigger_sync(
     thread.start()
 
     return SyncTriggerResponse(
-        sync_log_id=sync_log.id,
+        sync_log_id='pending',
         status='running',
         message='同步已启动',
     )

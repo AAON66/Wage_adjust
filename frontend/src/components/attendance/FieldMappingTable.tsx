@@ -15,13 +15,13 @@ const SYSTEM_FIELDS = [
   'early_leave_count',
 ] as const;
 
-const SYSTEM_FIELD_LABELS: Record<string, string> = {
-  employee_no: 'employee_no (关联键)',
-  attendance_rate: 'attendance_rate',
-  absence_days: 'absence_days',
-  overtime_hours: 'overtime_hours',
-  late_count: 'late_count',
-  early_leave_count: 'early_leave_count',
+const SYSTEM_FIELD_LABELS: Record<string, { label: string; desc: string }> = {
+  employee_no: { label: '员工工号（关联键）', desc: 'employee_no' },
+  attendance_rate: { label: '出勤率', desc: 'attendance_rate' },
+  absence_days: { label: '缺勤天数', desc: 'absence_days' },
+  overtime_hours: { label: '加班时长（小时）', desc: 'overtime_hours' },
+  late_count: { label: '迟到次数', desc: 'late_count' },
+  early_leave_count: { label: '早退次数', desc: 'early_leave_count' },
 };
 
 function hasEmployeeNoMapping(mappings: FieldMappingItem[]): boolean {
@@ -79,9 +79,14 @@ export function FieldMappingTable({ value, onChange, readOnly = false }: FieldMa
                 </td>
                 <td>
                   {readOnly ? (
-                    <span style={{ color: 'var(--color-steel)' }}>
-                      {SYSTEM_FIELD_LABELS[item.system_field] ?? item.system_field}
-                    </span>
+                    <div>
+                      <div style={{ fontWeight: 500 }}>
+                        {SYSTEM_FIELD_LABELS[item.system_field]?.label ?? item.system_field}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--color-steel)' }}>
+                        {SYSTEM_FIELD_LABELS[item.system_field]?.desc ?? item.system_field}
+                      </div>
+                    </div>
                   ) : (
                     <select
                       className="toolbar-input"
@@ -92,7 +97,7 @@ export function FieldMappingTable({ value, onChange, readOnly = false }: FieldMa
                       <option value="">选择系统字段</option>
                       {SYSTEM_FIELDS.map((field) => (
                         <option key={field} value={field}>
-                          {SYSTEM_FIELD_LABELS[field]}
+                          {SYSTEM_FIELD_LABELS[field].label}（{field}）
                         </option>
                       ))}
                     </select>

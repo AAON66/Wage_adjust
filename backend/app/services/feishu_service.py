@@ -151,31 +151,68 @@ class FeishuService:
     # ------------------------------------------------------------------
 
     @staticmethod
+    def _extract_cell_value(value) -> str | float | int | None:
+        """从飞书多维表格单元格值中提取纯量值。
+
+        飞书字段类型返回格式不一：
+        - 文本：[{"text":"xxx","type":"text"}] 或纯字符串
+        - 数字：直接 float/int
+        - 其他复杂类型：取第一个元素的 text/value/name
+        """
+        if value is None:
+            return None
+        if isinstance(value, (int, float)):
+            return value
+        if isinstance(value, str):
+            return value
+        if isinstance(value, list):
+            if len(value) == 0:
+                return None
+            first = value[0]
+            if isinstance(first, dict):
+                return first.get('text') or first.get('value') or first.get('name')
+            return str(first)
+        if isinstance(value, dict):
+            return value.get('text') or value.get('value') or value.get('name')
+        return str(value)
+
+    @staticmethod
     def _map_fields(raw_fields: dict, field_mapping: dict[str, str]) -> dict | None:
         """根据 field_mapping 映射飞书字段到系统字段，含类型强制转换。"""
         mapped: dict = {}
         has_employee_no = False
 
+        logger.debug('Raw fields from Feishu: %s', raw_fields)
+
         for feishu_name, system_name in field_mapping.items():
-            value = raw_fields.get(feishu_name)
+            raw_value = raw_fields.get(feishu_name)
+            value = FeishuService._extract_cell_value(raw_value)
             if value is None:
                 continue
 
             # 类型强制转换
             try:
                 if system_name in ('attendance_rate', 'absence_days', 'overtime_hours'):
-                    value = float(value)
+                    # 处理百分号：'80%' -> 80.0
+                    str_val = str(value).strip().rstrip('%')
+                    value = float(str_val)
                 elif system_name in ('late_count', 'early_leave_count'):
-                    value = int(value)
+                    value = int(float(str(value).strip()))
             except (ValueError, TypeError):
+                logger.warning('Type conversion failed for %s=%r -> %s', feishu_name, raw_value, system_name)
                 value = None
 
             if system_name == 'employee_no':
                 has_employee_no = True
+                if isinstance(value, float) and value == int(value):
+                    value = str(int(value))
+                else:
+                    value = str(value).strip()
 
             mapped[system_name] = value
 
         if not has_employee_no or not mapped.get('employee_no'):
+            logger.warning('Record skipped — no employee_no after mapping. keys=%s', list(raw_fields.keys()))
             return None
 
         return mapped
@@ -241,6 +278,7 @@ class FeishuService:
                 select(Employee.employee_no, Employee.id)
             ).all()
             emp_map = {row[0]: row[1] for row in emp_rows}
+            logger.info('Employee map keys (first 20): %s', list(emp_map.keys())[:20])
 
             # Upsert records
             synced = 0
@@ -253,6 +291,7 @@ class FeishuService:
             for record in records:
                 try:
                     emp_no = record.get('employee_no')
+                    logger.info('Matching emp_no=%r (type=%s) against emp_map', emp_no, type(emp_no).__name__)
                     employee_id = emp_map.get(emp_no) if emp_no else None
 
                     if employee_id is None:
@@ -261,7 +300,7 @@ class FeishuService:
                             unmatched_nos.append(str(emp_no or ''))
                         continue
 
-                    period = record.get('period', '')
+                    period = record.get('period') or now.strftime('%Y-%m')
                     feishu_record_id = record.get('feishu_record_id')
                     source_modified_at = record.get('last_modified_time')
                     synced_at = datetime.now(timezone.utc)
@@ -475,3 +514,24 @@ class FeishuService:
         return self.db.execute(
             select(FeishuSyncLog).where(FeishuSyncLog.status == 'running').limit(1)
         ).scalar_one_or_none() is not None
+
+    def expire_stale_running_logs(self, timeout_minutes: int = 30) -> int:
+        """将超时的 running 日志标记为 failed，防止僵死日志永久阻塞同步。"""
+        from datetime import timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=timeout_minutes)
+        stale_logs = list(
+            self.db.execute(
+                select(FeishuSyncLog).where(
+                    FeishuSyncLog.status == 'running',
+                    FeishuSyncLog.started_at < cutoff,
+                )
+            ).scalars().all()
+        )
+        for log in stale_logs:
+            log.status = 'failed'
+            log.error_message = f'同步超时（超过 {timeout_minutes} 分钟未完成），已自动标记失败'
+            log.finished_at = datetime.now(timezone.utc)
+        if stale_logs:
+            self.db.commit()
+            logger.warning('Expired %d stale running sync logs', len(stale_logs))
+        return len(stale_logs)

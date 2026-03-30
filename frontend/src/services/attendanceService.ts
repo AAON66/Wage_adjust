@@ -20,12 +20,9 @@ export async function getEmployeeAttendance(
   if (period) {
     params.period = period;
   }
-  const response = await api.get<AttendanceSummaryRead | { data: null; message: string }>(
+  const response = await api.get<{ data: AttendanceSummaryRead | null; message?: string }>(
     `/attendance/${employeeId}`,
     { params, signal },
   );
-  if (response.data && 'data' in response.data && response.data.data === null) {
-    return null;
-  }
-  return response.data as AttendanceSummaryRead;
+  return response.data.data ?? null;
 }

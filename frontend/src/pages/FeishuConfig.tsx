@@ -5,6 +5,43 @@ import { AppShell } from '../components/layout/AppShell';
 import { createFeishuConfig, getFeishuConfig, updateFeishuConfig } from '../services/feishuService';
 import type { FeishuConfigRead, FieldMappingItem } from '../types/api';
 
+function HelpTip({ text }: { text: string }) {
+  const [show, setShow] = useState(false);
+  return (
+    <span
+      style={{ position: 'relative', display: 'inline-block', marginLeft: 6, cursor: 'help' }}
+      onMouseEnter={() => setShow(true)}
+      onMouseLeave={() => setShow(false)}
+    >
+      <span
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          width: 16, height: 16, borderRadius: '50%', fontSize: 11, fontWeight: 600,
+          background: 'var(--color-border, #e0e0e0)', color: 'var(--color-steel, #666)',
+        }}
+      >?</span>
+      {show && (
+        <span
+          style={{
+            position: 'absolute', left: '50%', transform: 'translateX(-50%)',
+            bottom: 'calc(100% + 6px)', width: 280, padding: '8px 10px',
+            borderRadius: 6, fontSize: 12, lineHeight: 1.5,
+            background: 'var(--color-surface-alt, #333)', color: '#fff',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.18)', zIndex: 100, whiteSpace: 'pre-line',
+          }}
+        >{text}</span>
+      )}
+    </span>
+  );
+}
+
+const FIELD_HELP: Record<string, string> = {
+  app_id: '在飞书开放平台 → 你的应用 → 凭证与基础信息中获取「App ID」',
+  app_secret: '在飞书开放平台 → 你的应用 → 凭证与基础信息中获取「App Secret」\n请妥善保管，更新后留空即保留原值',
+  bitable_app_token: '打开多维表格 → 浏览器地址栏中 /base/ 后的那段字符串即为 App Token\n示例：https://xxx.feishu.cn/base/XxxAppToken',
+  bitable_table_id: '打开多维表格 → 点击目标数据表 → 地址栏中 table= 后的字符串即为 Table ID\n示例：...?table=tblXxxTableId',
+};
+
 const DEFAULT_FIELD_MAPPINGS: FieldMappingItem[] = [
   { feishu_field: '', system_field: 'employee_no' },
   { feishu_field: '', system_field: 'attendance_rate' },
@@ -149,7 +186,7 @@ export function FeishuConfigPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label htmlFor="feishu-app-id" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>App ID</label>
+            <label htmlFor="feishu-app-id" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>App ID<HelpTip text={FIELD_HELP.app_id} /></label>
             <input
               className="toolbar-input"
               id="feishu-app-id"
@@ -162,7 +199,7 @@ export function FeishuConfigPage() {
           </div>
 
           <div>
-            <label htmlFor="feishu-app-secret" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>App Secret</label>
+            <label htmlFor="feishu-app-secret" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>App Secret<HelpTip text={FIELD_HELP.app_secret} /></label>
             <input
               className="toolbar-input"
               id="feishu-app-secret"
@@ -176,7 +213,7 @@ export function FeishuConfigPage() {
           </div>
 
           <div>
-            <label htmlFor="feishu-bitable-app-token" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>多维表格 App Token</label>
+            <label htmlFor="feishu-bitable-app-token" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>多维表格 App Token<HelpTip text={FIELD_HELP.bitable_app_token} /></label>
             <input
               className="toolbar-input"
               id="feishu-bitable-app-token"
@@ -189,7 +226,7 @@ export function FeishuConfigPage() {
           </div>
 
           <div>
-            <label htmlFor="feishu-bitable-table-id" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>多维表格 Table ID</label>
+            <label htmlFor="feishu-bitable-table-id" style={{ display: 'block', fontSize: 13.5, fontWeight: 600, marginBottom: 4 }}>多维表格 Table ID<HelpTip text={FIELD_HELP.bitable_table_id} /></label>
             <input
               className="toolbar-input"
               id="feishu-bitable-table-id"
