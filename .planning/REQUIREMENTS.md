@@ -78,11 +78,11 @@
 
 ### 外部 API
 
-- [ ] **API-01**：公开 API（`/api/v1/public/`）仅返回已审批的调薪建议，草稿和审核中的记录不对外暴露
-- [ ] **API-02**：公开 API 支持基于游标的分页，外部系统可可靠地遍历大量记录
-- [ ] **API-03**：支持 API Key 管理：管理员可通过 UI 创建、轮换、撤销 API Key；每个 Key 记录名称、创建时间、最后使用时间和可选过期时间
-- [ ] **API-04**：API Key 鉴权在每次请求时校验 Key 未过期且未撤销
-- [ ] **API-05**：公开 API 响应结构有文档记录（OpenAPI 规范准确，包含所有 `/api/v1/public/` 接口及示例响应）
+- [x] **API-01**：公开 API（`/api/v1/public/`）仅返回已审批的调薪建议，草稿和审核中的记录不对外暴露
+- [x] **API-02**：公开 API 支持基于游标的分页，外部系统可可靠地遍历大量记录
+- [x] **API-03**：支持 API Key 管理：管理员可通过 UI 创建、轮换、撤销 API Key；每个 Key 记录名称、创建时间、最后使用时间和可选过期时间
+- [x] **API-04**：API Key 鉴权在每次请求时校验 Key 未过期且未撤销
+- [x] **API-05**：公开 API 响应结构有文档记录（OpenAPI 规范准确，包含所有 `/api/v1/public/` 接口及示例响应）
 
 ### 员工自助
 
@@ -184,8 +184,8 @@
 | ATT-05 | Phase 9 | Complete |
 | ATT-06 | Phase 9 | Complete |
 | ATT-07 | Phase 9 | Complete |
-| API-01 | Phase 10 | Pending |
-| API-02 | Phase 10 | Pending |
-| API-03 | Phase 10 | Pending |
-| API-04 | Phase 10 | Pending |
-| API-05 | Phase 10 | Pending |
+| API-01 | Phase 10 | Complete |
+| API-02 | Phase 10 | Complete |
+| API-03 | Phase 10 | Complete |
+| API-04 | Phase 10 | Complete |
+| API-05 | Phase 10 | Complete |
