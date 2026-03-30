@@ -177,7 +177,7 @@ Plans:
 Plans:
 - [x] 09-01-PLAN.md — 数据基础: ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (ATT-01, ATT-04, ATT-06, ATT-07)
 - [x] 09-02-PLAN.md — 服务层: FeishuService + AttendanceService + APScheduler + API 端点 (ATT-01, ATT-02, ATT-03, ATT-05, ATT-06, ATT-07)
-- [ ] 09-03-PLAN.md — 前端: 考勤管理页 + 飞书配置页 + SalarySimulator 内嵌 + 路由权限 (ATT-02, ATT-04, ATT-05, ATT-06, ATT-07)
+- [x] 09-03-PLAN.md — 前端: 考勤管理页 + 飞书配置页 + SalarySimulator 内嵌 + 路由权限 (ATT-02, ATT-04, ATT-05, ATT-06, ATT-07)
 **UI hint**: yes
 
 ### Phase 10: External API Hardening
