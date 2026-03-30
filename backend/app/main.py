@@ -23,6 +23,15 @@ from backend.app.models import load_model_modules
 logger = logging.getLogger(__name__)
 
 
+def _validate_startup_config(settings: Settings) -> None:
+    """Validate critical settings at startup. Warns in dev, raises in production."""
+    if not settings.feishu_encryption_key:
+        msg = 'FEISHU_ENCRYPTION_KEY is not set — feishu app_secret encryption will not work.'
+        if settings.environment == 'production':
+            raise RuntimeError(msg)
+        logger.warning(msg)
+
+
 def build_error_response(
     *,
     status_code: int,
@@ -88,6 +97,7 @@ async def lifespan(_: FastAPI):
     validate_startup_config(settings)
     load_model_modules()
     init_database()
+    _validate_startup_config(settings)
     logger.info('Starting %s v%s', settings.app_name, settings.app_version)
     yield
     logger.info('Stopping %s', settings.app_name)

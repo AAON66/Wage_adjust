@@ -100,13 +100,13 @@
 
 ### 飞书考勤集成
 
-- [ ] **ATT-01**：系统通过飞书多维表格 API 接入员工考勤数据，同步以下字段：出勤率、缺勤天数、加班时长/次数、迟到次数、早退次数
+- [x] **ATT-01**：系统通过飞书多维表格 API 接入员工考勤数据，同步以下字段：出勤率、缺勤天数、加班时长/次数、迟到次数、早退次数
 - [ ] **ATT-02**：支持手动触发同步——HR 可在系统内点击「同步考勤数据」按钮，立即从飞书拉取最新数据
 - [ ] **ATT-03**：支持定时自动同步——系统每天定时（可配置时间）自动从飞书多维表格拉取最新考勤数据
-- [ ] **ATT-04**：飞书连接配置（App ID、App Secret、多维表格 ID、字段映射）在后台管理页面中可配置，无需修改代码
+- [x] **ATT-04**：飞书连接配置（App ID、App Secret、多维表格 ID、字段映射）在后台管理页面中可配置，无需修改代码
 - [ ] **ATT-05**：人工调薪页面在薪资调整区域展示该员工当前考勤概览（出勤率、缺勤天数、加班情况、迟到/早退次数），仅作审批参考，不自动影响调薪计算
-- [ ] **ATT-06**：考勤数据展示说明同步时间（「数据截至：YYYY-MM-DD HH:mm」），避免使用过期数据做判断
-- [ ] **ATT-07**：若飞书同步失败（网络异常、Token 过期等），系统记录错误日志并在管理页面展示上次同步状态，不影响调薪流程正常使用
+- [x] **ATT-06**：考勤数据展示说明同步时间（「数据截至：YYYY-MM-DD HH:mm」），避免使用过期数据做判断
+- [x] **ATT-07**：若飞书同步失败（网络异常、Token 过期等），系统记录错误日志并在管理页面展示上次同步状态，不影响调薪流程正常使用
 
 ---
 
@@ -177,13 +177,13 @@
 | EMP-01 | Phase 8 | Complete |
 | EMP-02 | Phase 8 | Complete |
 | EMP-03 | Phase 8 | Complete |
-| ATT-01 | Phase 9 | Pending |
+| ATT-01 | Phase 9 | Complete |
 | ATT-02 | Phase 9 | Pending |
 | ATT-03 | Phase 9 | Pending |
-| ATT-04 | Phase 9 | Pending |
+| ATT-04 | Phase 9 | Complete |
 | ATT-05 | Phase 9 | Pending |
-| ATT-06 | Phase 9 | Pending |
-| ATT-07 | Phase 9 | Pending |
+| ATT-06 | Phase 9 | Complete |
+| ATT-07 | Phase 9 | Complete |
 | API-01 | Phase 10 | Pending |
 | API-02 | Phase 10 | Pending |
 | API-03 | Phase 10 | Pending |
