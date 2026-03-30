@@ -1,12 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+import time
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
-from backend.app.core.config import Settings, get_settings as _get_settings
-from backend.app.core.rate_limit import limiter
-from backend.app.dependencies import get_app_settings, get_db
+from backend.app.core.rate_limit import get_api_key_identifier, limiter
+from backend.app.dependencies import get_db, require_public_api_key
+from backend.app.models.api_key import ApiKey
 from backend.app.schemas.public import (
+    PaginatedSalaryResultsResponse,
     PublicApprovalStatusItem,
     PublicApprovalStatusResponse,
     PublicDashboardSummaryResponse,
@@ -20,39 +23,71 @@ from backend.app.services.integration_service import IntegrationService
 
 router = APIRouter(prefix='/public', tags=['public'])
 
-_RATE_LIMIT = _get_settings().public_api_rate_limit
+_ERROR_RESPONSES = {
+    401: {
+        'description': 'Missing or invalid API key',
+        'content': {'application/json': {'example': {'detail': 'X-API-Key header is required.'}}},
+    },
+    403: {
+        'description': 'Forbidden',
+        'content': {'application/json': {'example': {'detail': 'Insufficient permissions.'}}},
+    },
+    404: {
+        'description': 'Resource not found',
+        'content': {'application/json': {'example': {'detail': 'Resource not found.'}}},
+    },
+    429: {
+        'description': 'Rate limit exceeded',
+        'content': {'application/json': {'example': {'detail': 'Rate limit exceeded.'}}},
+    },
+}
 
 
-def require_public_api_key(
-    x_api_key: str | None = Header(default=None, alias='X-API-Key'),
-    settings: Settings = Depends(get_app_settings),
-) -> str:
-    if not x_api_key:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='X-API-Key header is required.')
-    if x_api_key != settings.public_api_key:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Invalid public API key.')
-    return x_api_key
+def _audit_detail(api_key: ApiKey, request: Request, extra: dict | None = None, *, duration_ms: float | None = None) -> dict:
+    """Build audit log detail dict with key_id, key_name, IP, path, duration (per D-15)."""
+    detail: dict = {
+        'key_id': api_key.id,
+        'key_name': api_key.name,
+        'client_ip': request.client.host if request.client else None,
+        'path': str(request.url.path),
+    }
+    if duration_ms is not None:
+        detail['duration_ms'] = round(duration_ms, 2)
+    if extra:
+        detail.update(extra)
+    return detail
 
 
-@router.get('/employees/{employee_no}/latest-evaluation', response_model=PublicLatestEvaluationResponse)
-@limiter.limit(_RATE_LIMIT)
+@router.get(
+    '/employees/{employee_no}/latest-evaluation',
+    response_model=PublicLatestEvaluationResponse,
+    responses={k: _ERROR_RESPONSES[k] for k in (401, 404, 429)},
+    summary='Get Latest Employee Evaluation',
+    description='Retrieve the most recent AI evaluation for an employee by employee number.',
+)
+@limiter.limit(lambda: '1000/hour', key_func=get_api_key_identifier)
 def get_latest_employee_evaluation(
     request: Request,
     employee_no: str,
     db: Session = Depends(get_db),
-    _: str = Depends(require_public_api_key),
+    api_key: ApiKey = Depends(require_public_api_key),
 ) -> PublicLatestEvaluationResponse:
+    start = time.monotonic()
+    request.state.api_key = api_key
+
     service = IntegrationService(db)
     submission = service.get_latest_employee_evaluation(employee_no)
     if submission is None or submission.ai_evaluation is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Latest evaluation not found.')
     evaluation = submission.ai_evaluation
     recommendation = evaluation.salary_recommendation
+
+    duration_ms = (time.monotonic() - start) * 1000
     service.log_public_access(
         action='public.latest_evaluation.read',
         target_type='employee',
         target_id=submission.employee.id,
-        detail={'employee_no': employee_no, 'submission_id': submission.id},
+        detail=_audit_detail(api_key, request, {'employee_no': employee_no, 'submission_id': submission.id}, duration_ms=duration_ms),
     )
     return PublicLatestEvaluationResponse(
         employee_id=submission.employee.id,
@@ -97,24 +132,41 @@ def get_latest_employee_evaluation(
     )
 
 
-@router.get('/cycles/{cycle_id}/salary-results', response_model=PublicSalaryResultsResponse)
-@limiter.limit(_RATE_LIMIT)
+@router.get(
+    '/cycles/{cycle_id}/salary-results',
+    response_model=PaginatedSalaryResultsResponse,
+    responses={k: _ERROR_RESPONSES[k] for k in (401, 404, 429)},
+    summary='Get Cycle Salary Results (Paginated)',
+    description='Retrieve approved salary results for a cycle with cursor-based pagination (per D-05, D-07, API-01, API-02).',
+)
+@limiter.limit(lambda: '1000/hour', key_func=get_api_key_identifier)
 def get_cycle_salary_results(
     request: Request,
     cycle_id: str,
+    cursor: str | None = Query(None, description='Pagination cursor from previous response'),
+    page_size: int = Query(20, ge=1, le=100, description='Items per page (max 100)'),
+    department: str | None = Query(None, description='Filter by department'),
     db: Session = Depends(get_db),
-    _: str = Depends(require_public_api_key),
-) -> PublicSalaryResultsResponse:
+    api_key: ApiKey = Depends(require_public_api_key),
+) -> PaginatedSalaryResultsResponse:
+    start = time.monotonic()
+    request.state.api_key = api_key
+
     service = IntegrationService(db)
-    cycle, submissions = service.get_cycle_salary_results(cycle_id)
+
+    # Verify cycle exists
+    from backend.app.models.evaluation_cycle import EvaluationCycle
+    cycle = db.get(EvaluationCycle, cycle_id)
     if cycle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Cycle not found.')
-    service.log_public_access(
-        action='public.salary_results.read',
-        target_type='cycle',
-        target_id=cycle_id,
-        detail={'submission_count': len(submissions)},
+
+    submissions, next_cursor, has_more = service.get_approved_salary_results_paginated(
+        cycle_id=cycle_id,
+        department=department,
+        cursor=cursor,
+        page_size=page_size,
     )
+
     items = []
     for submission in submissions:
         evaluation = submission.ai_evaluation
@@ -137,33 +189,47 @@ def get_cycle_salary_results(
                 final_adjustment_ratio=recommendation.final_adjustment_ratio if recommendation is not None else None,
             )
         )
-    return PublicSalaryResultsResponse(
+
+    duration_ms = (time.monotonic() - start) * 1000
+    service.log_public_access(
+        action='public.salary_results.read',
+        target_type='cycle',
+        target_id=cycle_id,
+        detail=_audit_detail(api_key, request, {'item_count': len(items), 'has_more': has_more, 'department': department}, duration_ms=duration_ms),
+    )
+    return PaginatedSalaryResultsResponse(
         cycle_id=cycle.id,
         cycle_name=cycle.name,
         cycle_status=cycle.status,
         items=items,
+        next_cursor=next_cursor,
+        has_more=has_more,
         total=len(items),
     )
 
 
-@router.get('/cycles/{cycle_id}/approval-status', response_model=PublicApprovalStatusResponse)
-@limiter.limit(_RATE_LIMIT)
+@router.get(
+    '/cycles/{cycle_id}/approval-status',
+    response_model=PublicApprovalStatusResponse,
+    responses={k: _ERROR_RESPONSES[k] for k in (401, 404, 429)},
+    summary='Get Cycle Approval Status',
+    description='Retrieve approval status for all recommendations in a cycle.',
+)
+@limiter.limit(lambda: '1000/hour', key_func=get_api_key_identifier)
 def get_cycle_approval_status(
     request: Request,
     cycle_id: str,
     db: Session = Depends(get_db),
-    _: str = Depends(require_public_api_key),
+    api_key: ApiKey = Depends(require_public_api_key),
 ) -> PublicApprovalStatusResponse:
+    start = time.monotonic()
+    request.state.api_key = api_key
+
     service = IntegrationService(db)
     cycle, submissions = service.get_cycle_approval_status(cycle_id)
     if cycle is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Cycle not found.')
-    service.log_public_access(
-        action='public.approval_status.read',
-        target_type='cycle',
-        target_id=cycle_id,
-        detail={'submission_count': len(submissions)},
-    )
+
     items = []
     for submission in submissions:
         evaluation = submission.ai_evaluation
@@ -171,7 +237,10 @@ def get_cycle_approval_status(
         if recommendation is None:
             continue
         decisions = [record.decision for record in recommendation.approval_records]
-        latest_decision_at = max((record.decided_at for record in recommendation.approval_records if record.decided_at is not None), default=None)
+        latest_decision_at = max(
+            (record.decided_at for record in recommendation.approval_records if record.decided_at is not None),
+            default=None,
+        )
         items.append(
             PublicApprovalStatusItem(
                 recommendation_id=recommendation.id,
@@ -185,6 +254,14 @@ def get_cycle_approval_status(
                 latest_decision_at=latest_decision_at,
             )
         )
+
+    duration_ms = (time.monotonic() - start) * 1000
+    service.log_public_access(
+        action='public.approval_status.read',
+        target_type='cycle',
+        target_id=cycle_id,
+        detail=_audit_detail(api_key, request, {'item_count': len(items)}, duration_ms=duration_ms),
+    )
     return PublicApprovalStatusResponse(
         cycle_id=cycle.id,
         cycle_name=cycle.name,
@@ -194,19 +271,30 @@ def get_cycle_approval_status(
     )
 
 
-@router.get('/dashboard/summary', response_model=PublicDashboardSummaryResponse)
-@limiter.limit(_RATE_LIMIT)
+@router.get(
+    '/dashboard/summary',
+    response_model=PublicDashboardSummaryResponse,
+    responses={k: _ERROR_RESPONSES[k] for k in (401, 429)},
+    summary='Get Dashboard Summary',
+    description='Retrieve aggregated dashboard summary data.',
+)
+@limiter.limit(lambda: '1000/hour', key_func=get_api_key_identifier)
 def get_public_dashboard_summary(
     request: Request,
     db: Session = Depends(get_db),
-    _: str = Depends(require_public_api_key),
+    api_key: ApiKey = Depends(require_public_api_key),
 ) -> PublicDashboardSummaryResponse:
+    start = time.monotonic()
+    request.state.api_key = api_key
+
     service = IntegrationService(db)
     summary = service.get_dashboard_summary()
+
+    duration_ms = (time.monotonic() - start) * 1000
     service.log_public_access(
         action='public.dashboard_summary.read',
         target_type='dashboard',
         target_id='summary',
-        detail={'overview_count': len(summary['overview'])},
+        detail=_audit_detail(api_key, request, {'overview_count': len(summary['overview'])}, duration_ms=duration_ms),
     )
     return PublicDashboardSummaryResponse(**summary)

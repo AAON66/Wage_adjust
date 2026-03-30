@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from backend.app.api.v1.api_keys import router as api_keys_router
 from backend.app.api.v1.approvals import router as approvals_router
 from backend.app.api.v1.attendance import router as attendance_router
 from backend.app.api.v1.audit import router as audit_router
@@ -21,6 +22,7 @@ from backend.app.api.v1.salary import router as salary_router
 from backend.app.api.v1.submissions import router as submissions_router
 from backend.app.api.v1.system import router as system_router
 from backend.app.api.v1.users import router as users_router
+from backend.app.api.v1.webhooks import router as webhooks_router
 
 api_router = APIRouter()
 api_router.include_router(system_router)
@@ -42,3 +44,5 @@ api_router.include_router(handbooks_router)
 api_router.include_router(public_router)
 api_router.include_router(feishu_router)
 api_router.include_router(attendance_router)
+api_router.include_router(api_keys_router)
+api_router.include_router(webhooks_router)

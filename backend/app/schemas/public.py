@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar('T')
 
@@ -48,6 +48,25 @@ class PublicLatestEvaluationResponse(BaseModel):
 
 
 class PublicSalaryResultItem(BaseModel):
+    model_config = ConfigDict(json_schema_extra={
+        'examples': [{
+            'employee_id': 'e1a2b3c4',
+            'employee_no': 'EMP001',
+            'employee_name': 'Zhang San',
+            'department': 'Engineering',
+            'job_family': 'Software',
+            'job_level': 'P6',
+            'evaluation_id': 'eval-abc123',
+            'ai_level': 'Level 3',
+            'evaluation_status': 'confirmed',
+            'recommendation_id': 'rec-xyz789',
+            'recommendation_status': 'approved',
+            'current_salary': '25000.00',
+            'recommended_salary': '28750.00',
+            'final_adjustment_ratio': 0.15,
+        }],
+    })
+
     employee_id: str
     employee_no: str
     employee_name: str
@@ -110,10 +129,22 @@ class CursorPaginatedResponse(BaseModel, Generic[T]):
 
 class PaginatedSalaryResultsResponse(BaseModel):
     """游标分页版调薪结果（替代原 PublicSalaryResultsResponse 用于分页端点）"""
+    model_config = ConfigDict(json_schema_extra={
+        'examples': [{
+            'cycle_id': 'cycle-2026Q1',
+            'cycle_name': '2026 Q1 Evaluation',
+            'cycle_status': 'completed',
+            'items': [],
+            'next_cursor': 'eyJpZCI6Imxhc3QtaWQiLCJzb3J0IjpudWxsfQ==',
+            'has_more': True,
+            'total': 5,
+        }],
+    })
+
     cycle_id: str
     cycle_name: str
     cycle_status: str
     items: list[PublicSalaryResultItem]
-    next_cursor: str | None = None
-    has_more: bool = False
-    total: int | None = None
+    next_cursor: str | None = Field(None, description='Opaque cursor for next page')
+    has_more: bool = Field(False, description='Whether more pages exist')
+    total: int | None = Field(None, description='Item count in this page (backward compat)')
