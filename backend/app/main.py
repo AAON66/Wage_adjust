@@ -98,8 +98,34 @@ async def lifespan(_: FastAPI):
     load_model_modules()
     init_database()
     _validate_startup_config(settings)
+
+    # Feishu scheduler (optional - only if config exists)
+    try:
+        from backend.app.scheduler.feishu_scheduler import start_scheduler, stop_scheduler as _stop_scheduler
+        from backend.app.models.feishu_config import FeishuConfig
+        from backend.app.core.database import SessionLocal
+        _sched_db = SessionLocal()
+        try:
+            _config = _sched_db.query(FeishuConfig).filter(FeishuConfig.is_active.is_(True)).first()
+            if _config:
+                start_scheduler(_config.sync_hour, _config.sync_minute, _config.sync_timezone)
+            else:
+                logger.info('No active Feishu config found, scheduler not started')
+        finally:
+            _sched_db.close()
+    except Exception:
+        logger.warning('Failed to start Feishu scheduler, attendance sync disabled', exc_info=True)
+
     logger.info('Starting %s v%s', settings.app_name, settings.app_version)
     yield
+
+    # Stop feishu scheduler
+    try:
+        from backend.app.scheduler.feishu_scheduler import stop_scheduler
+        stop_scheduler()
+    except Exception:
+        pass
+
     logger.info('Stopping %s', settings.app_name)
 
 
