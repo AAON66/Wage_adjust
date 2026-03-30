@@ -595,4 +595,89 @@ export interface BulkUserDeleteResponse {
   total_requested: number;
 }
 
+// === 飞书考勤集成 (Phase 09) ===
 
+export interface FieldMappingItem {
+  feishu_field: string;
+  system_field: string;
+}
+
+export interface FeishuConfigRead {
+  id: string;
+  app_id: string;
+  app_secret_masked: string;
+  bitable_app_token: string;
+  bitable_table_id: string;
+  field_mapping: FieldMappingItem[];
+  sync_hour: number;
+  sync_minute: number;
+  sync_timezone: string;
+  is_active: boolean;
+}
+
+export interface FeishuConfigCreate {
+  app_id: string;
+  app_secret: string;
+  bitable_app_token: string;
+  bitable_table_id: string;
+  field_mapping: FieldMappingItem[];
+  sync_hour: number;
+  sync_minute: number;
+  sync_timezone: string;
+}
+
+export interface FeishuConfigUpdate {
+  app_id?: string;
+  app_secret?: string;
+  bitable_app_token?: string;
+  bitable_table_id?: string;
+  field_mapping?: FieldMappingItem[];
+  sync_hour?: number;
+  sync_minute?: number;
+  sync_timezone?: string;
+}
+
+export interface SyncTriggerResponse {
+  sync_log_id: string;
+  status: string;
+  message: string;
+}
+
+export interface SyncLogRead {
+  id: string;
+  mode: string;
+  status: 'running' | 'success' | 'failed';
+  total_fetched: number;
+  synced_count: number;
+  updated_count: number;
+  skipped_count: number;
+  unmatched_count: number;
+  failed_count: number;
+  error_message: string | null;
+  unmatched_employee_nos: string[] | null;
+  started_at: string;
+  finished_at: string | null;
+  triggered_by: string | null;
+}
+
+export interface AttendanceSummaryRead {
+  employee_id: string;
+  employee_no: string;
+  period: string;
+  attendance_rate: number | null;
+  absence_days: number | null;
+  overtime_hours: number | null;
+  late_count: number | null;
+  early_leave_count: number | null;
+  data_as_of: string;
+}
+
+export interface AttendanceRecordRead extends AttendanceSummaryRead {
+  id: string;
+  synced_at: string;
+}
+
+export interface AttendanceListResponse {
+  items: AttendanceRecordRead[];
+  total: number;
+}
