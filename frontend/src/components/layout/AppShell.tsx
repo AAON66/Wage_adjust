@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 
 import { useAuth } from '../../hooks/useAuth';
 import { getRoleHomePath, getRoleLabel, getRoleModules, getSettingsModule } from '../../utils/roleAccess';
+import { NAV_ICONS, IconHome } from '../icons/NavIcons';
 
 interface AppShellProps {
   title: string;
@@ -65,24 +66,28 @@ function ShellSidebar() {
       </div>
 
       <nav style={{ flex: 1, padding: '6px 0 8px', overflowY: 'auto' }}>
-        <NavLink className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`} to={homePath}>
-          🏠 角色首页
+        <NavLink className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`} to={homePath} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconHome /> 角色首页
         </NavLink>
 
         {groups.map(group => {
           if (group.items.length === 0) return null;
 
           if (!group.collapsible) {
-            return group.items.map(item => (
-              <NavLink
-                className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
-                key={item.href}
-                title={item.description}
-                to={item.href}
-              >
-                {item.icon} {item.title}
-              </NavLink>
-            ));
+            return group.items.map(item => {
+              const IconFn = NAV_ICONS[item.icon];
+              return (
+                <NavLink
+                  className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+                  key={item.href}
+                  title={item.description}
+                  to={item.href}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  {IconFn ? <IconFn /> : null} {item.title}
+                </NavLink>
+              );
+            });
           }
 
           const isCollapsed = collapsed[group.id] ?? false;
@@ -113,16 +118,20 @@ function ShellSidebar() {
                   <span style={{ fontSize: 10, fontWeight: 500 }}>({group.items.length})</span>
                 )}
               </button>
-              {!isCollapsed && group.items.map(item => (
-                <NavLink
-                  className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
-                  key={item.href}
-                  title={item.description}
-                  to={item.href}
-                >
-                  {item.icon} {item.title}
-                </NavLink>
-              ))}
+              {!isCollapsed && group.items.map(item => {
+                const IconFn = NAV_ICONS[item.icon];
+                return (
+                  <NavLink
+                    className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+                    key={item.href}
+                    title={item.description}
+                    to={item.href}
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
+                    {IconFn ? <IconFn /> : null} {item.title}
+                  </NavLink>
+                );
+              })}
             </div>
           );
         })}
@@ -131,8 +140,9 @@ function ShellSidebar() {
           className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
           to={settingsModule.href}
           title={settingsModule.description}
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
         >
-          {settingsModule.icon} {settingsModule.title}
+          {NAV_ICONS[settingsModule.icon] ? NAV_ICONS[settingsModule.icon]() : null} {settingsModule.title}
         </NavLink>
       </nav>
 

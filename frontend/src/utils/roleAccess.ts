@@ -28,9 +28,9 @@ const ROLE_HOME_PATHS: Record<string, string> = {
   employee: '/my-review',
 };
 
-const SETTINGS_MODULE: WorkspaceModuleLink = { title: '账号设置', description: '查看账号信息并修改密码。', href: '/settings', icon: '⚙️' };
-const EMPLOYEE_ARCHIVE_MODULE: WorkspaceModuleLink = { title: '员工档案', description: '处理档案、绑定、导入和手册。', href: '/employee-admin', icon: '📂' };
-const IMPORT_CENTER_MODULE: WorkspaceModuleLink = { title: '导入中心', description: '模板下载、批量导入与结果追踪。', href: '/import-center', icon: '📥' };
+const SETTINGS_MODULE: WorkspaceModuleLink = { title: '账号设置', description: '查看账号信息并修改密码。', href: '/settings', icon: 'settings' };
+const EMPLOYEE_ARCHIVE_MODULE: WorkspaceModuleLink = { title: '员工档案', description: '处理档案、绑定、导入和手册。', href: '/employee-admin', icon: 'folder' };
+const IMPORT_CENTER_MODULE: WorkspaceModuleLink = { title: '导入中心', description: '模板下载、批量导入与结果追踪。', href: '/import-center', icon: 'download' };
 
 const ROLE_MODULES: Record<string, MenuGroup[]> = {
   admin: [
@@ -39,11 +39,11 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '运营管理',
       collapsible: true,
       items: [
-        { title: '员工评估', description: '查看员工与评估流转。', href: '/employees', icon: '📋' },
-        { title: '创建周期', description: '新建评估周期与预算。', href: '/cycles/create', icon: '🔄' },
-        { title: '调薪模拟', description: '查看预算占用与建议方案。', href: '/salary-simulator', icon: '💰' },
-        { title: '审批中心', description: '处理待审批与历史记录。', href: '/approvals', icon: '✅' },
-        { title: '考勤管理', description: '查看考勤数据与飞书同步。', href: '/attendance', icon: '📅' },
+        { title: '员工评估', description: '查看员工与评估流转。', href: '/employees', icon: 'clipboard' },
+        { title: '创建周期', description: '新建评估周期与预算。', href: '/cycles/create', icon: 'refresh-cw' },
+        { title: '调薪模拟', description: '查看预算占用与建议方案。', href: '/salary-simulator', icon: 'dollar' },
+        { title: '审批中心', description: '处理待审批与历史记录。', href: '/approvals', icon: 'check-square' },
+        { title: '考勤管理', description: '查看考勤数据与飞书同步。', href: '/attendance', icon: 'calendar' },
       ],
     },
     {
@@ -51,8 +51,8 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '数据分析',
       collapsible: true,
       items: [
-        { title: '组织看板', description: '查看分布、热力和 ROI。', href: '/dashboard', icon: '📊' },
-        { title: '审计日志', description: '查看所有操作与变更记录。', href: '/audit-log', icon: '📜' },
+        { title: '组织看板', description: '查看分布、热力和 ROI。', href: '/dashboard', icon: 'bar-chart' },
+        { title: '审计日志', description: '查看所有操作与变更记录。', href: '/audit-log', icon: 'file-text' },
       ],
     },
     {
@@ -60,12 +60,12 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '系统管理',
       collapsible: true,
       items: [
-        { title: '平台账号', description: '管理账号与权限范围。', href: '/user-admin', icon: '👥' },
+        { title: '平台账号', description: '管理账号与权限范围。', href: '/user-admin', icon: 'users' },
         EMPLOYEE_ARCHIVE_MODULE,
         IMPORT_CENTER_MODULE,
-        { title: '飞书配置', description: '配置飞书应用凭证与同步。', href: '/feishu-config', icon: '🔗' },
-        { title: 'API Key 管理', description: '创建、轮换和撤销外部 API 访问密钥。', href: '/api-key-management', icon: '🔑' },
-        { title: 'Webhook 管理', description: '注册回调 URL，查看通知投递日志。', href: '/webhook-management', icon: '🔔' },
+        { title: '飞书配置', description: '配置飞书应用凭证与同步。', href: '/feishu-config', icon: 'link' },
+        { title: 'API Key 管理', description: '创建、轮换和撤销外部 API 访问密钥。', href: '/api-key-management', icon: 'key' },
+        { title: 'Webhook 管理', description: '注册回调 URL，查看通知投递日志。', href: '/webhook-management', icon: 'bell' },
       ],
     },
   ],
@@ -75,10 +75,10 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '运营管理',
       collapsible: true,
       items: [
-        { title: '员工评估', description: '查看评估进度与复核结果。', href: '/employees', icon: '📋' },
-        { title: '调薪模拟', description: '查看预算占用与建议方案。', href: '/salary-simulator', icon: '💰' },
-        { title: '审批中心', description: '处理待审批建议。', href: '/approvals', icon: '✅' },
-        { title: '考勤管理', description: '查看考勤数据与同步状态。', href: '/attendance', icon: '📅' },
+        { title: '员工评估', description: '查看评估进度与复核结果。', href: '/employees', icon: 'clipboard' },
+        { title: '调薪模拟', description: '查看预算占用与建议方案。', href: '/salary-simulator', icon: 'dollar' },
+        { title: '审批中心', description: '处理待审批建议。', href: '/approvals', icon: 'check-square' },
+        { title: '考勤管理', description: '查看考勤数据与同步状态。', href: '/attendance', icon: 'calendar' },
       ],
     },
     {
@@ -86,7 +86,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '数据分析',
       collapsible: true,
       items: [
-        { title: '组织看板', description: '查看组织分布与人才表现。', href: '/dashboard', icon: '📊' },
+        { title: '组织看板', description: '查看组织分布与人才表现。', href: '/dashboard', icon: 'bar-chart' },
       ],
     },
     {
@@ -94,7 +94,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '系统管理',
       collapsible: true,
       items: [
-        { title: '平台账号', description: '管理员工账号。', href: '/user-admin', icon: '👥' },
+        { title: '平台账号', description: '管理员工账号。', href: '/user-admin', icon: 'users' },
         EMPLOYEE_ARCHIVE_MODULE,
         IMPORT_CENTER_MODULE,
       ],
@@ -106,8 +106,8 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '运营管理',
       collapsible: true,
       items: [
-        { title: '员工评估', description: '查看团队评估与材料。', href: '/employees', icon: '📋' },
-        { title: '审批中心', description: '处理分配给你的审批。', href: '/approvals', icon: '✅' },
+        { title: '员工评估', description: '查看团队评估与材料。', href: '/employees', icon: 'clipboard' },
+        { title: '审批中心', description: '处理分配给你的审批。', href: '/approvals', icon: 'check-square' },
       ],
     },
     {
@@ -115,7 +115,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '数据分析',
       collapsible: true,
       items: [
-        { title: '组织看板', description: '查看团队分布与表现。', href: '/dashboard', icon: '📊' },
+        { title: '组织看板', description: '查看团队分布与表现。', href: '/dashboard', icon: 'bar-chart' },
       ],
     },
     {
@@ -123,7 +123,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '系统管理',
       collapsible: true,
       items: [
-        { title: '平台账号', description: '管理员工账号。', href: '/user-admin', icon: '👥' },
+        { title: '平台账号', description: '管理员工账号。', href: '/user-admin', icon: 'users' },
         EMPLOYEE_ARCHIVE_MODULE,
         IMPORT_CENTER_MODULE,
       ],
@@ -135,7 +135,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       label: '个人',
       collapsible: false,
       items: [
-        { title: '个人评估中心', description: '查看材料与评估进展。', href: '/my-review', icon: '📝' },
+        { title: '个人评估中心', description: '查看材料与评估进展。', href: '/my-review', icon: 'edit' },
       ],
     },
   ],
