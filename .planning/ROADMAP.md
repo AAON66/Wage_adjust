@@ -17,13 +17,13 @@ attendance, external API). Nothing is built from scratch — everything lands on
 - Decimal phases (1.1, 2.1, ...): Urgent insertions (marked INSERTED)
 
 - [x] **Phase 1: Security Hardening and Schema Integrity** - Fix production-blocking security vulnerabilities and establish Alembic as the sole migration path (completed 2026-03-26)
-- [ ] **Phase 2: Evaluation Pipeline Integrity** - Make AI evaluations trustworthy, explainable, and auditable end-to-end
-- [ ] **Phase 3: Approval Workflow Correctness** - Fix race conditions and history-reset bugs; complete reviewer UI
-- [ ] **Phase 4: Audit Log Wiring** - Wire AuditLog into every service mutation so every decision is traceable
-- [ ] **Phase 5: Document Deduplication and Multi-Author** - Prevent duplicate uploads and support shared project attribution
-- [ ] **Phase 6: Batch Import Reliability** - Make bulk employee import idempotent with clear per-row error reporting
-- [ ] **Phase 7: Dashboard and Cache Layer** - Complete all dashboard charts with SQL aggregation and Redis caching
-- [ ] **Phase 8: Employee Self-Service UI** - Give employees visibility into their evaluation status and results
+- [x] **Phase 2: Evaluation Pipeline Integrity** - Make AI evaluations trustworthy, explainable, and auditable end-to-end (completed 2026-03-31)
+- [x] **Phase 3: Approval Workflow Correctness** - Fix race conditions and history-reset bugs; complete reviewer UI (completed 2026-03-31)
+- [x] **Phase 4: Audit Log Wiring** - Wire AuditLog into every service mutation so every decision is traceable (completed 2026-03-31)
+- [x] **Phase 5: Document Deduplication and Multi-Author** - Prevent duplicate uploads and support shared project attribution (completed 2026-03-31)
+- [x] **Phase 6: Batch Import Reliability** - Make bulk employee import idempotent with clear per-row error reporting (completed 2026-03-31)
+- [x] **Phase 7: Dashboard and Cache Layer** - Complete all dashboard charts with SQL aggregation and Redis caching (completed 2026-03-31)
+- [x] **Phase 8: Employee Self-Service UI** - Give employees visibility into their evaluation status and results (completed 2026-03-31)
 - [x] **Phase 9: Feishu Attendance Integration** - Sync attendance data from Feishu for use during salary review (completed 2026-03-31)
 - [x] **Phase 10: External API Hardening** - Validate and harden the public REST API for external HR system integration (completed 2026-03-31)
 
@@ -205,12 +205,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
-| 2. Evaluation Pipeline Integrity | 4/6 | In Progress|  |
-| 3. Approval Workflow Correctness | 0/3 | Not started | - |
-| 4. Audit Log Wiring | 1/3 | In Progress|  |
-| 5. Document Deduplication and Multi-Author | 0/4 | Not started | - |
-| 6. Batch Import Reliability | 0/TBD | Not started | - |
-| 7. Dashboard and Cache Layer | 1/3 | In Progress|  |
-| 8. Employee Self-Service UI | 1/2 | In Progress|  |
+| 2. Evaluation Pipeline Integrity | 6/6 | Complete   | 2026-03-31 |
+| 3. Approval Workflow Correctness | 1/1 | Complete   | 2026-03-31 |
+| 4. Audit Log Wiring | 3/3 | Complete   | 2026-03-31 |
+| 5. Document Deduplication and Multi-Author | 4/4 | Complete   | 2026-03-31 |
+| 6. Batch Import Reliability | 3/3 | Complete   | 2026-03-31 |
+| 7. Dashboard and Cache Layer | 3/3 | Complete   | 2026-03-31 |
+| 8. Employee Self-Service UI | 2/2 | Complete   | 2026-03-31 |
 | 9. Feishu Attendance Integration | 3/3 | Complete   | 2026-03-31 |
 | 10. External API Hardening | 3/3 | Complete   | 2026-03-31 |
