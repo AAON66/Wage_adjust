@@ -1,299 +1,188 @@
 # Project Research Summary
 
-**Project:** 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
-**Domain:** HR Compensation Intelligence — AI-assisted evaluation and salary adjustment
-**Researched:** 2026-03-25
-**Confidence:** HIGH (all findings based on direct codebase inspection + verified against official docs)
-
----
+**Project:** 公司综合调薪工具 v1.1 体验优化与业务规则完善
+**Domain:** Enterprise HR salary adjustment platform -- incremental feature milestone
+**Researched:** 2026-03-30
+**Confidence:** HIGH
 
 ## Executive Summary
 
-This is a brownfield FastAPI + React platform for AI-assisted employee salary adjustment. The architecture is sound — layered monolith with strict dependency direction, role-based access at both layers, and an evaluation engine that is structurally separate from I/O. Most core features exist in some form. The primary problem is not missing features but unreliable or insecure implementations of existing ones: the AI evaluation pipeline has silent score corruption bugs, the approval workflow has race conditions and audit gaps, security vulnerabilities are production-blocking, and the batch import pipeline has data integrity issues.
+v1.1 is a 5-feature incremental milestone for an established FastAPI+React salary adjustment platform. The core finding across all research: **zero new libraries are needed**. Every feature -- account binding hardening, file sharing approval, menu restructuring, eligibility engine, display simplification -- fits cleanly into the existing `api/ -> services/ -> engines/ -> models/` layered architecture. The work is new models, new pure-computation engines, service extensions, and frontend component restructuring. This is a well-scoped milestone with no technology risk.
 
-The recommended approach is to fix and harden the existing system rather than rebuild. The evaluation and approval engines are architecturally correct but have specific implementation bugs that must be patched before any production use. Security issues — particularly the default JWT secret, missing login rate limiting, and plaintext national ID storage — are the highest-priority fixes because they represent unacceptable risk on any production deployment. After security, the focus should be on making the evaluation pipeline trustworthy (score integrity, fallback visibility, audit log wiring) and then completing the dashboard and bulk import surfaces.
+The biggest risk is **data availability for the eligibility engine**. The engine needs hire date, performance rating, and disciplinary data that do not exist in the current schema. The `Employee` model has no `hire_date` column; no performance or disciplinary models exist anywhere in the codebase. The engine must treat missing data as a distinct `data_missing` status (not pass, not fail) and remain advisory rather than blocking. Schema additions via Alembic migration must come before engine logic. The second major risk is **file sharing modifying the dedup hard-block** in `FileService._check_duplicate()`, which is called in 4 places -- this requires a new method rather than modifying the existing one.
 
-The key risks are: (1) silent data corruption in the LLM scoring pipeline that produces incorrect salary recommendations without any error signal, (2) a production-blocking set of security vulnerabilities that are simple to fix but catastrophic if shipped, (3) an audit log model that exists in the schema but is never written by any service — meaning the system cannot defend salary decisions in a dispute context. All three are fixable with targeted work. The external API and real-time dashboard features are stable to defer; the evaluation and approval cores must be solid first.
+The recommended approach: start with navigation restructuring (zero-risk frontend foundation), then account binding (quick win using existing service), then eligibility engine (core business logic with schema prerequisites), then file sharing (most complex, highest risk), and finish with display simplification (polish pass that integrates the eligibility badge).
 
----
+## Key Findings
 
-## Top 10 Actionable Findings (Ranked by Impact)
+### Stack Decisions / 技术栈决策
 
-### 1. The audit log is never written — all evaluation and approval decisions are untracked
+No new pip or npm packages. The existing stack handles all 5 features. See [STACK.md](./STACK.md) for full analysis.
 
-**File:** `backend/app/models/audit_log.py` (model defined), `evaluation_service.py`, `approval_service.py` (model never used)
-**Impact:** CRITICAL — cannot defend salary decisions in disputes; regulatory non-compliance
-**Action:** Wire `AuditLog` writes into every service mutation: `EvaluationService.manual_review`, `ApprovalService.decide_approval`, `ImportService.run_import`, all salary status transitions. Commit audit log in the same transaction as the mutation.
+**Unchanged core:**
+- FastAPI 0.115.0 + SQLAlchemy 2.0.36 + Alembic 1.14.0 -- backend
+- React 18.3.1 + TypeScript 5.8.3 + Tailwind 3.4.17 + Vite 6.2.6 -- frontend
 
-### 2. Default JWT secret `"change_me"` accepted at runtime — tokens can be forged
+**Explicitly rejected additions:**
+- React Query / TanStack Query -- inconsistent with existing useEffect+useState pattern across 18+ pages
+- Ant Design / Headless UI / Radix -- menu grouping is standard HTML/CSS, not worth a component library
+- WebSocket / SSE -- file sharing notifications use polling, no real-time infrastructure needed
+- State management (Redux/Zustand) -- none of the 5 features add cross-cutting state
 
-**File:** `backend/app/core/config.py` line 25
-**Impact:** CRITICAL — any attacker with repo read access can forge admin tokens; all endpoints are compromised
-**Action:** Add startup guard in `lifespan`: reject if `jwt_secret_key` is `"change_me"` or shorter than 32 characters in non-test environments. Rotate immediately. Minimum key length Pydantic validator should be raised from 8 to 32.
+**Database changes required (single Alembic migration):**
+- 3 new nullable columns on `employees`: `hire_date`, `last_raise_date`, `performance_rating`
+- 1 new table: `file_share_requests`
+- 1 new table: `eligibility_overrides`
 
-### 3. National ID numbers stored and transmitted in plaintext — PIPL violation
+### Feature Priorities / 功能优先级
 
-**File:** `backend/app/models/employee.py` (`Employee.id_card_no` is plain VARCHAR)
-**Impact:** CRITICAL — China PIPL + GB/T 45574-2025 require sensitive PII to be encrypted at rest; fines up to 5% of annual revenue
-**Action:** Apply `EncryptedString` SQLAlchemy TypeDecorator using SM4 (preferred under China commercial cryptography regulations) or AES-256-GCM. Mask national IDs in all API responses by default; expose full value only to `admin`/`hr_admin` roles with role-scoped Pydantic schemas.
+See [FEATURES.md](./FEATURES.md) for full landscape.
 
-### 4. LLM score scale ambiguity silently corrupts salary recommendations
+**Must have (table stakes for v1.1):**
+- Grouped navigation sidebar -- 13 flat links for admin is unmanageable
+- Manual account-employee binding UI -- backend service exists, no UI exposure
+- Salary eligibility pre-check engine -- HR needs this before salary computation
+- File duplicate warning (soft) instead of hard rejection -- current behavior breaks co-author workflows
+- File share request workflow -- co-authors need legitimate access to shared files
+- Collapsible salary details -- information overload in current flat display
 
-**File:** `backend/app/services/evaluation_service.py` (`_normalize_llm_evaluation_payload`)
-**Impact:** HIGH — the `use_five_point_scale = max(raw_scores) <= 5.0` heuristic produces 20x inflation for low-scoring employees; error is silent and propagates to salary calculation
-**Action:** Enforce a 0-100 integer contract in every system prompt. Add server-side validator after parsing: reject responses where all scores are ≤ 10 and flag for fallback. Log all scale-detection decisions as warnings with raw LLM response attached.
+**Should have (differentiators):**
+- Self-service employee binding via id_card_no match
+- Batch eligibility check for entire department
+- Missing data import link from eligibility UI
+- Contribution percentage negotiation in share requests
 
-### 5. LLM fallback silently passes as authoritative AI evaluation
+**Defer to v2+:**
+- Real-time notifications (WebSocket) -- no infrastructure, polling sufficient
+- SSO/LDAP binding integration -- manual binding covers 90% of cases
+- Configurable eligibility rules UI -- hardcode 4 rules, externalize thresholds only
+- Drag-and-drop nav reordering -- over-engineering
 
-**File:** `backend/app/services/evaluation_service.py`, `llm_service.py`
-**Impact:** HIGH — when DeepSeek is unavailable/rate-limited, rule-engine results are stored as `status='generated'` with no indicator that LLM was never called; HR staff assume AI analysis was performed
-**Action:** Add `used_llm: bool` and `llm_fallback_reason: str | None` columns to `AIEvaluation`. Set from `DeepSeekCallResult.used_fallback` at write time. Display a visible "基于规则引擎估算，未调用AI" indicator in the review UI.
+### Architecture Integration / 架构集成方式
 
-### 6. Approval workflow has two correctness bugs that corrupt decision history
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for component map and data flows.
 
-**Files:** `backend/app/services/approval_service.py`
-**Impact:** HIGH — (a) no `SELECT FOR UPDATE` on `decide_approval` allows concurrent approvals to produce duplicate decisions; (b) `submit_for_approval` resets approved step records on re-submission, erasing rejection history
-**Action:** (a) Add `.with_for_update()` to the approval record query. (b) Preserve historical `ApprovalRecord` rows by creating new records with a `parent_record_id` FK instead of resetting existing ones.
+All features integrate into the existing layered architecture. No new layers needed. The principle: **add new components alongside existing ones, modify existing ones minimally.**
 
-### 7. No login rate limiting — brute-force attacks on `/auth/login` are unrestricted
+**New components (create from scratch):**
+1. `EligibilityEngine` (engines/) -- pure computation, no I/O, follows EvaluationEngine/SalaryEngine pattern
+2. `EligibilityService` (services/) -- assembles data from DB, calls engine
+3. `FileShareService` (services/) -- request/approve/reject lifecycle
+4. `FileShareRequest` model (models/) -- separate from ProjectContributor and ApprovalRecord
+5. Frontend: `ShareRequestPanel`, `ShareRequestList`, `EligibilityBadge`, `CollapsibleSection`, `SalarySummaryRow`, `SalaryDetailPanel`
 
-**File:** `backend/app/api/v1/auth.py`
-**Impact:** HIGH — employee numbers are predictable (`EMP-1001` to `EMP-9999`); PBKDF2 is slow but the endpoint has no throttle
-**Action:** Add `slowapi` with `@limiter.limit("5/minute")` on the login endpoint using client IP as key. Use Redis as the storage backend (already configured) so limits work correctly across multiple workers.
+**Modified components (extend existing):**
+1. `IdentityBindingService` -- add `manual_bind()`, `unbind()`, `get_binding_status()`
+2. `FileService` -- change dedup from reject to warn+share (new method, NOT modify `_check_duplicate()`)
+3. `roleAccess.ts` -- add `NavGroup` interface, `getRoleNavGroups()` function
+4. `AppShell.tsx` -- grouped sidebar rendering
+5. `SalaryResultCard.tsx` -- collapsible two-tier display
 
-### 8. `ensure_schema_compatibility` runs raw DDL at startup — Alembic cannot reproduce schema from migrations alone
+### Critical Pitfalls / 关键风险
 
-**File:** `backend/app/core/database.py` lines 73-115
-**Impact:** HIGH — split schema state between Alembic versions and ad-hoc DDL calls; fresh database setup from migrations will miss columns; `NOT NULL` columns will crash startup on PostgreSQL with existing data
-**Action:** Drain all `ensure_schema_compatibility` columns into a consolidation Alembic migration. Remove the function. Never add columns outside of `alembic revision --autogenerate` going forward.
+See [PITFALLS.md](./PITFALLS.md) for all 13 pitfalls with prevention strategies.
 
-### 9. Certification import creates duplicates on re-import, inflating salary calculations
+1. **Eligibility engine depends on non-existent data** -- `Employee` has no `hire_date`; no performance/disciplinary models exist. Prevention: add nullable columns via migration FIRST, treat NULL as `data_missing` (distinct from pass/fail), make engine advisory not blocking.
 
-**File:** `backend/app/services/import_service.py` (`_import_certifications`)
-**Impact:** HIGH — no unique constraint on `(employee_id, certification_type, certification_stage, issued_at)`; re-importing the same file doubles certification bonuses; arithmetic corruption propagates silently to salary recommendations
-**Action:** Add `UniqueConstraint` on those four fields. Use upsert pattern in `_import_certifications`.
+2. **File sharing breaks existing dedup hard-block** -- `_check_duplicate()` raises ValueError in 4 call sites. Prevention: create NEW method for sharing detection, do NOT modify existing method. Return warning payload instead of 409 error.
 
-### 10. In-memory rate limiter breaks under multi-worker deployment
+3. **SQLite/PostgreSQL migration drift** -- dev uses SQLite, prod uses PostgreSQL. `init_database()` auto-creates tables bypassing Alembic. Prevention: every schema change MUST produce an Alembic migration, new columns nullable first, use `batch_alter_table` for SQLite compatibility.
 
-**File:** `backend/app/services/llm_service.py` (`InMemoryRateLimiter`)
-**Impact:** MEDIUM (production-blocking at scale) — each worker has its own 20 req/min limit; 4 workers = 80 req/min combined, causing 429s from DeepSeek
-**Action:** Replace with Redis-backed sliding window rate limiter for the DeepSeek limiter and the planned `slowapi` auth limiter. Redis connection is already in `requirements.txt`.
+4. **Stale JWT claims after binding change** -- JWT carries old `employee_id` for up to 30 min. Prevention: invalidate refresh token on bind/unbind, add `binding_updated_at` timestamp, compare vs `token.iat`.
 
----
+5. **Menu restructuring breaks deep links** -- if route paths change, bookmarks break. Prevention: visual-only grouping, do NOT change route paths, keep `getRoleModules()` for backward compatibility.
 
-## Critical Blockers
+## Implications for Roadmap
 
-Things that must be fixed before any production deployment:
+### Phase 1: Menu/Navigation Restructuring (菜单导航重构)
+**Rationale:** Zero backend changes, zero risk, sets up navigation structure for all subsequent features that add new pages/sections. Unblocks Feature 1 and Feature 4 which need nav slots.
+**Delivers:** Grouped sidebar navigation for all roles; cleaner workspace page grid.
+**Addresses:** Feature 3 (grouped navigation sidebar)
+**Avoids:** Pitfall 5 (deep link breakage) -- visual-only grouping, no URL changes.
+**Estimated complexity:** Low
+**Needs phase research:** No -- standard frontend refactoring pattern.
 
-| Blocker | Severity | File | Fix Complexity |
-|---------|----------|------|----------------|
-| Default JWT secret `"change_me"` accepted at runtime | CRITICAL | `config.py` | Low — add startup guard |
-| National ID plaintext storage | CRITICAL | `employee.py` | Medium — TypeDecorator + migration |
-| Audit log never written | CRITICAL | All services | Medium — add AuditLog calls per service |
-| No login rate limiting | HIGH | `auth.py` | Low — add `slowapi` |
-| LLM fallback invisible to reviewers | HIGH | `evaluation_service.py` | Low — add `used_llm` column + UI flag |
-| Score scale corruption (silent 20x inflation) | HIGH | `evaluation_service.py` | Low — prompt contract + server validator |
-| Approval race condition | HIGH | `approval_service.py` | Low — add `with_for_update()` |
-| Approval reset erases rejection history | HIGH | `approval_service.py` | Medium — immutable record chain |
-| `ensure_schema_compatibility` raw DDL | HIGH | `database.py` | Medium — Alembic consolidation migration |
-| Certification duplicate on re-import | HIGH | `import_service.py` | Low — unique constraint + upsert |
+### Phase 2: Account-Employee Binding Hardening (账号-员工绑定加固)
+**Rationale:** Quick win with high user demand. Backend service already exists (`IdentityBindingService`), just needs 3 new methods and UI exposure. Self-contained with no external dependencies.
+**Delivers:** Admin manual bind/unbind UI, self-service employee binding, binding status display.
+**Addresses:** Feature 1 (account binding) + differentiator (self-service binding)
+**Avoids:** Pitfall 4 (stale JWT) -- must invalidate tokens on binding changes.
+**Estimated complexity:** Low
+**Needs phase research:** No -- extends existing service with established patterns.
 
----
+### Phase 3: Schema Foundation + Eligibility Engine (调薪资格校验引擎)
+**Rationale:** Core business logic that HR needs before salary computation. Requires Alembic migration for Employee model extensions (hire_date, last_raise_date, performance_rating). Should be done before file sharing because it is isolated (new engine, new service, new API) and does not modify existing code. May reveal data import gaps early.
+**Delivers:** Eligibility pre-check per employee, batch eligibility view, eligibility badge component, eligibility override mechanism for HR.
+**Addresses:** Feature 4 (eligibility engine) + differentiators (batch check, missing data import link)
+**Avoids:** Pitfall 1 (missing data) -- nullable columns, `data_missing` status, advisory not blocking. Pitfall 3 (override bypass) -- per-cycle overrides with audit. Pitfall C1 (migration drift) -- proper Alembic migration. Pitfall 8 (Feishu attendance) -- check synced_at, handle NULLs.
+**Estimated complexity:** Medium
+**Needs phase research:** Yes -- data source mapping for 4 rules, NULL handling strategy, override permission model.
 
-## Key Technical Decisions
+### Phase 4: File Upload Sharing/Approval (文件上传共享申请机制)
+**Rationale:** Most complex feature: new model, new service, new API, frontend components, AND modifies existing FileService dedup logic. Placed after eligibility because it touches critical upload path and needs the most careful implementation. Navigation and binding should be stable before this.
+**Delivers:** Duplicate warning (soft) instead of hard rejection, share request workflow, approval/rejection flow, file cloning on approval, pending request notifications (polling-based).
+**Addresses:** Feature 2 (file sharing) + differentiator (contribution negotiation)
+**Avoids:** Pitfall 2 (dedup hard-block) -- new method, separate model. Pitfall 7 (no notifications) -- badge + pending actions page, 72h auto-approve timeout.
+**Estimated complexity:** Medium-High
+**Needs phase research:** Yes -- dedup refactor strategy across 4 call sites, notification UX pattern, share-vs-contributor semantic boundary.
 
-These decisions need to be made (or confirmed) before implementation begins:
+### Phase 5: Salary Display Simplification (调薪建议展示精简)
+**Rationale:** Pure frontend polish pass. Depends on Phase 3's EligibilityBadge component for integration. Best done last as it improves presentation of existing data plus new eligibility data.
+**Delivers:** Collapsible salary details with summary-first layout, eligibility badge integration, reusable CollapsibleSection component.
+**Addresses:** Feature 5 (display simplification)
+**Avoids:** Pitfall 6 (hiding approver info) -- auto-expand for approvers, collapsed summary includes all critical metrics.
+**Estimated complexity:** Low
+**Needs phase research:** No -- standard React component refactoring.
 
-### Decision 1: SM4 vs AES-256 for PII encryption
-- **Context:** FEATURES.md recommends SM4 (`gmssl`) as required under China's commercial cryptography regulations for PIPL compliance. PITFALLS.md notes AES-256-GCM as acceptable but less compliant. PROJECT.md confirms this is a China-hosted internal tool.
-- **Recommendation:** Use SM4 via `gmssl`. Implement as `EncryptedString` SQLAlchemy TypeDecorator so the choice is isolated to one place and switchable.
-- **Risk if deferred:** Legal exposure under PIPL if audited before encryption is in place.
+### Phase Ordering Rationale
 
-### Decision 2: Redis — required now, not optional
-- **Context:** Three separate research areas all require Redis: (a) DeepSeek rate limiter must be cross-worker, (b) `slowapi` auth rate limiter for multi-worker safety, (c) dashboard cache via `fastapi-cache2`. Redis is already in `requirements.txt` and `config.py`.
-- **Recommendation:** Treat Redis as a required service dependency, not an optional cache. Add to Docker Compose / deployment config in Phase 1.
-- **Risk if deferred:** Rate limiting and caching will silently misbehave under load.
+- **Dependency chain:** Feature 3 (nav) provides slots for Features 1 and 4. Feature 4 (eligibility) provides the badge used in Feature 5 (display).
+- **Risk escalation:** Phases go from lowest risk (pure frontend) to highest risk (FileService modification). Stable foundation before risky changes.
+- **Schema first:** Phase 3 includes the Alembic migration that adds Employee columns AND creates new tables. All schema changes in one migration prevents drift.
+- **Independent parallelism:** Phases 1+2 could potentially run in parallel (different layers, no conflicts). Phases 3+5 are sequential (badge dependency).
 
-### Decision 3: PostgreSQL in development (not just production)
-- **Context:** ARCHITECTURE.md notes that SQLite does not support `ALTER TABLE ... ALTER COLUMN`, `CONCURRENTLY`, or most constraint operations. Migration behavior differs between dev and prod, creating a class of bugs that only appear in production.
-- **Recommendation:** Use PostgreSQL via Docker in development. SQLite is acceptable only for in-memory unit tests.
-- **Risk if deferred:** Alembic migrations developed against SQLite may fail on PostgreSQL in production.
+### Research Flags
 
-### Decision 4: `python-statemachine` vs current manual state transitions
-- **Context:** FEATURES.md recommends `python-statemachine` 3.x bound to SQLAlchemy model via `MachineMixin`. The current codebase uses manual `record.status = "..."` updates. The current approach has the race condition and history-reset bugs documented in PITFALLS.md.
-- **Recommendation:** Adopt `python-statemachine` when fixing the approval workflow. The refactor scope is contained to `approval_service.py`.
-- **Risk if deferred:** Manual state transitions will accumulate more edge-case bugs as the state graph grows.
+Phases likely needing deeper research during planning:
+- **Phase 3 (Eligibility Engine):** Data source mapping for 4 rules is partially undefined -- performance rating has no source, disciplinary records have no model. Needs decision on whether to add models or defer rules.
+- **Phase 4 (File Sharing):** Dedup refactor touches 4 call sites in FileService. Needs careful plan for which callers get warning behavior vs hard-block. Instance-state bug (`self._confirmations` dict) should be fixed as part of this phase.
 
-### Decision 5: `pypdf` vs `pymupdf4llm` for PDF extraction
-- **Context:** STACK.md notes that `pypdf` returns empty or fragmented text for layout-heavy PDFs (PowerPoint exports, scanned docs). `pymupdf4llm` is a drop-in replacement producing clean markdown output.
-- **Recommendation:** Replace `pypdf` with `pymupdf4llm` in `DocumentParser`. One-line change, no interface changes.
-- **Risk if deferred:** Employees submitting PDF evidence from PowerPoint exports will receive incomplete evaluations with no error signal.
-
-### Decision 6: Image OCR approach — multimodal vs Tesseract
-- **Context:** `ImageParser` currently returns a placeholder for all image files. STACK.md offers two options: (A) DeepSeek V3 multimodal (base64 in message content — direct, no extra dependency), (B) `pytesseract` (system binary required, ~50MB, lighter than EasyOCR's 1GB).
-- **Recommendation:** Option A (multimodal) for images attached to evaluations; Option B (Tesseract) for any offline/batch processing needs. Confirm DeepSeek V3 vision API shape before implementing.
-- **Validation needed:** Verify exact DeepSeek V3 multimodal message format against official docs before implementing.
-
----
-
-## Phase Recommendations
-
-### Phase 1: Security Hardening and Schema Integrity
-**Rationale:** These are production blockers. Nothing else matters if tokens can be forged and PII is exposed. Schema integrity must be fixed before any new features add migrations.
-**Delivers:** Production-safe authentication, encrypted PII, stable migration baseline
-**Key work:**
-- Add startup JWT secret validation guard
-- Raise `jwt_secret_key` Pydantic min_length from 8 to 32
-- Encrypt `id_card_no` via `EncryptedString` TypeDecorator (SM4)
-- Add Pydantic response masking for national ID / phone / name
-- Add `slowapi` rate limiting to `/auth/login`, `/auth/refresh`
-- Drain `ensure_schema_compatibility()` into a consolidation Alembic migration; remove the function
-- Fix `get_db_session` to rollback on exception
-- Make engine/SessionLocal lazy-initialized
-**Avoids:** Pitfalls 2.1, 2.2, 2.5, 5.2, 5.4, 5.5
-**Research flag:** Standard patterns — no research phase needed
-
-### Phase 2: Evaluation Pipeline Integrity
-**Rationale:** The evaluation pipeline is the core value proposition of this system. Silent score corruption and invisible fallbacks make every salary recommendation untrustworthy. Must be fixed before dashboard or approval work can be validated.
-**Delivers:** Trustworthy, explainable, auditable AI evaluations
-**Key work:**
-- Enforce 0-100 integer scoring contract in all system prompts
-- Add server-side scale validator; reject ≤10-all-scores responses
-- Add `used_llm: bool` + `llm_fallback_reason` columns to `AIEvaluation`
-- Display fallback indicator in manager review UI
-- Add `used_fallback` check before persisting evaluation in `EvaluationService`
-- Add `DimensionScore` snapshot on re-evaluation (`previous_snapshot` column)
-- Require justification when re-evaluation delta > 5 points
-- Implement evidence cross-reference check for hallucinated citations (`rationale_verified` flag)
-- Apply `scan_for_prompt_manipulation` to all file metadata fields (not just user-typed text)
-- Upgrade `pypdf` to `pymupdf4llm` for PDF parsing
-- Fix DOCX parser to use `python-docx` instead of raw XML tag matching
-- Add PPT speaker notes extraction to `PPTParser`
-- Switch DeepSeek retry from linear to exponential backoff with jitter
-- Separate 429 handling from 5xx handling in retry logic
-**Avoids:** Pitfalls 1.1, 1.2, 1.3, 1.4, 1.5
-**Research flag:** DeepSeek V3 multimodal API shape needs validation before implementing image support
-
-### Phase 3: Audit Log Wiring and Approval Workflow Fixes
-**Rationale:** The audit log model exists but is dead code. The approval workflow has correctness bugs that corrupt decision history. Both are required for regulatory defensibility and HR user trust. These depend on Phase 2 being stable (evaluations need to be correct before approvals are trustworthy).
-**Delivers:** Complete, immutable audit trail; correct multi-step approval workflow
-**Key work:**
-- Wire `AuditLog` writes into all service mutations (create `AuditService` or context manager)
-- `AuditContext` middleware collects operator/IP/request_id per request
-- Add `with_for_update()` to `ApprovalService.decide_approval` (race condition fix)
-- Preserve approval history on re-submission (immutable record chain with `parent_record_id`)
-- Deferral history: persist deferral reason before clearing `defer_until`
-- Separation of duty: block self-approval (approver != record creator)
-- Add `can_act: bool` computed field to approval record API response (server as source of truth)
-- Adopt `python-statemachine` 3.x for state graph clarity; bind via `get_machine()` pattern
-- Fix `include_all=True` scope bypass in `list_approvals` for HRBP role
-**Avoids:** Pitfalls 2.3, 2.4, 4.1, 4.2, 4.3, 4.4
-**Research flag:** Standard patterns — no research phase needed
-
-### Phase 4: Batch Import Reliability
-**Rationale:** Import is a frequent HR operation; data corruption in import propagates silently to salary calculations. Depends on Phase 2 evaluation correctness and Phase 3 audit log (import runs should be logged).
-**Delivers:** Reliable, idempotent bulk import with clear per-row error reporting
-**Key work:**
-- Enable `.xlsx` direct import via `pd.read_excel(engine='openpyxl')`; add `openpyxl` to requirements.txt
-- Add Unicode replacement character (U+FFFD) validation for Chinese-expected string columns
-- Pass `encoding_errors='strict'` explicitly to `pd.read_csv`
-- Add `UniqueConstraint` on `(employee_id, certification_type, certification_stage, issued_at)`
-- Use upsert in `_import_certifications` (return `status='updated'` vs `'created'`)
-- Separate import data transaction from import job metadata transaction (batch savepoints)
-- Per-row result tracking with HTTP 207 Multi-Status response
-- Add `pandera` lazy validation for schema errors (return all row errors before failing)
-- Add import `AuditLog` entries (file name, row counts, operator)
-**Avoids:** Pitfalls 3.1, 3.2, 3.3, 3.4
-**Research flag:** Standard patterns — no research phase needed
-
-### Phase 5: Dashboard Completeness and Cache Layer
-**Rationale:** Dashboard depends on correct evaluations (Phase 2) and a trustworthy audit trail (Phase 3). Redis cache layer requires Redis to be a declared dependency (Phase 1). N+1 query bugs cause multi-second load times at moderate scale.
-**Delivers:** Fast, accurate dashboard with complete chart coverage and Redis caching
-**Key work:**
-- Complete `selectinload` chains in `DashboardService._submissions` and `_evaluations` to cover all accessed relationships
-- Replace Python-side aggregation with SQL `GROUP BY` + `func.count()` for all chart data
-- Add `fastapi-cache2[redis]` decorator caching to all dashboard endpoints (TTL per endpoint type)
-- Cache key must include `cycle_id` and `user.role` to prevent data leakage
-- Cache invalidation on evaluation confirm / salary approval
-- Add development-mode query counter middleware (warn when single request > 20 DB queries)
-- Implement all dashboard chart types with Recharts (level distribution, salary band, department heatmap, certification completion, ROI)
-- Wrap all charts in `ResponsiveContainer`; memoize chart data with `useMemo`
-- Poll pending approvals count every 30 seconds (no WebSocket needed)
-- Replace per-request `httpx.Client` creation with app-level singleton via `lifespan`
-**Avoids:** Pitfalls 5.1, 5.3
-**Research flag:** Standard patterns — no research phase needed
-
-### Phase 6: External API and Integration Hardening
-**Rationale:** Public API exists but has not been validated against real external systems. Deferred until internal workflows (Phases 1-5) are stable, because the API contract should reflect the final internal data model.
-**Delivers:** Validated external API with webhook support, API key management, and deprecation headers
-**Key work:**
-- Add cursor-based pagination to external endpoints (for incremental sync use case)
-- Add `Deprecation` / `Sunset` headers to v1 routes
-- Implement `WebhookSubscription` table and HMAC-SHA256 signed delivery
-- API key rotation: overlap window support, `last_used_at` tracking
-- Add `slowapi` rate limiting to public API endpoints (per API key)
-- Validate with a real HR system integration (even a mock HRIS)
-- Switch from Redis-based multi-worker rate limiter to Redis-backed `slowapi` for consistency
-**Avoids:** Security concerns from STACK.md §5, ARCHITECTURE.md §1
-**Research flag:** Webhook delivery reliability patterns may need research if high delivery guarantees are required
-
----
-
-## Phase Ordering Rationale
-
-- **Security first (Phase 1):** JWT forgery is an unconditional production blocker. PII encryption requires a migration that creates the baseline for all subsequent migrations. No phase is safe to ship before Phase 1.
-- **Evaluation before approval (Phase 2 before Phase 3):** Approval decisions are only meaningful if the underlying evaluations are correct. Auditing wrong evaluations is worse than not auditing at all.
-- **Audit log before import (Phase 3 before Phase 4):** Import runs should be audited. Wiring the audit log in Phase 3 means Phase 4 import gets audit coverage for free.
-- **Dashboard after evaluation (Phase 5 after Phase 2):** Dashboard data integrity depends on evaluation correctness. A dashboard over corrupt evaluation data gives HR false confidence.
-- **External API last (Phase 6):** The public API schema should reflect the final internal data model. Publishing an API before internal workflows are stable creates a migration burden.
-
----
+Phases with standard patterns (skip phase research):
+- **Phase 1 (Navigation):** Well-documented React pattern, pure frontend refactoring.
+- **Phase 2 (Binding):** Extends existing IdentityBindingService with 3 methods. Pattern established.
+- **Phase 5 (Display):** Standard collapsible component pattern, no API changes.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All findings from direct codebase inspection + official docs (FastAPI, SQLAlchemy, DeepSeek API) |
-| Features | HIGH | Evaluation, approval, and import patterns verified against official library docs and PIPL legal sources |
-| Architecture | HIGH | All patterns verified against official FastAPI and SQLAlchemy 2.0 documentation |
-| Pitfalls | HIGH | All pitfalls from direct code inspection with specific file/line references; not theoretical |
+| Stack | HIGH | Direct codebase inspection of requirements.txt and package.json; all features verified implementable with existing libraries |
+| Features | HIGH | All 5 features directly specified in PROJECT.md; dependency graph verified against codebase |
+| Architecture | HIGH | Component map verified against existing models, services, engines; patterns match established codebase conventions |
+| Pitfalls | HIGH | All pitfalls verified via direct code inspection with specific file/line references; grep results confirm schema gaps |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH -- all research based on direct codebase analysis, not external documentation.
 
 ### Gaps to Address
 
-- **DeepSeek V3 multimodal API shape:** Official docs confirm vision support but exact message format (base64 encoding, content array structure) should be verified against `api-docs.deepseek.com` before implementing image evaluation. Risk: low, but wasted implementation effort if the API shape differs.
-- **`python-jose` maintenance status:** STACK.md notes it is in maintenance mode as of 2024. Migration to `PyJWT` is low priority but should be planned before the project reaches high traffic. No urgency for v1.
-- **SM4 key rotation strategy:** `gmssl` supports SM4 but key rotation (rolling re-encryption of existing records) requires a key version column on encrypted tables and a background migration job. This is not needed for v1 but must be planned before any SM4 key rotation event.
-- **HRBP scope definition in matrix orgs:** The `AccessScopeService` scope check uses `department` membership. For matrix organizations where HRBP responsibilities don't map cleanly to department boundaries, this may need a more flexible scope model. Validate the org structure assumption before finalizing the data model.
-
----
+- **Performance rating data source:** No model, no import channel, no Feishu mapping. Decision needed: add `PerformanceRecord` model with CSV import, or defer the performance eligibility rule to v1.2. Recommendation: defer rule, mark as `data_missing`.
+- **Disciplinary record data source:** Same gap as performance. No model exists. Recommendation: defer rule, mark as `data_missing`.
+- **File share notification UX:** No notification infrastructure exists. Polling-based badge is the recommendation, but exact placement (sidebar badge? page header? MyReview section?) needs design decision.
+- **Eligibility engine thresholds:** Tenure >= 6 months? >= 3 months? Attendance <= 30 days or >= 95% rate? Exact thresholds need business confirmation. Recommendation: make thresholds engine constructor parameters with reasonable defaults.
+- **Auto-approve timeout for share requests:** 72h recommended but needs business confirmation. Could be per-cycle configurable.
 
 ## Sources
 
-### Primary (HIGH confidence — official docs or direct code inspection)
-- DeepSeek JSON mode: https://api-docs.deepseek.com/guides/json_mode
-- FastAPI official docs: https://fastapi.tiangolo.com/
-- SQLAlchemy 2.0 relationship loading: https://docs.sqlalchemy.org/en/20/orm/queryguide/relationships.html
-- Alembic autogenerate: https://alembic.sqlalchemy.org/en/latest/autogenerate.html
-- `python-statemachine` 3.0: https://python-statemachine.readthedocs.io/en/latest/
-- Pandera error report: https://pandera.readthedocs.io/en/latest/error_report.html
-- SlowAPI: https://github.com/laurentS/slowapi
-- PyMuPDF4LLM: https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
-- fastapi-cache2: https://pypi.org/project/fastapi-cache2/
-- Direct codebase inspection (V3.0.0, commit `6e769bf`)
+### Primary (HIGH confidence)
+- Direct codebase inspection at `D:/wage_adjust/` -- all models, services, engines, frontend components, migrations, configuration files
+- `.planning/PROJECT.md` -- milestone scope and feature definitions
+- `requirements.txt` + `frontend/package.json` -- dependency inventory
+- `alembic/versions/` -- 9 existing migrations confirming migration patterns
 
-### Secondary (MEDIUM confidence — community consensus, multiple sources agree)
-- China PIPL compliance: https://www.china-briefing.com/doing-business-guide/china/company-establishment/pipl-personal-information-protection-law
-- GB/T 45574-2025 sensitive PII standard: https://www.morganlewis.com/pubs/2025/06/china-issues-new-national-standard-on-security-requirements-for-sensitive-personal-information
-- gmssl SM4 implementation: https://github.com/knitmesh/gmssl
-- LLM-as-a-Judge patterns: https://www.evidentlyai.com/llm-guide/llm-as-a-judge
-- Zero-downtime Alembic migrations: https://that.guru/blog/zero-downtime-upgrades-with-alembic-and-sqlalchemy/
-
-### Tertiary (LOW confidence — needs validation before implementing)
-- DeepSeek V3 multimodal message format — confirm exact API shape at api-docs.deepseek.com before implementing image evaluation
-- RS256 for public API key path — referenced in STACK.md but needs PyJWT doc verification before implementing
+### Secondary (MEDIUM confidence)
+- Existing engine patterns (`EvaluationEngine`, `SalaryEngine`) -- used as templates for eligibility engine design
+- Existing `IdentityBindingService` + `ProjectContributor` -- used as templates for binding and sharing designs
 
 ---
-*Research completed: 2026-03-25*
+*Research completed: 2026-03-30*
 *Ready for roadmap: yes*

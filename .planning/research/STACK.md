@@ -1,575 +1,216 @@
-# Technology Stack Research
+# Technology Stack — v1.1 Milestone
 
-**Project:** Enterprise Salary Adjustment Platform (wage_adjust)
-**Researched:** 2026-03-25
-**Codebase state:** Brownfield — FastAPI + SQLAlchemy (sync) + React + DeepSeek LLM
-
----
-
-## 1. FastAPI + SQLAlchemy in a Brownfield Codebase
-
-### Current state (observed in codebase)
-
-The project uses **synchronous SQLAlchemy 2.0** (`create_engine`, `Session`, `sessionmaker`).
-The `database.py` module creates a module-level engine and `SessionLocal` at import time.
-`get_db_session()` yields a session via `Generator[Session, None, None]` and is wrapped by
-`get_db()` in `dependencies.py` for FastAPI injection.
-
-Migration history exists under `alembic/versions/` with four migrations.
-The `alembic/env.py` correctly sets `target_metadata = Base.metadata`, loads all model
-modules before autogeneration via `load_model_modules()`, and uses `compare_type=True` and
-`compare_server_default=True` — which are both required for reliable change detection.
-
-A major code smell exists: `ensure_schema_compatibility()` in `database.py` applies raw
-`ALTER TABLE` DDL at startup instead of using migrations. This means schema state is split
-across Alembic versions and ad-hoc DDL calls, making it impossible to reproduce schema from
-migrations alone.
-
-### Sync vs async: recommendation for this project
-
-**Keep sync SQLAlchemy.** The codebase is already sync. The only async in the stack is
-`asyncpg` in `requirements.txt`, which is not yet wired in.
-
-Migrating to `AsyncSession` + `create_async_engine` in a brownfield project is high-effort
-and medium-risk. It requires every database call site to be converted (`await db.execute()`
-everywhere), every relationship load strategy to be reviewed (lazy loading silently breaks
-under asyncio), and new test infrastructure. The benefit — throughput under concurrent I/O —
-is only realized if the app handles many simultaneous requests. For an internal HR tool with
-tens of concurrent users, sync is appropriate.
-
-If async adoption becomes necessary later, do it as a dedicated migration phase, not
-opportunistically during feature work.
-
-### Session management pattern to maintain
-
-The current pattern is correct for sync FastAPI:
-
-```python
-# dependencies.py — already implemented correctly
-def get_db() -> Generator[Session, None, None]:
-    yield from get_db_session()
-```
-
-FastAPI runs sync dependencies in a thread pool, so blocking database calls do not block
-the event loop. This is the documented sync path for FastAPI + SQLAlchemy.
-
-One gap: the session factory is created at module import time with a module-level engine.
-This works but creates implicit global state that makes testing harder. Prefer injecting the
-session factory via `app.state` or through the dependency system so tests can swap it without
-patching globals. The existing `create_app()` factory in `main.py` already passes settings
-down — extending this to carry a test-injectable `SessionFactory` is straightforward.
-
-### Alembic: fixing the split-schema anti-pattern
-
-The `ensure_schema_compatibility()` function in `database.py` must be drained into proper
-Alembic migrations. The current state is a correctness risk: if a new developer sets up a
-fresh database from Alembic history alone, they will be missing columns that only exist
-because of the startup DDL.
-
-**Procedure to drain it:**
-
-1. Identify all columns added by `ensure_schema_compatibility()` that are not yet in any
-   migration file.
-2. Create a single consolidation migration that adds those columns with `op.add_column()`,
-   guarded by inspection: check `inspector.get_columns()` before issuing DDL.
-3. Remove the `ensure_schema_compatibility()` function from `database.py` once the migration
-   is in place and tested against a clean database.
-4. Never add new columns to `ensure_schema_compatibility()` again. Use `alembic revision
-   --autogenerate -m "..."` for all future schema changes.
-
-**Autogenerate discipline:**
-
-- Always run `alembic revision --autogenerate` after model changes, never hand-write DDL.
-- Review generated migrations before applying — autogenerate misses: server defaults on
-  existing columns, column renames (generates drop+add), check constraints, partial indexes.
-- Rename in two migrations: first add the new column, backfill data, second drop the old
-  one.
-- Keep `compare_type=True` in `env.py` (already set) so column type changes are detected.
-
-### Dependency injection: what works, what to watch
-
-The `require_roles(*roles)` factory in `dependencies.py` returns a closure that FastAPI
-registers as a dependency. This is the correct pattern for composable authorization.
-
-The `get_current_user` dependency does one `SELECT ... JOIN departments` on every
-authenticated request via `selectinload(User.departments)`. For read-heavy endpoints this
-is fine; for bulk operations (e.g., importing 200 employees and evaluating each) the
-repeated user lookup per request adds up. Consider caching the user in `request.state`
-within a middleware for hot paths.
-
-**Confidence: HIGH** — verified against FastAPI official docs and existing codebase.
+**Project:** 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
+**Milestone:** v1.1 体验优化与业务规则完善
+**Researched:** 2026-03-30
+**Overall confidence:** HIGH
 
 ---
 
-## 2. DeepSeek API Integration Patterns
+## Key Finding: No New Libraries Needed
 
-### Current state (observed in codebase)
-
-`llm_service.py` implements:
-- `InMemoryRateLimiter` (sliding window, in-process, per-worker)
-- `DeepSeekPromptLibrary` with four task-specific prompt builders
-- `DeepSeekService._invoke_json()` with linear retry (configurable via
-  `deepseek_max_retries`, defaulting to 2), linear backoff (`0.2 * (attempt + 1)` seconds),
-  `response_format: {"type": "json_object"}`, and a JSON extraction fallback via regex when
-  the model returns prose with embedded JSON
-- `used_fallback: bool` tracking via `DeepSeekCallResult` so callers know whether a real LLM
-  call succeeded
-- Model routing by task type (`evidence_extraction` → `deepseek-chat`; `evaluation_generation`
-  → `deepseek-chat`; default → `deepseek-reasoner`)
-- Prompt injection protection: all system prompts explicitly instruct the model to ignore
-  manipulation attempts in evidence text
-
-### DeepSeek JSON mode: verified constraints
-
-**Source: DeepSeek official API docs (api-docs.deepseek.com/guides/json_mode)**
-
-The word "json" must appear in the system or user prompt when using
-`response_format: {"type": "json_object"}`. The API returns an error if it does not.
-All current system prompts in the codebase satisfy this — "Return JSON with keys: ..." is
-present in every prompt.
-
-Known issue acknowledged in DeepSeek's own documentation: the API may occasionally return
-empty content. DeepSeek states they are actively working on it. The current codebase handles
-this via the fallback chain in `_parse_response_payload()`.
-
-### What the current implementation does well
-
-- Separate timeout values per task type (`parsing_timeout`, `evaluation_timeout`) — correct,
-  since `deepseek-reasoner` has much higher latency than `deepseek-chat`.
-- `_is_configured()` guard prevents silent no-op calls when the API key is a placeholder.
-- `fallback_payload` pattern ensures callers always receive a usable dict even on failure,
-  with `used_fallback: True` so the service layer can decide whether to surface a warning.
-- JSON regex fallback (`JSON_BLOCK_PATTERN`) handles the case where the model wraps the JSON
-  in markdown code fences or prose.
-
-### Gaps and recommended improvements
-
-**1. Linear backoff should become exponential with jitter.**
-
-The current `0.2 * (attempt + 1)` scheme produces delays of 0.2s and 0.4s on two retries.
-DeepSeek's own documentation and industry best practice recommend exponential backoff with
-jitter to avoid thundering herd when the API is under load:
-
-```python
-import random
-delay = (2 ** attempt) * 0.5 + random.uniform(0, 0.3)
-self.sleeper(delay)
-```
-
-This produces roughly 0.5s, 1.3s, 2.7s for attempts 0–2 — much more effective against 503
-and 429 transient errors.
-
-**2. 429 (rate limit) responses should not count against the retry budget.**
-
-A 429 from DeepSeek means the API-side rate limit was hit, not an application error.
-The current code catches all `httpx.HTTPError` the same way. Split handling:
-
-```python
-if response.status_code == 429:
-    retry_after = int(response.headers.get("Retry-After", "5"))
-    self.sleeper(retry_after)
-    continue  # retry without consuming the budget
-elif response.status_code >= 500:
-    # consume budget, apply backoff
-    ...
-else:
-    response.raise_for_status()  # 4xx other than 429 → do not retry
-```
-
-**3. The in-memory rate limiter is per-worker, not per-deployment.**
-
-`InMemoryRateLimiter` with a 20 req/min limit works correctly for a single Uvicorn worker.
-If the application is run with `--workers 4` (or under Gunicorn with multiple processes),
-each worker has its own limiter and the combined rate can be 80 req/min. This will cause
-429s from DeepSeek.
-
-For multi-worker deployments, the rate limiter must be Redis-backed. Use a Redis sorted-set
-sliding window or `redis-py` with a Lua script. The Redis connection is already present in
-`requirements.txt` and `config.py`. This is a critical fix before production deployment with
-multiple workers.
-
-**4. Schema validation on LLM output is absent.**
-
-The current code parses JSON and returns it to callers without validating that all expected
-keys are present. A Pydantic model for each task's output (`EvidenceOutput`,
-`EvaluationOutput`, `SalaryExplanationOutput`) should be used to validate the parsed dict
-immediately after `_parse_response_payload()`. If validation fails, treat it like a parse
-failure and fall back. This prevents subtle bugs where missing keys cause downstream
-`KeyError` exceptions deep in the evaluation engine.
-
-**5. `deepseek-reasoner` is not appropriate for evidence extraction.**
-
-`deepseek-reasoner` (DeepSeek-R1) is a reasoning model with higher latency and cost,
-designed for complex multi-step problems. Evidence extraction and salary explanation are
-structured output tasks that benefit from `deepseek-chat` (DeepSeek-V3). The codebase
-already routes `evidence_extraction` and `handbook_parsing` to `deepseek-chat`, which is
-correct. Confirm `deepseek_model` (the default) is not left as `deepseek-reasoner` in
-production `.env` unless evaluation tasks genuinely require it.
-
-**Confidence: HIGH for JSON mode constraints (official docs). MEDIUM for retry patterns
-(DeepSeek docs + industry practice). MEDIUM for multi-worker limiter gap (confirmed by
-code analysis).**
+All 5 features in v1.1 are implementable with the existing stack. The work is model additions, new service logic, and frontend component restructuring — not technology adoption. Zero new pip packages. Zero new npm packages.
 
 ---
 
-## 3. React Patterns for Multi-Role HR Workflows
+## Feature-by-Feature Stack Analysis
 
-### Current state (observed in codebase)
+### Feature 1: Account-Employee Binding Hardening / 账号-员工绑定加固
 
-The frontend has a four-role model: `admin`, `hrbp`, `manager`, `employee`. Role enforcement
-is layered:
+**What exists:** `IdentityBindingService` with auto-bind via `id_card_no`, `User.employee_id` FK, bidirectional `User.employee` / `Employee.bound_user` relationships, manual search by identity.
 
-- **Route level:** `ProtectedRoute` with `allowedRoles` prop. Unauthorized roles are
-  redirected to their role home via `getRoleHomePath()`. A `must_change_password` guard
-  forces a redirect to `/settings` before any other page loads.
-- **UI level:** `getRoleModules()` in `roleAccess.ts` returns role-specific workspace module
-  links; the workspace page renders only what that role should see.
-- **Auth state:** `useAuth()` context provides `user.role`, `isAuthenticated`,
-  `isBootstrapping`. The bootstrapping state is handled correctly — a loading splash is shown
-  while the session is validated on mount, preventing a flash of the login page.
-- **Token refresh:** The Axios interceptor in `api.ts` implements a single-flight token
-  refresh using `refreshInFlight ??= ...`. This prevents multiple concurrent 401 responses
-  from each triggering a separate refresh call — a common race condition bug that this
-  codebase correctly avoids.
+**What's needed (stack):** Nothing new. This is UI/UX work (add binding entry points in Settings page, display binding status in EmployeeAdmin) plus a possible admin manual-bind API endpoint — all pure FastAPI route + existing service.
 
-### What the current implementation does well
+| Layer | Change Type | New Library? |
+|-------|-------------|--------------|
+| Backend model | None | No |
+| Backend service | Minor extension to `IdentityBindingService` (admin manual bind/unbind) | No |
+| Backend API | New route: `POST /api/v1/users/{id}/bind-employee` | No |
+| Frontend | UI changes in Settings + EmployeeAdmin pages | No |
 
-The `refreshInFlight ??= refreshAccessToken().finally(() => { refreshInFlight = null; })`
-pattern is the correct single-flight refresh guard. Many implementations miss this and allow
-two simultaneous 401 responses to each try to refresh, causing one to invalidate the other's
-new token.
+### Feature 2: File Upload Sharing / Approval Mechanism / 文件共享申请机制
 
-The approval state machine in `approval_service.py` (step ordering, `_is_current_step()`
-check, `decision: pending/approved/rejected`) is well-designed. The frontend's
-`ApprovalTable` reads this state and should conditionally render action buttons based on
-whether the current user is the active approver for the current step.
+**What exists:** `ProjectContributor` model with `status` field (`accepted`, `disputed`, `resolved`), `UploadedFile.content_hash` for duplicate detection, `FileService.list_files(include_shared=True)`.
 
-### Gaps and recommended improvements
+**What's needed (stack):** A new `FileShareRequest` SQLAlchemy model to track sharing approval requests (requester, file owner, status, timestamps). This is a lightweight request/approve/reject flow separate from the salary approval workflow.
 
-**1. Role checks are not composable at the component level.**
+| Layer | Change Type | New Library? |
+|-------|-------------|--------------|
+| Backend model | New `FileShareRequest` table (requester_id, owner_id, file_id, status, created_at) | No — SQLAlchemy |
+| Backend service | New `FileShareService` or extend `FileService` | No |
+| Backend API | Routes: `POST /share-request`, `POST /share-request/{id}/approve`, `GET /share-requests` | No — FastAPI |
+| Frontend | Share request dialog, pending request indicator, approval list | No |
 
-Route-level `allowedRoles` prevents navigation to the wrong page. But within a page,
-individual UI elements (buttons, fields, action menus) need their own role checks. Currently
-these are scattered as inline `user.role === 'admin'` conditionals.
+**Architecture note:** Do NOT reuse the `ApprovalRecord` model. That model is specifically for salary recommendation approvals with `recommendation_id` FK and multi-step `step_order` routing. File sharing is a simple single-step request/approve/reject flow — a separate lightweight table is correct.
 
-Introduce a small `usePermission` hook or `<CanDo>` component so permissions are declared
-rather than scattered:
+**Integration:** On approval, create the `ProjectContributor` record that already feeds into evaluation scoring via `EvaluationService._compute_shared_project_score()`.
 
-```typescript
-// hooks/usePermission.ts
-export function usePermission(allowedRoles: string[]): boolean {
-  const { user } = useAuth();
-  return isAllowedRole(user, allowedRoles);
-}
+### Feature 3: Menu / Navigation Restructuring / 菜单导航重构
 
-// usage
-const canApprove = usePermission(['admin', 'hrbp', 'manager']);
-```
+**What exists:** `roleAccess.ts` with flat `ROLE_MODULES` dict per role, `AppShell.tsx` sidebar rendering a single flat nav list.
 
-This makes role logic grep-able and testable. `isAllowedRole` is already in `roleAccess.ts`
-so this is a thin wrapper.
+**What's needed (stack):** Pure frontend refactoring. Group nav items into sections (core workflow, data management, settings/admin). No libraries.
 
-**2. Approval state machine is implemented only on the backend.**
+| Layer | Change Type | New Library? |
+|-------|-------------|--------------|
+| Frontend | Restructure `ROLE_MODULES` type to support groups/sections | No |
+| Frontend | Update `AppShell` sidebar to render grouped navigation with section headers | No |
+| Backend | None | No |
 
-The `ApprovalRecord` step ordering logic (`_is_current_step`, `step_order` comparison) lives
-entirely in Python. The frontend fetches the approval records and must re-derive whether the
-current user can act. This can desync if the derivation logic differs.
+**Anti-recommendation:** Do NOT add a UI component library (Ant Design, Headless UI, Radix) for grouped navigation. The existing Tailwind + custom component pattern is consistent; adding a component library mid-project creates style conflicts and bundle size increases for minimal gain.
 
-Two options:
-- Have the API response include a computed `can_act: bool` field per record (server is the
-  single source of truth — preferred for audit integrity).
-- Or have the frontend derive it from `decision === 'pending'` and `approver_id === user.id`
-  and `step_order` ordering. This is fragile if step semantics change.
+### Feature 4: Salary Adjustment Eligibility Engine / 调薪资格校验引擎
 
-Prefer the server-computed approach. Add `can_act: bool` to the approval record response
-schema and compute it in `ApprovalService`.
+**What exists:** `Employee` model (no `hire_date`, no `last_raise_date`, no `performance_rating`), `AttendanceRecord` model (has `leave_days`), `SalaryEngine` and `EvaluationEngine` (pure computation classes, no I/O).
 
-**3. Optimistic updates are not used for approval actions.**
+**What's needed (stack):** This is the most model-heavy feature. The Employee model needs 3 new nullable columns. A new `EligibilityEngine` (pure computation, no I/O) implements the 4 rules. An Alembic migration adds the columns.
 
-When a manager approves or rejects, the UI waits for the server round-trip before updating
-the approval list. For a simple status toggle (pending → approved), optimistic update is
-appropriate: update the local state immediately, then confirm with the server, roll back on
-error.
+**Rule-to-data mapping:**
 
-Use a local `useState` or TanStack Query's `useMutation` with `onMutate`/`onError` for this.
-TanStack Query is not currently in the codebase (plain `axios` + manual `useState` is used).
-Adding TanStack Query is recommended as a targeted improvement for data-heavy pages like the
-approval list and evaluation list.
+| Rule | Data Source | Model Change Required |
+|------|-------------|----------------------|
+| Tenure >= 6 months | `Employee.hire_date` | **Add `hire_date: Mapped[date \| None]`** |
+| Last raise >= 6 months ago | `Employee.last_raise_date` | **Add `last_raise_date: Mapped[date \| None]`** |
+| Performance not C-below | `Employee.performance_rating` | **Add `performance_rating: Mapped[str \| None]`** |
+| Leave <= 30 days (trailing 12mo) | `AttendanceRecord.leave_days` (aggregate query) | **Already exists** — no model change |
 
-**4. The `useAuth` bootstrap sequence has a silent failure mode.**
+| Layer | Change Type | New Library? |
+|-------|-------------|--------------|
+| Backend model | 3 new nullable columns on `Employee` | No — SQLAlchemy |
+| Backend migration | Alembic `op.add_column()` x3 | No — Alembic already installed |
+| Backend engine | New `EligibilityEngine` class (pure computation) | No |
+| Backend service | New `EligibilityService` (DB lookups + engine invocation) | No |
+| Backend API | `GET /api/v1/employees/{id}/eligibility` | No — FastAPI |
+| Frontend | Eligibility badge/panel on employee detail (HR/manager only) | No |
+| Data import | Extend `ImportService` column mapping for new fields | No — pandas already handles dates |
 
-On app mount, if both the `fetchCurrentUser` call and the `refreshRequest` call fail, the
-user is silently logged out via `clearAuthStorage()`. The user sees nothing — they are just
-redirected to `/login`. This is acceptable UX but should log the failure reason for debugging
-(e.g., network down vs. expired refresh token). Consider adding a brief error toast before
-redirecting in the catch-all fallback.
+**Exception mechanism:** Add a lightweight `EligibilityOverride` table (or `override_reason` + `overridden_by` fields on a new model) so HR can grant exceptions per employee. A dedicated table is cleaner than flags on `SalaryRecommendation`.
 
-**5. Token storage in `localStorage` is an XSS risk.**
+**Architecture:** `EligibilityEngine` MUST follow the same pattern as `EvaluationEngine` and `SalaryEngine` — a pure computation class with no database access, receiving all data as method parameters, returning a structured result. This keeps it unit-testable without mocking.
 
-Access and refresh tokens in `localStorage` are readable by any JavaScript on the page. For
-an internal HR tool handling salary data, consider `httpOnly` cookie storage for refresh
-tokens (the backend sets the cookie; the frontend never touches it). The access token can
-remain in memory (React state) since it is short-lived. This is a security hardening concern,
-not a blocking issue.
+**Nullable column rationale:** All 3 new Employee columns are nullable because existing records lack this data. The engine should treat missing data as "ineligible" with a clear reason string (e.g., `"hire_date not recorded — cannot verify tenure"`).
 
-**Confidence: HIGH for observed patterns (code inspection). MEDIUM for optimistic update
-and permission hook recommendations (industry practice, not verified against a specific lib
-version).**
+### Feature 5: Salary Recommendation Display Simplification / 调薪建议展示精简
+
+**What exists:** `EvaluationDetail.tsx` renders salary recommendation data inline with all fields visible.
+
+**What's needed (stack):** Pure frontend. Collapsible sections using native HTML `<details>/<summary>` or a simple `useState` toggle.
+
+| Layer | Change Type | New Library? |
+|-------|-------------|--------------|
+| Frontend | Refactor salary display: summary (key metrics) + collapsible detail sections | No |
+| Backend | None | No |
+
+**Anti-recommendation:** Do NOT add an accordion library. `<details>/<summary>` is native HTML with zero JS cost. If custom animation is needed, a 10-line component with `useState` + CSS `max-height` transition is sufficient.
 
 ---
 
-## 4. File Parsing Pipeline Patterns
+## Current Stack (Unchanged for v1.1)
 
-### Current state (observed in codebase)
+### Backend
 
-Four parsers exist:
+| Technology | Version | Status |
+|------------|---------|--------|
+| FastAPI | 0.115.0 | Unchanged |
+| SQLAlchemy | 2.0.36 | Unchanged |
+| Alembic | 1.14.0 | Unchanged (will add new migration) |
+| Pydantic | 2.10.3 | Unchanged |
+| pydantic-settings | 2.6.1 | Unchanged |
+| Python | 3.11+ | Unchanged |
+| pandas | 2.2.3 | Unchanged (import extensions) |
+| slowapi | 0.1.9 | Unchanged |
 
-| Parser | Extensions | Extraction method |
-|--------|-----------|-------------------|
-| `DocumentParser` | `.pdf`, `.md`, `.txt`, `.docx` | `pypdf` for PDF; ZIP+ElementTree for DOCX; raw read for text |
-| `PPTParser` | `.pptx` | `python-pptx` shape text iteration |
-| `ImageParser` | `.png`, `.jpg`, `.jpeg` | Pillow metadata only — no OCR |
-| `CodeParser` | (inferred from glob) | Raw text read |
+### Frontend
 
-All parsers return a `ParsedDocument(text, title, metadata)` dataclass and derive from
-`BaseParser`. The dispatch pattern (check `can_parse(path)` → call `parse()`) is clean and
-extensible.
-
-`parse_service.py` and `evidence_service.py` sit between the parsers and the LLM service.
-The LLM receives the first 3500 characters of `parsed.text` for evidence extraction, and
-up to 8000 for handbook parsing.
-
-### What works well
-
-The `BaseParser` interface is minimal and correct. Adding a new file type means one new
-class and no changes to the dispatch layer. The character-limit truncation before LLM
-submission is important for cost and latency control.
-
-The metadata dict is thread-safe since all parsers create new dicts per call. No shared
-mutable state exists in the parser layer.
-
-### Gaps and recommended improvements
-
-**1. Image parsing has no content extraction (placeholder only).**
-
-`ImageParser.parse()` returns a placeholder string: "OCR is reserved for a later task."
-Any image evidence (screenshots of dashboards, certificates, code output) is submitted to
-the LLM with only dimensions and color mode, which provides no evaluable content.
-
-For production image parsing, two approaches:
-
-Option A — Embed images in the LLM call directly (multimodal). DeepSeek-V3 supports vision
-via base64-encoded images in message content. This is the most direct path and avoids adding
-an OCR dependency. The `ImageParser` would encode the image to base64 and return it in
-`metadata['base64']`; the prompt builder in `llm_service.py` would include it as an image
-message part.
-
-Option B — Add a lightweight OCR library. `pytesseract` (wraps Tesseract) or
-`easyocr` (pure Python, no system deps) can extract text from images without a separate
-service. Tesseract requires a system binary; EasyOCR is pip-installable but ~1GB of model
-weights. For a self-hosted enterprise tool, Tesseract is the more practical choice.
-
-Neither option is installed in `requirements.txt` yet. This is a gap in the evaluation
-quality for image-heavy submissions.
-
-**2. PDF extraction with `pypdf` misses layout-heavy PDFs.**
-
-`pypdf` (formerly PyPDF2) does simple text layer extraction. PDFs generated from PowerPoint
-exports or scanned documents often have no extractable text layer, or the text is fragmented
-by the PDF layout engine. `pypdf.PdfReader.extract_text()` will return empty or
-garbage-structured text for these.
-
-For better PDF extraction, `pymupdf4llm` (open source, published by Artifex) produces clean
-markdown output from PDFs including layout, headers, and tables. It applies OCR selectively
-only on pages without a text layer. This is the highest-quality freely available PDF
-extraction library as of 2025.
-
-Add: `pip install pymupdf4llm`
-
-The `DocumentParser.parse()` for `.pdf` can be replaced with:
-```python
-import pymupdf4llm
-text = pymupdf4llm.to_markdown(str(path))
-```
-This is a drop-in replacement at the parser level with no interface changes.
-
-**3. PPT parser does not extract notes or image alt text.**
-
-`PPTParser` iterates `slide.shapes` and extracts `shape.text`. Speaker notes
-(`slide.notes_slide.notes_text_frame.text`) and image alt text (`shape.name`,
-`shape.title`) are skipped. Speaker notes often contain the most substantive content
-in employee achievement presentations. Add notes extraction:
-
-```python
-for slide in presentation.slides:
-    if slide.has_notes_slide:
-        notes_text = slide.notes_slide.notes_text_frame.text
-        if notes_text.strip():
-            chunks.append(f"[Notes] {notes_text.strip()}")
-```
-
-**4. DOCX parser uses raw XML tag matching, not the `python-docx` library.**
-
-The current DOCX implementation reads `word/document.xml` directly and finds elements
-ending in `}t` (the Word XML `<w:t>` tag). This is fragile against OOXML schema variations
-and misses: table cell text, text boxes, and headers/footers. `python-docx` (already a
-transitive dependency of `python-pptx`) handles all these correctly.
-
-Replace with:
-```python
-from docx import Document
-doc = Document(str(path))
-text = '\n'.join(para.text for para in doc.paragraphs if para.text.strip())
-```
-
-**5. Text truncation at 3500 chars may lose critical content for long documents.**
-
-The current LLM call uses `parsed.text[:3500]`. For a 40-slide PPTX with 2000 chars per
-slide, only the first 1-2 slides are evaluated. A better approach: extract top-N text
-chunks by density (number of non-whitespace characters per shape/paragraph), then
-concatenate the highest-density chunks up to the token budget.
-
-For PPT: rank slides by text density and take the top 5-8 rather than the first 3500 chars.
-
-**Confidence: HIGH for observed gaps (code inspection). MEDIUM for pymupdf4llm
-recommendation (official docs + 2025 community consensus). MEDIUM for DeepSeek vision
-approach (official docs confirm multimodal support for V3 but exact API shape should be
-verified before implementing).**
+| Technology | Version | Status |
+|------------|---------|--------|
+| React | 18.3.1 | Unchanged |
+| React Router DOM | 7.6.0 | Unchanged |
+| TypeScript | 5.8.3 | Unchanged |
+| Tailwind CSS | 3.4.17 | Unchanged |
+| Vite | 6.2.6 | Unchanged |
+| Axios | 1.8.4 | Unchanged |
+| ECharts | 6.0.0 | Unchanged |
 
 ---
 
-## 5. JWT Security Hardening
+## What NOT to Add (and Why)
 
-### Current state (observed in codebase)
-
-- Algorithm: `HS256` with a shared secret from `Settings.jwt_secret_key`.
-- Access token expiry: 30 minutes (configurable via `jwt_access_token_expire_minutes`).
-- Refresh token expiry: 7 days (configurable via `jwt_refresh_token_expire_days`).
-- Password hashing: `pbkdf2_sha256` via `passlib` — correct, bcrypt would also be
-  acceptable.
-- Token types (`type: "access"` / `type: "refresh"`) are checked in `decode_token()` via
-  `expected_type` parameter — prevents access tokens from being used as refresh tokens.
-- `jwt_secret_key` has a minimum length of 8 characters enforced by Pydantic `Field(min_length=8)`.
-  This is too short. A 256-bit (32-byte) random secret is the minimum for HS256 security.
-- `python-jose` is used for JWT encoding/decoding.
-- No rate limiting on `/auth/login` or `/auth/refresh`.
-- Refresh tokens are not stored server-side; there is no revocation mechanism.
-- The default `jwt_secret_key` is `"change_me"` — the `_is_configured()` check in
-  `llm_service.py` rejects placeholder keys, but no equivalent check exists for the JWT
-  secret. A deployment with the default key will silently issue valid tokens.
-
-### Hardening recommendations (priority order)
-
-**1. Enforce a strong JWT secret at startup (CRITICAL).**
-
-Add a startup validation in `create_app()` or the `lifespan` handler:
-
-```python
-import secrets
-if len(settings.jwt_secret_key) < 32 or settings.jwt_secret_key == "change_me":
-    raise RuntimeError(
-        "jwt_secret_key must be at least 32 characters and not the default value. "
-        "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
-    )
-```
-
-**2. Add rate limiting to auth endpoints.**
-
-`slowapi` (0.1.x) is the standard rate limiting library for FastAPI/Starlette. It mirrors
-`flask-limiter`'s API and supports Redis for distributed state.
-
-Install: `pip install slowapi`
-
-Apply limits:
-- `POST /auth/login`: 10 requests per minute per IP
-- `POST /auth/refresh`: 20 requests per minute per IP
-- `POST /auth/register`: 5 requests per minute per IP (if enabled)
-
-With Redis already in `requirements.txt`, use Redis as the storage backend for rate
-limiting so limits work correctly under multiple Uvicorn workers. In-memory storage
-(the slowapi default) has the same multi-worker problem as the in-memory DeepSeek
-rate limiter.
-
-**3. Implement refresh token rotation.**
-
-Currently `/auth/refresh` issues a new access token and a new refresh token but does not
-invalidate the old refresh token. If a refresh token is stolen, an attacker can use it
-indefinitely until it expires (7 days).
-
-Refresh token rotation with a short-lived token jti (JWT ID) and a server-side blocklist
-(Redis set of revoked jtis with TTL equal to the refresh token expiry) is the standard
-approach. When `/auth/refresh` is called:
-
-1. Decode the incoming refresh token, verify its `jti` is not in the revoked set.
-2. Add the incoming `jti` to the revoked set with a TTL of 7 days.
-3. Issue a new access token and a new refresh token with a new `jti`.
-4. If the revoked set already contains the incoming `jti`, treat it as a replay attack:
-   revoke all tokens for that user (set a per-user revocation timestamp in Redis).
-
-**4. Add a per-user token revocation timestamp for logout.**
-
-Stateless JWTs cannot be immediately revoked on logout because they are valid until
-expiry. A Redis key of `token_revoked_before:{user_id}` set to `now()` on logout means
-`decode_token()` can check whether the token's `iat` (issued-at) claim predates the
-revocation timestamp. If it does, reject the token. This makes logout effective within
-the access token TTL.
-
-**5. Increase minimum secret key length validation.**
-
-Change the Pydantic field validator from `min_length=8` to `min_length=32`. Enforce
-this separately from the startup check so it catches misconfiguration at settings load
-time rather than only at application start.
-
-**6. Consider switching from HS256 to RS256 for the public API key path.**
-
-The `/api/v1/public/` endpoints use a static `X-API-Key` header compared against
-`settings.public_api_key`. This is a shared secret approach with no expiry. For the
-external API surface, issue short-lived signed tokens with RS256 so the public key can
-be distributed without exposing the signing key. This is a longer-term improvement;
-the current `X-API-Key` approach is acceptable for internal enterprise deployment.
-
-**7. `python-jose` vs `PyJWT` note.**
-
-`python-jose` is in maintenance mode as of 2024 (the primary maintainer has reduced
-activity). `PyJWT` (maintained by jpadilla) is the more actively maintained alternative.
-Both support HS256 and RS256. Migration is straightforward since both libraries share
-similar encode/decode API shapes. This is a low-priority improvement but worth tracking.
-
-**Confidence: HIGH for secret length and startup validation (security first principles,
-verified in config code). HIGH for slowapi recommendation (official GitHub, actively
-maintained). MEDIUM for refresh token rotation pattern (industry standard, not yet
-verified against this exact version of jose). LOW for RS256 migration (training data only,
-verify PyJWT docs before implementing).**
+| Temptation | Why Not |
+|------------|---------|
+| React Query / TanStack Query | The app uses direct `useEffect` + `useState` fetch pattern consistently across 18+ pages. Adding a caching/state layer for 5 incremental features creates inconsistency. Defer to a dedicated DX improvement milestone. |
+| Ant Design / Headless UI / Radix | Menu restructuring and collapsible sections are standard HTML/CSS/React. Adding a component library mid-project creates dual styling systems. |
+| Notification library (react-toastify) | File share requests use the existing inline feedback pattern. An in-app notification center is not in v1.1 scope. |
+| State management (Redux, Zustand) | The app uses Context + local state. None of the 5 features add cross-cutting state. |
+| WebSocket / SSE | File share notifications can be pull-based (check on page load). Real-time push is out of scope. |
+| Form library (React Hook Form) | No complex multi-step forms are being added. Controlled components with `useState` are sufficient. |
+| Date library (date-fns, dayjs) | Eligibility date math is backend-only (Python `datetime.date`). Frontend only displays dates — ISO string formatting works natively. |
 
 ---
 
-## Recommended Stack Additions
+## Database Migration Required
 
-| Library | Purpose | Priority | Install |
-|---------|---------|----------|---------|
-| `slowapi` | Rate limiting on auth and public API endpoints | HIGH | `pip install slowapi` |
-| `pymupdf4llm` | High-quality PDF to markdown extraction | HIGH | `pip install pymupdf4llm` |
-| `python-docx` | Robust DOCX parsing (replace raw XML approach) | MEDIUM | `pip install python-docx` |
-| `pytesseract` | Image OCR for PNG/JPG evidence files | MEDIUM | `pip install pytesseract` (+ Tesseract binary) |
-| `PyJWT` | Replace `python-jose` (maintenance concern) | LOW | `pip install PyJWT[cryptography]` |
+Single Alembic migration covering all v1.1 model changes:
 
-## Alternatives Considered
+```python
+# Employee table extensions
+op.add_column('employees', sa.Column('hire_date', sa.Date(), nullable=True))
+op.add_column('employees', sa.Column('last_raise_date', sa.Date(), nullable=True))
+op.add_column('employees', sa.Column('performance_rating', sa.String(16), nullable=True))
 
-| Category | Recommended | Alternative | Why Not |
-|----------|-------------|-------------|---------|
-| DB session mode | Keep sync SQLAlchemy | Migrate to AsyncSession | High migration cost, marginal benefit for internal HR tool scale |
-| PDF extraction | `pymupdf4llm` | `pdfplumber`, `pdfminer.six` | `pymupdf4llm` produces markdown output tuned for LLM input; others return fragmented text |
-| Image OCR | `pytesseract` | `easyocr` | Tesseract is lighter; EasyOCR downloads ~1GB of model weights at install |
-| Rate limiting | `slowapi` + Redis | In-memory custom limiter | Existing in-memory rate limiter breaks under multi-worker deployment |
-| JWT secret storage | Environment variable via `.env` | AWS Secrets Manager / Vault | Vault integration is out of scope for current maturity; `.env` + strong secret length is sufficient |
+# File share requests (new table)
+op.create_table(
+    'file_share_requests',
+    sa.Column('id', sa.String(36), primary_key=True),
+    sa.Column('file_id', sa.String(36), sa.ForeignKey('uploaded_files.id'), nullable=False),
+    sa.Column('requester_submission_id', sa.String(36), sa.ForeignKey('employee_submissions.id'), nullable=False),
+    sa.Column('owner_submission_id', sa.String(36), sa.ForeignKey('employee_submissions.id'), nullable=False),
+    sa.Column('status', sa.String(32), nullable=False, default='pending'),
+    sa.Column('contribution_pct', sa.Float(), nullable=False),
+    sa.Column('message', sa.Text(), nullable=True),
+    sa.Column('responded_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+)
+
+# Eligibility overrides (new table)
+op.create_table(
+    'eligibility_overrides',
+    sa.Column('id', sa.String(36), primary_key=True),
+    sa.Column('employee_id', sa.String(36), sa.ForeignKey('employees.id'), nullable=False),
+    sa.Column('cycle_id', sa.String(36), sa.ForeignKey('evaluation_cycles.id'), nullable=False),
+    sa.Column('rule_code', sa.String(64), nullable=False),
+    sa.Column('reason', sa.Text(), nullable=False),
+    sa.Column('approved_by', sa.String(36), sa.ForeignKey('users.id'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
+)
+```
+
+---
+
+## Integration Points Summary
+
+| New Feature | Integrates With | How |
+|-------------|----------------|-----|
+| Binding hardening | `IdentityBindingService`, `User` model, Settings page | Extends existing service + adds UI entry points |
+| File sharing | `ProjectContributor`, `FileService`, `EvaluationService` | Approval creates `ProjectContributor` record that feeds scoring |
+| Menu restructuring | `roleAccess.ts`, `AppShell.tsx` | Refactors existing flat nav into grouped sections |
+| Eligibility engine | `Employee`, `AttendanceRecord`, `SalaryEngine` | New engine runs before salary calculation; blocks ineligible employees |
+| Display simplification | `EvaluationDetail.tsx` | Pure UI refactor, no API changes |
+
+---
+
+## Confidence Assessment
+
+| Area | Confidence | Rationale |
+|------|------------|-----------|
+| No new backend libraries | HIGH | All 5 features use existing patterns verified in codebase (SQLAlchemy, FastAPI routes, pure engine classes) |
+| No new frontend libraries | HIGH | Navigation grouping and collapsible sections are standard HTML/CSS/React — verified by examining current component patterns |
+| Employee model changes | HIGH | SQLAlchemy `Mapped` + Alembic migration is established in codebase (4 existing migrations, `compare_type=True` in env.py) |
+| Eligibility engine pattern | HIGH | Direct analog to existing `EvaluationEngine` and `SalaryEngine` pure-computation classes |
+| File share request model | HIGH | Simple status-machine table; mirrors existing `ProjectContributor` lifecycle but with explicit request/approve flow |
 
 ## Sources
 
-- DeepSeek JSON mode documentation: https://api-docs.deepseek.com/guides/json_mode
-- SlowAPI GitHub (laurentS/slowapi): https://github.com/laurentS/slowapi
-- Alembic autogenerate docs: https://alembic.sqlalchemy.org/en/latest/autogenerate.html
-- PyMuPDF4LLM documentation: https://pymupdf.readthedocs.io/en/latest/pymupdf4llm/
-- FastAPI SQL Databases tutorial: https://fastapi.tiangolo.com/tutorial/sql-databases/
-- FastAPI JWT auth 2025 guide: https://craftyourstartup.com/cys-docs/jwt-authentication-in-fastapi-guide/
-- React RBAC with react-admin: https://marmelab.com/react-admin/AuthRBAC.html
-- Alembic brownfield migrations: https://medium.com/@megablazikenabhishek/initialize-alembic-migrations-on-existing-database-for-auto-generated-migrations-zero-state-31ee93632ed1
+- Direct codebase inspection: all models, services, engines, frontend components referenced above
+- Existing `.planning/PROJECT.md` for milestone scope confirmation
+- `requirements.txt` and `frontend/package.json` for current dependency inventory
