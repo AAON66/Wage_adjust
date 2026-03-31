@@ -43,7 +43,9 @@
   1. 侧边栏菜单项按功能类别分组展示（如运营管理、系统设置、数据分析），而非扁平列表
   2. 用户可折叠/展开分组，刷新页面后保持上次的展开状态
   3. admin 角色可见全部分组和菜单项，employee 角色仅可见与自身相关的分组和菜单项
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 **UI hint**: yes
 
 ### Phase 12: Account-Employee Binding
@@ -54,7 +56,9 @@
   1. 管理员可在用户管理页面选择一个用户和一个员工进行绑定，也可解除已有绑定
   2. 员工可在个人设置页面输入身份证号完成自助绑定
   3. 当目标员工已被其他账号绑定时，绑定操作被阻止并提示当前绑定方信息
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 **UI hint**: yes
 
 ### Phase 13: Eligibility Engine & Data Layer
@@ -67,7 +71,9 @@
   3. 系统自动判定员工年度绩效是否为 C 级及以下，是则标记"不合格"
   4. 系统自动判定员工年度非法定假期是否超过 30 天，超过则标记"不合格"
   5. 当某条规则所需数据未导入时，该条规则状态显示"数据缺失"而非直接判定不合格
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 
 ### Phase 14: Eligibility Visibility & Overrides
 **Goal**: 调薪资格校验结果仅对 HR/主管/管理端可见，HR 可批量查看资格状态，不合格员工可提交特殊申请
@@ -77,7 +83,9 @@
   1. 员工登录后看不到任何调薪资格信息，HR/主管/管理员可以看到
   2. HR 可按部门或全公司维度批量查看员工调薪资格状态列表
   3. 部门可为不合格但有特殊情况的员工提交特殊申请，经 HR 和管理层审批后覆盖资格判定
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 **UI hint**: yes
 
 ### Phase 15: Multimodal Vision Evaluation
@@ -89,7 +97,9 @@
   2. 独立上传的 PNG/JPG 图片通过视觉模型进行作品质量评估
   3. 视觉评估结果以结构化 JSON 输出（图片描述、质量评级、维度关联度），并纳入整体评分计算
   4. 一次提交中多个图片文件可批量处理，单个文件失败不影响其余文件的评估
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 
 ### Phase 16: File Sharing Workflow
 **Goal**: 上传与他人重复的文件时系统警告但允许继续，并自动发起共享申请，原上传者可审批/拒绝并协商贡献比例
@@ -101,7 +111,9 @@
   3. 原始上传者可在通知列表中看到共享申请，并可审批或拒绝
   4. 审批共享申请时可修改贡献比例字段
   5. 共享申请超过 72 小时未处理自动标记为超时状态
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 **UI hint**: yes
 
 ### Phase 17: Salary Display Simplification
@@ -112,7 +124,9 @@
   1. 调薪建议页面默认仅展示关键摘要（考勤概况 + 调薪资格状态 + AI 评分），不显示全部详情
   2. 用户点击展开按钮后可查看维度明细、评分解释、调薪计算过程等详细数据
   3. 调薪资格以徽章形式展示（合格/不合格/数据缺失），点击可展开查看 4 条规则的逐条判定结果
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 **UI hint**: yes
 
 ## Progress
@@ -132,7 +146,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 8. Employee Self-Service | v1.0 | 2/2 | Complete | 2026-03-31 |
 | 9. Feishu Attendance | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
-| 11. Menu & Navigation | v1.1 | 0/TBD | Not started | - |
+| 11. Menu & Navigation | v1.1 | 0/1 | Not started | - |
 | 12. Account Binding | v1.1 | 0/TBD | Not started | - |
 | 13. Eligibility Engine | v1.1 | 0/TBD | Not started | - |
 | 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
