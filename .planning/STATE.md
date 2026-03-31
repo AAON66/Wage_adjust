@@ -1,30 +1,32 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Ready to plan
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-03-30T11:58:43.498Z"
+milestone: v1.1
+milestone_name: 体验优化与业务规则完善
+status: Defining requirements
+stopped_at: null
+last_updated: "2026-03-31T09:30:00.000Z"
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 33
-  completed_plans: 35
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-25)
+See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable
-**Current focus:** Phase 10 — external-api-hardening
+**Current focus:** Milestone v1.1 — 体验优化与业务规则完善
 
 ## Current Position
 
-Phase: 10
-Plan: 02 (completed)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-31 — Milestone v1.1 started
 
 ## Performance Metrics
 

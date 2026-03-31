@@ -1,7 +1,18 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active development — Phase 3 complete (2026-03-27)
+**Status:** Active development — Milestone v1.1 (2026-03-31)
+
+## Current Milestone: v1.1 体验优化与业务规则完善
+
+**Goal:** 完善账号绑定、文件上传共享机制、菜单结构、调薪资格校验和调薪建议展示，提升 HR 和管理层的操作效率与决策质量。
+
+**Target features:**
+- 账号-员工信息绑定加固（绑定入口、管理位置）
+- 文件上传共享申请机制重构（重复允许上传+警告、向原上传者发起共享申请）
+- 菜单与导航重构（功能归类分组、设置类集中）
+- 调薪资格校验引擎（4 条规则自动判定、仅 HR/主管/管理端可见、特殊例外申请、缺失数据导入通道）
+- 调薪建议展示精简（默认关键信息、详细数据可展开）
 
 ---
 
@@ -132,3 +143,7 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 - Batch import works reliably with clear error reporting
 - No HIGH security vulnerabilities in production path
 - External HR system can pull approved salary recommendations via public API
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
