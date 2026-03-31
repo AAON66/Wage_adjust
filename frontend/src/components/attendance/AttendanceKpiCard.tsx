@@ -124,6 +124,7 @@ export function AttendanceKpiCard({ employeeId, period }: AttendanceKpiCardProps
     { label: '加班时长', value: formatHours(data?.overtime_hours ?? null), ariaLabel: `加班时长 ${formatHours(data?.overtime_hours ?? null)}` },
     { label: '迟到次数', value: formatCount(data?.late_count ?? null), ariaLabel: `迟到次数 ${formatCount(data?.late_count ?? null)}` },
     { label: '早退次数', value: formatCount(data?.early_leave_count ?? null), ariaLabel: `早退次数 ${formatCount(data?.early_leave_count ?? null)}` },
+    { label: '请假天数', value: formatDays(data?.leave_days ?? null), ariaLabel: `请假天数 ${formatDays(data?.leave_days ?? null)}` },
   ];
 
   return (

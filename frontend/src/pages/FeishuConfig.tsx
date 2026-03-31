@@ -49,6 +49,7 @@ const DEFAULT_FIELD_MAPPINGS: FieldMappingItem[] = [
   { feishu_field: '', system_field: 'overtime_hours' },
   { feishu_field: '', system_field: 'late_count' },
   { feishu_field: '', system_field: 'early_leave_count' },
+  { feishu_field: '', system_field: 'leave_days' },
 ];
 
 interface FormErrors {

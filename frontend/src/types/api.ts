@@ -741,6 +741,7 @@ export interface AttendanceSummaryRead {
   overtime_hours: number | null;
   late_count: number | null;
   early_leave_count: number | null;
+  leave_days: number | null;
   data_as_of: string;
 }
 

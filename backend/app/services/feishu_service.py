@@ -192,7 +192,7 @@ class FeishuService:
 
             # 类型强制转换
             try:
-                if system_name in ('attendance_rate', 'absence_days', 'overtime_hours'):
+                if system_name in ('attendance_rate', 'absence_days', 'overtime_hours', 'leave_days'):
                     # 处理百分号：'80%' -> 80.0
                     str_val = str(value).strip().rstrip('%')
                     value = float(str_val)
@@ -331,6 +331,7 @@ class FeishuService:
                         existing.overtime_hours = record.get('overtime_hours')
                         existing.late_count = record.get('late_count')
                         existing.early_leave_count = record.get('early_leave_count')
+                        existing.leave_days = record.get('leave_days')
                         existing.feishu_record_id = feishu_record_id
                         existing.source_modified_at = source_modified_at
                         existing.data_as_of = data_as_of
@@ -346,6 +347,7 @@ class FeishuService:
                             overtime_hours=record.get('overtime_hours'),
                             late_count=record.get('late_count'),
                             early_leave_count=record.get('early_leave_count'),
+                            leave_days=record.get('leave_days'),
                             feishu_record_id=feishu_record_id,
                             source_modified_at=source_modified_at,
                             data_as_of=data_as_of,

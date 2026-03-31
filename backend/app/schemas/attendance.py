@@ -18,6 +18,7 @@ class AttendanceRecordRead(BaseModel):
     overtime_hours: float | None
     late_count: int | None
     early_leave_count: int | None
+    leave_days: float | None
     data_as_of: datetime
     synced_at: datetime
 
@@ -32,4 +33,5 @@ class AttendanceSummaryRead(BaseModel):
     overtime_hours: float | None
     late_count: int | None
     early_leave_count: int | None
+    leave_days: float | None
     data_as_of: datetime
