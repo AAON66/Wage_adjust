@@ -1,20 +1,14 @@
 # Roadmap: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
-## Overview
+## Milestones
 
-This is a brownfield hardening roadmap. The architecture is sound — FastAPI + React layered monolith
-with evaluation engine, salary engine, approval workflow, and role-based access all structurally
-present. The work is fixing, completing, and securing what exists so HR can run a full salary review
-cycle end-to-end: employee evidence submission → AI evaluation → approval → export. Phases are ordered
-by production risk first (security, schema integrity), then evaluation correctness (the core value),
-then workflow completion (approval, audit, import), then new feature delivery (deduplication,
-attendance, external API). Nothing is built from scratch — everything lands on existing scaffolding.
+- ✅ **v1.0 MVP** - Phases 1-10 (shipped 2026-03-30)
+- 🚧 **v1.1 体验优化与业务规则完善** - Phases 11-17 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, ...): Planned milestone work
-- Decimal phases (1.1, 2.1, ...): Urgent insertions (marked INSERTED)
+<details>
+<summary>v1.0 MVP (Phases 1-10) - SHIPPED 2026-03-30</summary>
 
 - [x] **Phase 1: Security Hardening and Schema Integrity** - Fix production-blocking security vulnerabilities and establish Alembic as the sole migration path (completed 2026-03-26)
 - [x] **Phase 2: Evaluation Pipeline Integrity** - Make AI evaluations trustworthy, explainable, and auditable end-to-end (completed 2026-03-31)
@@ -27,190 +21,121 @@ attendance, external API). Nothing is built from scratch — everything lands on
 - [x] **Phase 9: Feishu Attendance Integration** - Sync attendance data from Feishu for use during salary review (completed 2026-03-31)
 - [x] **Phase 10: External API Hardening** - Validate and harden the public REST API for external HR system integration (completed 2026-03-31)
 
+</details>
+
+### v1.1 体验优化与业务规则完善
+
+- [ ] **Phase 11: Menu & Navigation Restructuring** - 侧边栏按功能分组、折叠记忆、角色权限过滤
+- [ ] **Phase 12: Account-Employee Binding** - 管理员手动绑定/解绑、员工自助绑定、冲突检测
+- [ ] **Phase 13: Eligibility Engine & Data Layer** - 调薪资格 4 条规则引擎、数据缺失处理、三通道导入
+- [ ] **Phase 14: Eligibility Visibility & Overrides** - 资格结果权限控制、批量查看、特殊申请审批
+- [ ] **Phase 15: Multimodal Vision Evaluation** - PPT 图片提取视觉评估、独立图片评估、结构化输出
+- [ ] **Phase 16: File Sharing Workflow** - 重复上传警告、共享申请、审批/拒绝、贡献比例、超时标记
+- [ ] **Phase 17: Salary Display Simplification** - 调薪建议摘要优先、展开详情、资格徽章集成
+
 ## Phase Details
 
-### Phase 1: Security Hardening and Schema Integrity
-**Goal**: The system can be safely deployed to a production environment without cryptographic, PII, or schema integrity risks
-**Depends on**: Nothing (first phase)
-**Requirements**: SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, SEC-07, SEC-08, DB-01, DB-02, DB-03
+### Phase 11: Menu & Navigation Restructuring
+**Goal**: 用户在侧边栏看到按功能类别分组的菜单，分组可折叠并记住状态，不同角色看到不同的菜单结构
+**Depends on**: Nothing (first phase of v1.1)
+**Requirements**: NAV-01, NAV-02, NAV-03
 **Success Criteria** (what must be TRUE):
-  1. The backend refuses to start in production when JWT secret is the default "change_me" value, printing a clear error
-  2. The login endpoint returns HTTP 429 after 10 failed attempts from the same IP within 15 minutes
-  3. National ID numbers are stored encrypted in the database and masked in API responses for non-admin roles
-  4. Salary adjustment percentages (not absolute figures) are all an employee role can see in their own recommendation responses
-  5. All database schema changes execute exclusively via Alembic migrations — no DDL runs at application startup
-**Plans**: 5 plans
-Plans:
-- [x] 01-01-PLAN.md — Wave 0 test stubs + Alembic migration reset + retire ensure_schema_compatibility()
-- [x] 01-02-PLAN.md — AES-256-GCM national ID encryption, path traversal guard, password complexity
-- [x] 01-03-PLAN.md — slowapi rate limiting (login + public API) and startup configuration guard
-- [x] 01-04-PLAN.md — Role-aware salary response filtering (admin/hrbp vs manager/employee)
-- [x] 01-05-PLAN.md — .env git hygiene, .env.example REQUIRED markers, certification import idempotency
-**UI hint**: no
-
-### Phase 2: Evaluation Pipeline Integrity
-**Goal**: Every AI evaluation result is trustworthy, correctly scored, and clearly labeled as AI-backed or rule-engine fallback
-**Depends on**: Phase 1
-**Requirements**: EVAL-01, EVAL-02, EVAL-03, EVAL-04, EVAL-05, EVAL-06, EVAL-07, EVAL-08
-**Success Criteria** (what must be TRUE):
-  1. The evaluation detail page shows all 5 dimension scores with weights and LLM-provided text explanations — not just the final AI level
-  2. When DeepSeek is unavailable or unconfigured, the UI displays a visible "rule-engine estimate, AI not used" indicator — no silent fallback
-  3. Image files uploaded as evidence produce real extracted text content for LLM evaluation (not the current "OCR reserved" stub)
-  4. Re-running an evaluation on the same submission does not silently inflate scores due to 5-point vs 100-point scale ambiguity
-  5. Each stored dimension score carries the SHA-256 hash of the prompt that produced it, enabling reproducibility audits
-**Plans**: 6 plans
-Plans:
-- [x] 02-01-PLAN.md — Wave 1: Schema migration — prompt_hash on dimension_scores, used_fallback on ai_evaluations (EVAL-05, EVAL-06)
-- [x] 02-02-PLAN.md — Wave 2: LLM service hardening — exponential backoff retry, Redis rate limiter, prompt_hash in DeepSeekCallResult (EVAL-01, EVAL-02, EVAL-05)
-- [x] 02-03-PLAN.md — Wave 2: Image OCR via DeepSeek vision API — clear stub, add extract_image_text, wire through ParseService (EVAL-03)
-- [x] 02-04-PLAN.md — Wave 2: Scale normalization fix, used_fallback + prompt_hash storage wiring, prompt safety extension (EVAL-04, EVAL-07, EVAL-08)
-- [x] 02-05-PLAN.md — Wave 3: Frontend — fallback banner + read-only dimension summary panel in EvaluationDetail (EVAL-06, EVAL-07)
-- [x] 02-06-PLAN.md — Wave 3: Unit tests — 22 tests covering all 8 EVAL requirements, no live API required (EVAL-01 through EVAL-08)
-**UI hint**: yes
-
-### Phase 3: Approval Workflow Correctness
-**Goal**: The approval workflow correctly tracks multi-step decisions without race conditions or lost history, and gives reviewers all the information they need
-**Depends on**: Phase 2
-**Requirements**: APPR-01, APPR-02, APPR-03, APPR-04, APPR-05, APPR-06, APPR-07
-**Success Criteria** (what must be TRUE):
-  1. Two managers approving the same evaluation simultaneously produce exactly one approved decision — concurrent requests do not create duplicates
-  2. When an evaluation is rejected and resubmitted, the full rejection history is preserved and visible alongside the new submission
-  3. The manager approval queue shows pending evaluations filtered by their department, with evaluation dimension scores visible on the same screen
-  4. HR/HRBP can view pending evaluations across all departments and compare adjustment percentages side by side
-  5. Every approval action (approve, reject, return for revision, override) writes an audit log entry in the same transaction
-**Plans**: 3 plans
-Plans:
-- [x] 03-01-PLAN.md — Wave 0 test stubs for APPR-01 through APPR-06 (RED baseline)
-- [x] 03-02-PLAN.md — Alembic migration (generation column), pessimistic lock, history preservation, audit log wiring
-- [x] 03-03-PLAN.md — Dimension scores in approval response schema + Approvals.tsx panel + human smoke test
-**UI hint**: yes
-
-### Phase 4: Audit Log Wiring
-**Goal**: Every score change, salary override, and approval decision produces an immutable audit log entry that administrators can query and export
-**Depends on**: Phase 3
-**Requirements**: AUDIT-01, AUDIT-02, AUDIT-03
-**Success Criteria** (what must be TRUE):
-  1. An administrator can query audit logs by entity, operator, operation type, and date range via the admin UI or API
-  2. When an evaluation score is changed or a salary value is overridden, the audit log entry appears in the same database transaction — there is no window where the change exists without a log entry
-  3. Each audit log entry contains entity type, entity ID, operation type, operator user ID and role, old value, new value, timestamp, and request ID
-**Plans**: 3 plans
-Plans:
-- [x] 04-01-PLAN.md — Wave 0 test stubs for AUDIT-01, AUDIT-02, AUDIT-03 (RED baseline)
-- [x] 04-02-PLAN.md — Alembic migration, RequestIdMiddleware, evaluation/salary service audit wiring
-- [x] 04-03-PLAN.md — AuditService query layer, GET /api/v1/audit/ endpoint, admin AuditLog UI page
-**UI hint**: yes
-
-### Phase 5: Document Deduplication and Multi-Author
-**Goal**: Employees cannot accidentally submit duplicate evidence, and collaborative projects correctly distribute evaluation credit across co-contributors
-**Depends on**: Phase 2
-**Requirements**: SUB-01, SUB-02, SUB-03, SUB-04, SUB-05
-**Success Criteria** (what must be TRUE):
-  1. Uploading a project file that matches an already-uploaded project (same name + file content hash) shows a rejection message referencing the existing record
-  2. An employee can assign co-contributors from the employee list when uploading a project, entering contribution percentages that must sum to 100%
-  3. A co-contributor can see the shared project in their own materials list and upload supplementary files to it
-  4. When AI evaluates a shared project worth 80 points, a contributor with 60% share receives a 48-point effective score for that project
-  5. The approval review screen shows all co-contributors and their contribution percentages for any shared project
-**Plans**: 4 plans
-Plans:
-- [x] 05-01-PLAN.md — Schema migration + ProjectContributor model + UploadedFile extension + RED test stubs (SUB-01..SUB-05)
-- [x] 05-02-PLAN.md — FileService dedup logic + contributor management + API endpoint update (SUB-01, SUB-02, SUB-03)
-- [x] 05-03-PLAN.md — EvaluationService score scaling + ApprovalService contributor display (SUB-04, SUB-05)
-- [x] 05-04-PLAN.md — Frontend: ContributorPicker, dedup UX, approval ContributorTags (SUB-01, SUB-02, SUB-03, SUB-05)
-**UI hint**: yes
-
-### Phase 6: Batch Import Reliability
-**Goal**: HR can reliably import large batches of employee and certification records with clear feedback on exactly which rows succeeded and which failed
-**Depends on**: Phase 4
-**Requirements**: IMP-01, IMP-02, IMP-03, IMP-04, IMP-05, IMP-06
-**Success Criteria** (what must be TRUE):
-  1. A CSV with 10 invalid rows and 90 valid rows results in HTTP 207 with all 10 errors reported and 90 rows committed — the import does not stop at the first error
-  2. Re-importing the same employee file a second time updates existing records rather than creating duplicates
-  3. The import response includes total rows, success count, failure count, and a per-row error message for every failed row
-  4. A GBK-encoded Chinese Excel file imports without garbled characters
-  5. The frontend provides a downloadable Excel template with correct column headers and example rows
-**Plans**: 3 plans
-Plans:
-- [x] 06-01-PLAN.md — Backend: SAVEPOINT partial success, xlsx read/write, 5000-row limit, upsert audit, HTTP 207 (IMP-01..IMP-05)
-- [x] 06-02-PLAN.md — Tests: RED test stubs for all IMP requirements (IMP-01..IMP-06)
-- [x] 06-03-PLAN.md — Frontend: ImportResultPanel, ImportErrorTable, dual-format template download (IMP-02, IMP-03, IMP-06)
-**UI hint**: yes
-
-### Phase 7: Dashboard and Cache Layer
-**Goal**: The dashboard loads quickly with accurate data across all chart types, with role-appropriate data scoping and live pending-approval counts
-**Depends on**: Phase 1, Phase 2, Phase 3
-**Requirements**: DASH-01, DASH-02, DASH-03, DASH-04, DASH-05, DASH-06, DASH-07
-**Success Criteria** (what must be TRUE):
-  1. The dashboard AI level distribution chart shows headcount and percentage for each of the 5 AI levels
-  2. The salary adjustment histogram shows the distribution of recommended adjustment percentages across all evaluated employees
-  3. The approval pipeline status card shows live counts in each workflow state (draft, submitted, manager review, HR review, approved, rejected)
-  4. HR can click a department name to drill down and see that department's level distribution and average adjustment percentage
-  5. The pending-approvals count refreshes every 30 seconds without a full page reload; other charts use Redis cache with TTL-based refresh
-**Plans**: 3 plans
-Plans:
-- [x] 07-01-PLAN.md — 后端 SQL 聚合 + Redis 缓存层 + 新 API 端点 (DASH-01, DASH-02, DASH-05, DASH-07)
-- [x] 07-02-PLAN.md — 前端 ECharts 图表组件 + usePolling hook + API 客户端 (DASH-03, DASH-04)
-- [ ] 07-03-PLAN.md — Dashboard.tsx 重构 + 部门下钻 + KPI 卡片 + 人工验证 (DASH-06, DASH-07)
-**UI hint**: yes
-
-### Phase 8: Employee Self-Service UI
-**Goal**: Employees can independently track where their evaluation stands and view their results once the process completes, without needing to contact HR
-**Depends on**: Phase 2, Phase 3
-**Requirements**: EMP-01, EMP-02, EMP-03
-**Success Criteria** (what must be TRUE):
-  1. An employee logging in sees their current evaluation status and which approval stage it is in (submitted, manager review, HR review, etc.)
-  2. After evaluation is confirmed, the employee can view all 5 dimension scores and the dimension-level explanations for their evaluation
-  3. After approval, the employee sees their salary adjustment percentage — not an absolute salary figure
+  1. 侧边栏菜单项按功能类别分组展示（如运营管理、系统设置、数据分析），而非扁平列表
+  2. 用户可折叠/展开分组，刷新页面后保持上次的展开状态
+  3. admin 角色可见全部分组和菜单项，employee 角色仅可见与自身相关的分组和菜单项
 **Plans**: TBD
 **UI hint**: yes
 
-### Phase 9: Feishu Attendance Integration
-**Goal**: HR reviewers can see an employee's attendance summary alongside salary adjustment decisions, with data synced from Feishu on demand and on schedule
-**Depends on**: Phase 3
-**Requirements**: ATT-01, ATT-02, ATT-03, ATT-04, ATT-05, ATT-06, ATT-07
+### Phase 12: Account-Employee Binding
+**Goal**: 管理员可在后台将用户账号与员工信息绑定/解绑，员工可自助绑定，系统阻止冲突绑定
+**Depends on**: Phase 11 (nav slots for binding pages)
+**Requirements**: BIND-01, BIND-02, BIND-03
 **Success Criteria** (what must be TRUE):
-  1. Clicking "Sync Attendance" in the HR admin panel immediately pulls the latest data from the configured Feishu multi-dimensional table
-  2. The Feishu connection settings (App ID, App Secret, table ID, field mappings) are editable in the admin UI without code changes
-  3. The manual salary adjustment screen shows an attendance summary panel for the employee (attendance rate, absences, overtime, late/early departures) labeled with the data-as-of timestamp
-  4. A scheduled daily sync runs at a configurable time and updates attendance records automatically
-  5. If Feishu sync fails, the admin panel shows the last sync status and error message — the salary adjustment workflow continues unaffected
-**Plans**: 3 plans
-Plans:
-- [x] 09-01-PLAN.md — 数据基础: ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (ATT-01, ATT-04, ATT-06, ATT-07)
-- [x] 09-02-PLAN.md — 服务层: FeishuService + AttendanceService + APScheduler + API 端点 (ATT-01, ATT-02, ATT-03, ATT-05, ATT-06, ATT-07)
-- [x] 09-03-PLAN.md — 前端: 考勤管理页 + 飞书配置页 + SalarySimulator 内嵌 + 路由权限 (ATT-02, ATT-04, ATT-05, ATT-06, ATT-07)
+  1. 管理员可在用户管理页面选择一个用户和一个员工进行绑定，也可解除已有绑定
+  2. 员工可在个人设置页面输入身份证号完成自助绑定
+  3. 当目标员工已被其他账号绑定时，绑定操作被阻止并提示当前绑定方信息
+**Plans**: TBD
 **UI hint**: yes
 
-### Phase 10: External API Hardening
-**Goal**: External HR systems can reliably and securely pull approved salary recommendations via a documented, rate-limited, cursor-paginated public API with per-key management
-**Depends on**: Phase 3, Phase 4
-**Requirements**: API-01, API-02, API-03, API-04, API-05
+### Phase 13: Eligibility Engine & Data Layer
+**Goal**: 系统能基于入职时长、上次调薪间隔、绩效等级、非法定假期天数自动判定员工调薪资格，缺失数据显示为"数据缺失"状态，所需数据支持三种导入通道
+**Depends on**: Phase 11 (nav structure for new pages)
+**Requirements**: ELIG-01, ELIG-02, ELIG-03, ELIG-04, ELIG-08, ELIG-09
 **Success Criteria** (what must be TRUE):
-  1. The public API returns only approved salary recommendations — draft and in-review records are never returned
-  2. An external system can page through all records using cursor-based pagination without missing or duplicating entries across pages
-  3. An admin can create, rotate, and revoke API keys through the admin UI; each key shows name, created date, last used date, and optional expiry
-  4. A revoked or expired API key immediately returns HTTP 401 on the next request
-  5. The OpenAPI documentation at `/docs` accurately reflects all `/api/v1/public/` endpoints with example request and response bodies
-**Plans**: 3 plans
-Plans:
-- [x] 10-01-PLAN.md — 数据基础: ApiKey/Webhook ORM 模型 + Alembic 迁移 + Pydantic Schema + RED 测试桩 (API-01, API-02, API-03, API-04)
-- [x] 10-02-PLAN.md — 服务层: ApiKeyService + WebhookService + 游标分页 + approved-only 过滤 + API 端点加固 (API-01, API-02, API-03, API-04, API-05)
-- [x] 10-03-PLAN.md — 前端: API Key 管理页 + Webhook 管理页 + API 使用指南增强 + 路由注册 (API-03, API-05)
+  1. 系统自动判定员工入职是否满 6 个月，不满则标记该条规则为"不合格"
+  2. 系统自动判定距上次调薪是否满 6 个月（含转正调薪、专项调薪），不满则标记"不合格"
+  3. 系统自动判定员工年度绩效是否为 C 级及以下，是则标记"不合格"
+  4. 系统自动判定员工年度非法定假期是否超过 30 天，超过则标记"不合格"
+  5. 当某条规则所需数据未导入时，该条规则状态显示"数据缺失"而非直接判定不合格
+**Plans**: TBD
+
+### Phase 14: Eligibility Visibility & Overrides
+**Goal**: 调薪资格校验结果仅对 HR/主管/管理端可见，HR 可批量查看资格状态，不合格员工可提交特殊申请
+**Depends on**: Phase 13 (eligibility engine must exist)
+**Requirements**: ELIG-05, ELIG-06, ELIG-07
+**Success Criteria** (what must be TRUE):
+  1. 员工登录后看不到任何调薪资格信息，HR/主管/管理员可以看到
+  2. HR 可按部门或全公司维度批量查看员工调薪资格状态列表
+  3. 部门可为不合格但有特殊情况的员工提交特殊申请，经 HR 和管理层审批后覆盖资格判定
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 15: Multimodal Vision Evaluation
+**Goal**: AI 评估可对 PPT 中提取的图片和独立上传的图片进行视觉内容理解和质量评估，结果纳入整体评分
+**Depends on**: Nothing (independent; builds on existing evaluation pipeline from v1.0 Phase 2)
+**Requirements**: VISION-01, VISION-02, VISION-03, VISION-04
+**Success Criteria** (what must be TRUE):
+  1. PPT 文件中的图片（图表、截图等）被提取后通过视觉模型进行内容理解，而非仅提取文字
+  2. 独立上传的 PNG/JPG 图片通过视觉模型进行作品质量评估
+  3. 视觉评估结果以结构化 JSON 输出（图片描述、质量评级、维度关联度），并纳入整体评分计算
+  4. 一次提交中多个图片文件可批量处理，单个文件失败不影响其余文件的评估
+**Plans**: TBD
+
+### Phase 16: File Sharing Workflow
+**Goal**: 上传与他人重复的文件时系统警告但允许继续，并自动发起共享申请，原上传者可审批/拒绝并协商贡献比例
+**Depends on**: Nothing (independent; modifies existing FileService from v1.0 Phase 5)
+**Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04, SHARE-05
+**Success Criteria** (what must be TRUE):
+  1. 用户上传与他人已有文件相同内容的文件时，系统弹出警告但允许继续上传
+  2. 上传重复文件后，系统自动向原始上传者发起共享申请
+  3. 原始上传者可在通知列表中看到共享申请，并可审批或拒绝
+  4. 审批共享申请时可修改贡献比例字段
+  5. 共享申请超过 72 小时未处理自动标记为超时状态
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 17: Salary Display Simplification
+**Goal**: 调薪建议页面默认展示关键摘要，详细数据通过展开查看，调薪资格以徽章形式直观展示
+**Depends on**: Phase 14 (eligibility badge data)
+**Requirements**: DISP-01, DISP-02, DISP-03
+**Success Criteria** (what must be TRUE):
+  1. 调薪建议页面默认仅展示关键摘要（考勤概况 + 调薪资格状态 + AI 评分），不显示全部详情
+  2. 用户点击展开按钮后可查看维度明细、评分解释、调薪计算过程等详细数据
+  3. 调薪资格以徽章形式展示（合格/不合格/数据缺失），点击可展开查看 4 条规则的逐条判定结果
+**Plans**: TBD
 **UI hint**: yes
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9 → 10
+Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Security Hardening and Schema Integrity | 5/5 | Complete   | 2026-03-26 |
-| 2. Evaluation Pipeline Integrity | 6/6 | Complete   | 2026-03-31 |
-| 3. Approval Workflow Correctness | 1/1 | Complete   | 2026-03-31 |
-| 4. Audit Log Wiring | 3/3 | Complete   | 2026-03-31 |
-| 5. Document Deduplication and Multi-Author | 4/4 | Complete   | 2026-03-31 |
-| 6. Batch Import Reliability | 3/3 | Complete   | 2026-03-31 |
-| 7. Dashboard and Cache Layer | 3/3 | Complete   | 2026-03-31 |
-| 8. Employee Self-Service UI | 2/2 | Complete   | 2026-03-31 |
-| 9. Feishu Attendance Integration | 3/3 | Complete   | 2026-03-31 |
-| 10. External API Hardening | 3/3 | Complete   | 2026-03-31 |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Security Hardening | v1.0 | 5/5 | Complete | 2026-03-26 |
+| 2. Evaluation Pipeline | v1.0 | 6/6 | Complete | 2026-03-31 |
+| 3. Approval Workflow | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 4. Audit Log Wiring | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 5. Document Dedup | v1.0 | 4/4 | Complete | 2026-03-31 |
+| 6. Batch Import | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 7. Dashboard & Cache | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 8. Employee Self-Service | v1.0 | 2/2 | Complete | 2026-03-31 |
+| 9. Feishu Attendance | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
+| 11. Menu & Navigation | v1.1 | 0/TBD | Not started | - |
+| 12. Account Binding | v1.1 | 0/TBD | Not started | - |
+| 13. Eligibility Engine | v1.1 | 0/TBD | Not started | - |
+| 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
+| 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
+| 16. File Sharing | v1.1 | 0/TBD | Not started | - |
+| 17. Display Simplification | v1.1 | 0/TBD | Not started | - |

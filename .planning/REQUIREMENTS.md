@@ -73,9 +73,30 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BIND-01..03 | TBD | Pending |
-| SHARE-01..05 | TBD | Pending |
-| NAV-01..03 | TBD | Pending |
-| ELIG-01..09 | TBD | Pending |
-| VISION-01..04 | TBD | Pending |
-| DISP-01..03 | TBD | Pending |
+| NAV-01 | Phase 11 | Pending |
+| NAV-02 | Phase 11 | Pending |
+| NAV-03 | Phase 11 | Pending |
+| BIND-01 | Phase 12 | Pending |
+| BIND-02 | Phase 12 | Pending |
+| BIND-03 | Phase 12 | Pending |
+| ELIG-01 | Phase 13 | Pending |
+| ELIG-02 | Phase 13 | Pending |
+| ELIG-03 | Phase 13 | Pending |
+| ELIG-04 | Phase 13 | Pending |
+| ELIG-08 | Phase 13 | Pending |
+| ELIG-09 | Phase 13 | Pending |
+| ELIG-05 | Phase 14 | Pending |
+| ELIG-06 | Phase 14 | Pending |
+| ELIG-07 | Phase 14 | Pending |
+| VISION-01 | Phase 15 | Pending |
+| VISION-02 | Phase 15 | Pending |
+| VISION-03 | Phase 15 | Pending |
+| VISION-04 | Phase 15 | Pending |
+| SHARE-01 | Phase 16 | Pending |
+| SHARE-02 | Phase 16 | Pending |
+| SHARE-03 | Phase 16 | Pending |
+| SHARE-04 | Phase 16 | Pending |
+| SHARE-05 | Phase 16 | Pending |
+| DISP-01 | Phase 17 | Pending |
+| DISP-02 | Phase 17 | Pending |
+| DISP-03 | Phase 17 | Pending |
