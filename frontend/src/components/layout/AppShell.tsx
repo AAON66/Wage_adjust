@@ -1,8 +1,8 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 
 import { useAuth } from '../../hooks/useAuth';
-import { getRoleHomePath, getRoleLabel, getRoleModules } from '../../utils/roleAccess';
+import { getRoleHomePath, getRoleLabel, getRoleModules, getSettingsModule } from '../../utils/roleAccess';
 
 interface AppShellProps {
   title: string;
@@ -13,8 +13,29 @@ interface AppShellProps {
 
 function ShellSidebar() {
   const { user, logout } = useAuth();
-  const modules = getRoleModules(user?.role);
+  const groups = getRoleModules(user?.role);
+  const settingsModule = getSettingsModule();
   const homePath = getRoleHomePath(user?.role);
+
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    const saved: Record<string, boolean> = {};
+    groups.forEach(g => {
+      if (g.collapsible) {
+        const key = `nav_collapsed_${g.id}`;
+        const val = localStorage.getItem(key);
+        saved[g.id] = val === 'true';
+      }
+    });
+    return saved;
+  });
+
+  function toggleGroup(groupId: string) {
+    setCollapsed(prev => {
+      const next = { ...prev, [groupId]: !prev[groupId] };
+      localStorage.setItem(`nav_collapsed_${groupId}`, String(next[groupId]));
+      return next;
+    });
+  }
 
   return (
     <aside className="app-sidebar">
@@ -44,31 +65,75 @@ function ShellSidebar() {
       </div>
 
       <nav style={{ flex: 1, padding: '6px 0 8px', overflowY: 'auto' }}>
-        <div
-          style={{
-            padding: '8px 16px 4px',
-            fontSize: 11,
-            fontWeight: 600,
-            color: 'var(--color-placeholder)',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-          }}
-        >
-          导航
-        </div>
         <NavLink className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`} to={homePath}>
-          角色首页
+          🏠 角色首页
         </NavLink>
-        {modules.map((module) => (
-          <NavLink
-            className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
-            key={module.href}
-            title={module.description}
-            to={module.href}
-          >
-            {module.title}
-          </NavLink>
-        ))}
+
+        {groups.map(group => {
+          if (group.items.length === 0) return null;
+
+          if (!group.collapsible) {
+            return group.items.map(item => (
+              <NavLink
+                className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+                key={item.href}
+                title={item.description}
+                to={item.href}
+              >
+                {item.icon} {item.title}
+              </NavLink>
+            ));
+          }
+
+          const isCollapsed = collapsed[group.id] ?? false;
+
+          return (
+            <div key={group.id}>
+              <button
+                onClick={() => toggleGroup(group.id)}
+                type="button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '8px 16px 4px',
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'var(--color-placeholder)',
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase' as const,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{isCollapsed ? '▶' : '▼'} {group.label}</span>
+                {isCollapsed && (
+                  <span style={{ fontSize: 10, fontWeight: 500 }}>({group.items.length})</span>
+                )}
+              </button>
+              {!isCollapsed && group.items.map(item => (
+                <NavLink
+                  className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+                  key={item.href}
+                  title={item.description}
+                  to={item.href}
+                >
+                  {item.icon} {item.title}
+                </NavLink>
+              ))}
+            </div>
+          );
+        })}
+
+        <NavLink
+          className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
+          to={settingsModule.href}
+          title={settingsModule.description}
+        >
+          {settingsModule.icon} {settingsModule.title}
+        </NavLink>
       </nav>
 
       <div style={{ padding: '10px 12px 12px', borderTop: '1px solid var(--color-border)' }}>

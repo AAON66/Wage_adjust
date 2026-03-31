@@ -27,7 +27,7 @@ import { WebhookManagementPage } from "./pages/WebhookManagement";
 import { fetchEmployees } from "./services/employeeService";
 import type { EmployeeRecord } from "./types/api";
 import { findEmployeeForUser } from "./utils/employeeIdentity";
-import { getRoleHomePath, getRoleLabel, getRoleModules } from "./utils/roleAccess";
+import { getRoleHomePath, getRoleLabel, getRoleModules, flattenMenuGroups } from "./utils/roleAccess";
 
 const homeHighlights = [
   ["信息更少", "先看到关键入口，需要时再展开细节。"],
@@ -296,7 +296,8 @@ function HomePage() {
 
 function WorkspacePage() {
   const { user } = useAuth();
-  const modules = getRoleModules(user?.role);
+  const menuGroups = getRoleModules(user?.role);
+  const modules = flattenMenuGroups(menuGroups);
   const roleSummary = {
     admin: ["全局运营", "重点关注周期配置、预算、账号、导入与流程治理。"],
     hrbp: ["协同运营", "重点关注复核质量、审批推进与组织状态。"],
