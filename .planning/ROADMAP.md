@@ -24,7 +24,7 @@ attendance, external API). Nothing is built from scratch — everything lands on
 - [ ] **Phase 6: Batch Import Reliability** - Make bulk employee import idempotent with clear per-row error reporting
 - [ ] **Phase 7: Dashboard and Cache Layer** - Complete all dashboard charts with SQL aggregation and Redis caching
 - [ ] **Phase 8: Employee Self-Service UI** - Give employees visibility into their evaluation status and results
-- [ ] **Phase 9: Feishu Attendance Integration** - Sync attendance data from Feishu for use during salary review
+- [x] **Phase 9: Feishu Attendance Integration** - Sync attendance data from Feishu for use during salary review (completed 2026-03-31)
 - [x] **Phase 10: External API Hardening** - Validate and harden the public REST API for external HR system integration (completed 2026-03-31)
 
 ## Phase Details
@@ -212,5 +212,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 →
 | 6. Batch Import Reliability | 0/TBD | Not started | - |
 | 7. Dashboard and Cache Layer | 1/3 | In Progress|  |
 | 8. Employee Self-Service UI | 1/2 | In Progress|  |
-| 9. Feishu Attendance Integration | 2/3 | In Progress|  |
+| 9. Feishu Attendance Integration | 3/3 | Complete   | 2026-03-31 |
 | 10. External API Hardening | 3/3 | Complete   | 2026-03-31 |
