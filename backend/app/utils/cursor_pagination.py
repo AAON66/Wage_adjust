@@ -10,8 +10,10 @@ def encode_cursor(last_id: str, sort_value: str | None = None) -> str:
     return base64.urlsafe_b64encode(payload.encode()).decode()
 
 
-def decode_cursor(cursor: str) -> dict[str, str | None]:
-    """Decode cursor. Returns {"id": ..., "sort": ...}. Raises ValueError on invalid input."""
+def decode_cursor(cursor: str | None) -> dict[str, str | None] | None:
+    """Decode cursor. Returns {"id": ..., "sort": ...}. Returns None if cursor is None. Raises ValueError on invalid input."""
+    if cursor is None:
+        return None
     try:
         payload = base64.urlsafe_b64decode(cursor.encode()).decode()
         data = json.loads(payload)
