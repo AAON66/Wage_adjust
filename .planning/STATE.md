@@ -2,14 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
-status: Ready to plan
-stopped_at: null
-last_updated: "2026-03-30T14:00:00.000Z"
+status: executing
+stopped_at: Completed 12-02-PLAN.md (checkpoint pending)
+last_updated: "2026-04-01T06:47:00.000Z"
+last_activity: 2026-04-01 -- Phase 12 plan 02 executed
 progress:
   total_phases: 7
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 3
+  completed_plans: 2
+  percent: 66
 ---
 
 # Project State
@@ -19,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Milestone v1.1 -- Phase 11 Menu & Navigation Restructuring
+**Current focus:** Phase 12 -- account-employee-binding
 
 ## Current Position
 
-Phase: 11 (Menu & Navigation Restructuring) -- first of 7 phases in v1.1
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-30 -- Roadmap created for v1.1
+Phase: 12 (account-employee-binding) -- EXECUTING
+Plan: 2 of 2 (checkpoint pending)
+Status: Executing Phase 12
+Last activity: 2026-04-01 -- Phase 12 plan 02 executed
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [######░░░░] 66%
 
 ## Performance Metrics
 
@@ -41,7 +43,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| Phase 12 P02 | 4min | 1 task | 8 files |
 
 **Recent Trend (v1.0 tail):**
 - Last 5 plans: 3min, 9min, 5min, 4min, 6min
@@ -63,6 +65,8 @@ v1.1 pending decisions:
 - ELIG data source mapping: performance rating has no model yet -- may need PerformanceRecord model or defer rule
 - SHARE dedup refactor: new method vs modify _check_duplicate() across 4 call sites
 - NAV: visual-only grouping, no URL path changes (avoid bookmark breakage)
+- [Phase 12]: token_version approach for JWT invalidation on unbind
+- [Phase 12-02]: Added keyword search to employees API for bind modal
 
 ### Pending Todos
 
@@ -76,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30
-Stopped at: Roadmap created for milestone v1.1
+Last session: 2026-04-01T06:47:00Z
+Stopped at: Completed 12-02-PLAN.md (checkpoint pending human verification)
 Resume file: None

@@ -59,7 +59,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [ ] 12-01-PLAN.md — Backend API + token_version 失效机制 + 4 个绑定端点
-- [ ] 12-02-PLAN.md — Frontend 管理员绑定 UI + 员工自助绑定 + 未绑定警告条
+- [x] 12-02-PLAN.md — Frontend 管理员绑定 UI + 员工自助绑定 + 未绑定警告条
 **UI hint**: yes
 
 ### Phase 13: Eligibility Engine & Data Layer
@@ -148,7 +148,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 9. Feishu Attendance | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 11. Menu & Navigation | v1.1 | 1/1 | Complete | 2026-03-31 |
-| 12. Account Binding | v1.1 | 0/2 | Not started | - |
+| 12. Account Binding | v1.1 | 1/2 | In Progress|  |
 | 13. Eligibility Engine | v1.1 | 0/TBD | Not started | - |
 | 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
 | 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
