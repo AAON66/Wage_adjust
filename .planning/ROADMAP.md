@@ -26,7 +26,7 @@
 ### v1.1 体验优化与业务规则完善
 
 - [x] **Phase 11: Menu & Navigation Restructuring** - 侧边栏按功能分组、折叠记忆、角色权限过滤 (completed 2026-03-31)
-- [ ] **Phase 12: Account-Employee Binding** - 管理员手动绑定/解绑、员工自助绑定、冲突检测
+- [x] **Phase 12: Account-Employee Binding** - 管理员手动绑定/解绑、员工自助绑定、冲突检测 (completed 2026-04-01)
 - [ ] **Phase 13: Eligibility Engine & Data Layer** - 调薪资格 4 条规则引擎、数据缺失处理、三通道导入
 - [ ] **Phase 14: Eligibility Visibility & Overrides** - 资格结果权限控制、批量查看、特殊申请审批
 - [ ] **Phase 15: Multimodal Vision Evaluation** - PPT 图片提取视觉评估、独立图片评估、结构化输出
@@ -148,7 +148,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 9. Feishu Attendance | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 11. Menu & Navigation | v1.1 | 1/1 | Complete | 2026-03-31 |
-| 12. Account Binding | v1.1 | 1/2 | In Progress|  |
+| 12. Account Binding | v1.1 | 1/2 | Complete    | 2026-04-01 |
 | 13. Eligibility Engine | v1.1 | 0/TBD | Not started | - |
 | 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
 | 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
