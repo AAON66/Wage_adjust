@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
 status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-04-01T06:40:53.229Z"
-last_activity: 2026-04-01 -- Phase 12 execution started
+stopped_at: Completed 12-02-PLAN.md (checkpoint pending)
+last_updated: "2026-04-01T06:47:00.000Z"
+last_activity: 2026-04-01 -- Phase 12 plan 02 executed
 progress:
   total_phases: 7
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 66
 ---
 
 # Project State
@@ -26,17 +26,17 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 ## Current Position
 
 Phase: 12 (account-employee-binding) — EXECUTING
-Plan: 1 of 2
+Plan: 2 of 2 (checkpoint pending)
 Status: Executing Phase 12
-Last activity: 2026-04-01 -- Phase 12 execution started
+Last activity: 2026-04-01 -- Phase 12 plan 02 executed
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [######░░░░] 66%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1 (v1.1) / 31 (v1.0)
+- Total plans completed: 2 (v1.1) / 31 (v1.0)
 - Average duration: ~7 min (v1.0 baseline)
 - Total execution time: 0 hours (v1.1)
 
@@ -45,6 +45,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | Phase 12 P01 | 5min | 2 tasks | 8 files |
+| Phase 12 P02 | 4min | 1 task | 8 files |
 
 **Recent Trend (v1.0 tail):**
 
@@ -70,6 +71,7 @@ v1.1 pending decisions:
 - SHARE dedup refactor: new method vs modify _check_duplicate() across 4 call sites
 - NAV: visual-only grouping, no URL path changes (avoid bookmark breakage)
 - [Phase 12]: token_version approach for JWT invalidation on unbind — simpler than blacklist, no Redis dependency
+- [Phase 12-02]: Added keyword search to employees API for bind modal
 
 ### Pending Todos
 
@@ -83,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-01T06:40:53.226Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-04-01T06:47:00Z
+Stopped at: Completed 12-02-PLAN.md (checkpoint pending human verification)
 Resume file: None

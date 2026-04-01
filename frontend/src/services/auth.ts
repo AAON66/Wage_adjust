@@ -1,5 +1,5 @@
 ﻿import api from './api';
-import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterPayload, TokenPair, UserProfile } from '../types/api';
+import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterPayload, SelfBindPreviewResult, TokenPair, UserProfile } from '../types/api';
 
 const ACCESS_TOKEN_KEY = 'wage_adjust.access_token';
 const REFRESH_TOKEN_KEY = 'wage_adjust.refresh_token';
@@ -86,5 +86,17 @@ export async function fetchCurrentUser(token?: string): Promise<UserProfile> {
 
 export async function changePassword(payload: ChangePasswordPayload): Promise<{ message: string }> {
   const response = await api.post<{ message: string }>('/auth/change-password', payload);
+  return response.data;
+}
+
+export async function selfBindPreview(idCardNo: string): Promise<SelfBindPreviewResult> {
+  const response = await api.get<SelfBindPreviewResult>('/auth/self-bind/preview', {
+    params: { id_card_no: idCardNo },
+  });
+  return response.data;
+}
+
+export async function selfBindConfirm(idCardNo: string): Promise<UserProfile> {
+  const response = await api.post<UserProfile>('/auth/self-bind', { id_card_no: idCardNo });
   return response.data;
 }

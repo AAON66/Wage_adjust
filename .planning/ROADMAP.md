@@ -58,8 +58,8 @@ Plans:
   3. 当目标员工已被其他账号绑定时，绑定操作被阻止并提示当前绑定方信息
 **Plans**: 2 plans
 Plans:
-- [x] 12-01-PLAN.md — Backend API + token_version 失效机制 + 4 个绑定端点
-- [ ] 12-02-PLAN.md — Frontend 管理员绑定 UI + 员工自助绑定 + 未绑定警告条
+- [ ] 12-01-PLAN.md — Backend API + token_version 失效机制 + 4 个绑定端点
+- [x] 12-02-PLAN.md — Frontend 管理员绑定 UI + 员工自助绑定 + 未绑定警告条
 **UI hint**: yes
 
 ### Phase 13: Eligibility Engine & Data Layer

@@ -85,6 +85,7 @@ class EmployeeService:
         department: str | None = None,
         job_family: str | None = None,
         status: str | None = None,
+        keyword: str | None = None,
     ) -> tuple[list[Employee], int]:
         filters = []
         if department:
@@ -93,6 +94,11 @@ class EmployeeService:
             filters.append(Employee.job_family == job_family)
         if status:
             filters.append(Employee.status == status)
+        if keyword:
+            like_pattern = f'%{keyword}%'
+            filters.append(
+                (Employee.name.ilike(like_pattern)) | (Employee.employee_no.ilike(like_pattern))
+            )
 
         base_query = select(Employee)
         if filters:

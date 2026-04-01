@@ -4,9 +4,10 @@ import { useMemo, useState } from 'react';
 
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
-import { changePassword } from '../services/auth';
+import { changePassword, selfBindConfirm, selfBindPreview } from '../services/auth';
 import { assessPasswordStrength } from '../utils/password';
 import { getRoleHomePath, getRoleLabel } from '../utils/roleAccess';
+import type { SelfBindPreviewResult } from '../types/api';
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -27,9 +28,58 @@ export function SettingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [bindIdCardNo, setBindIdCardNo] = useState('');
+  const [bindPreview, setBindPreview] = useState<SelfBindPreviewResult | null>(null);
+  const [bindStep, setBindStep] = useState<'input' | 'preview' | 'done'>('input');
+  const [bindError, setBindError] = useState<string | null>(null);
+  const [isBinding, setIsBinding] = useState(false);
 
   const mustChangePassword = Boolean(user?.must_change_password || (location.state as { forcePasswordChange?: boolean } | null)?.forcePasswordChange);
   const passwordStrength = useMemo(() => assessPasswordStrength(newPassword), [newPassword]);
+
+  async function handleBindPreview() {
+    setBindError(null);
+    if (!bindIdCardNo.trim()) {
+      setBindError('请输入身份证号。');
+      return;
+    }
+    setIsBinding(true);
+    try {
+      const result = await selfBindPreview(bindIdCardNo.trim());
+      setBindPreview(result);
+      setBindStep('preview');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const payload = error.response?.data as { message?: string; detail?: string } | undefined;
+        setBindError(payload?.message ?? payload?.detail ?? '查询匹配失败。');
+      } else {
+        setBindError('查询匹配失败。');
+      }
+    } finally {
+      setIsBinding(false);
+    }
+  }
+
+  async function handleBindConfirm() {
+    setBindError(null);
+    setIsBinding(true);
+    try {
+      await selfBindConfirm(bindIdCardNo.trim());
+      await refreshProfile();
+      setBindStep('done');
+      setBindPreview(null);
+      setBindIdCardNo('');
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const payload = error.response?.data as { message?: string; detail?: string } | undefined;
+        setBindError(payload?.message ?? payload?.detail ?? '绑定失败。');
+      } else {
+        setBindError('绑定失败。');
+      }
+    } finally {
+      setIsBinding(false);
+    }
+  }
 
   async function handleSubmit() {
     setErrorMessage(null);
@@ -75,6 +125,48 @@ export function SettingsPage() {
       title="账号设置"
       description="查看账号并修改密码。"
     >
+      <section className="surface px-6 py-6 lg:px-7">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">员工绑定</p>
+            <h2 className="section-title">账号与员工关联</h2>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4">
+          {user?.employee_id ? (
+            <div className="surface-subtle px-4 py-4">
+              <p className="text-sm text-steel">已绑定员工</p>
+              <p className="mt-2 text-lg font-semibold text-ink">{user.employee_name}（{user.employee_no}）</p>
+            </div>
+          ) : (
+            <>
+              {bindError ? <p style={{ background: 'var(--color-danger-bg)', border: '1px solid #FFCDD0', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--color-danger)' }}>{bindError}</p> : null}
+              {bindStep === 'done' ? <p style={{ background: 'var(--color-success-bg)', border: '1px solid #B7F5C2', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--color-success)' }}>绑定成功。</p> : null}
+              {bindStep === 'input' ? (
+                <div className="grid gap-3">
+                  <p className="text-sm text-steel">请输入您的身份证号以查询匹配的员工档案。</p>
+                  <input className="toolbar-input" placeholder="身份证号" value={bindIdCardNo} onChange={(event) => setBindIdCardNo(event.target.value)} />
+                  <button className="action-primary" disabled={isBinding} onClick={() => void handleBindPreview()} type="button">{isBinding ? '查询中...' : '查询匹配'}</button>
+                </div>
+              ) : null}
+              {bindStep === 'preview' && bindPreview ? (
+                <div className="grid gap-3">
+                  <div className="surface-subtle px-4 py-4">
+                    <p className="text-sm text-steel">匹配到员工</p>
+                    <p className="mt-2 text-lg font-semibold text-ink">{bindPreview.name}（{bindPreview.employee_no}）</p>
+                    <p className="mt-1 text-sm text-steel">部门：{bindPreview.department}</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button className="action-primary" disabled={isBinding} onClick={() => void handleBindConfirm()} type="button">{isBinding ? '绑定中...' : '确认绑定'}</button>
+                    <button className="action-secondary" onClick={() => { setBindStep('input'); setBindPreview(null); setBindError(null); }} type="button">取消</button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      </section>
+
       <section className="grid gap-5 xl:grid-cols-[0.88fr_1.12fr]">
         <section className="surface px-6 py-6 lg:px-7">
           <div className="section-head">

@@ -213,6 +213,21 @@ export function AppShell({ title, description, actions, children }: AppShellProp
               {actions ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>{actions}</div> : null}
             </div>
           </header>
+          {user && !user.employee_id && user.role !== 'admin' ? (
+            <div style={{
+              background: '#FFF3CD',
+              borderBottom: '1px solid #FFD8A8',
+              padding: '10px 20px',
+              fontSize: 13,
+              color: '#856404',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <span>您尚未绑定员工信息，部分功能受限。</span>
+              <Link to="/settings" style={{ color: '#856404', fontWeight: 600, textDecoration: 'underline' }}>立即绑定</Link>
+            </div>
+          ) : null}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>{children}</div>
         </div>
       </div>

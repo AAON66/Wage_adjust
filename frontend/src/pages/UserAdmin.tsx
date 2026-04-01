@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
 import {
+  adminBindEmployee,
+  adminUnbindEmployee,
   bulkCreateUsers,
   bulkDeleteUsers,
   createDepartment,
@@ -13,11 +15,12 @@ import {
   deleteManagedUser,
   fetchDepartments,
   fetchUsers,
+  searchEmployeesForBinding,
   updateDepartment,
   updateManagedUserDepartments,
   updateManagedUserPassword,
 } from '../services/userAdminService';
-import type { AdminUserCreatePayload, BulkFailureRecord, DepartmentRecord, UserProfile } from '../types/api';
+import type { AdminUserCreatePayload, BulkFailureRecord, DepartmentRecord, EmployeeRecord, UserProfile } from '../types/api';
 import { assessPasswordStrength, generateSecurePassword } from '../utils/password';
 import { getRoleLabel } from '../utils/roleAccess';
 
@@ -106,6 +109,10 @@ export function UserAdminPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [operationFailures, setOperationFailures] = useState<BulkFailureRecord[]>([]);
+  const [bindTargetUserId, setBindTargetUserId] = useState<string | null>(null);
+  const [employeeSearchKeyword, setEmployeeSearchKeyword] = useState('');
+  const [employeeSearchResults, setEmployeeSearchResults] = useState<EmployeeRecord[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const assignableRoleOptions = useMemo(() => getAssignableRoleOptions(user?.role), [user?.role]);
   const assignableRoles = useMemo(() => assignableRoleOptions.map((item) => item.value as string), [assignableRoleOptions]);
@@ -310,6 +317,51 @@ export function UserAdminPage() {
     }
   }
 
+  async function handleSearchEmployees() {
+    setIsSearching(true);
+    try {
+      const results = await searchEmployeesForBinding(employeeSearchKeyword);
+      setEmployeeSearchResults(results);
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function handleBindEmployee(employeeId: string) {
+    if (!bindTargetUserId) return;
+    clearFeedback();
+    setBusyKey('bind');
+    try {
+      await adminBindEmployee(bindTargetUserId, employeeId);
+      setSuccessMessage('员工绑定成功。');
+      setBindTargetUserId(null);
+      setEmployeeSearchKeyword('');
+      setEmployeeSearchResults([]);
+      await loadData();
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setBusyKey('');
+    }
+  }
+
+  async function handleUnbindEmployee(target: UserProfile) {
+    if (!window.confirm('确认解绑该用户的员工关联？解绑后该用户需要重新登录。')) return;
+    clearFeedback();
+    setBusyKey(`unbind-${target.id}`);
+    try {
+      await adminUnbindEmployee(target.id);
+      setSuccessMessage('员工解绑成功。');
+      await loadData();
+    } catch (error) {
+      setErrorMessage(resolveError(error));
+    } finally {
+      setBusyKey('');
+    }
+  }
+
   return (
     <AppShell
       title="平台账号与部门管理"
@@ -475,7 +527,7 @@ export function UserAdminPage() {
           <div className="table-shell mt-5">
             <div className="overflow-x-auto">
               <table className="table-lite">
-                <thead><tr><th className="w-12"><input checked={manageableUsers.length > 0 && selectedIds.length === manageableUsers.length} onChange={(event) => setSelectedIds(event.target.checked ? manageableUsers.map((item) => item.id) : [])} type="checkbox" /></th><th>账号信息</th><th>角色</th><th>绑定部门</th><th>创建时间</th><th>安全状态</th><th className="min-w-[220px]">操作</th></tr></thead>
+                <thead><tr><th className="w-12"><input checked={manageableUsers.length > 0 && selectedIds.length === manageableUsers.length} onChange={(event) => setSelectedIds(event.target.checked ? manageableUsers.map((item) => item.id) : [])} type="checkbox" /></th><th>账号信息</th><th>角色</th><th>绑定部门</th><th>创建时间</th><th>安全状态</th><th>绑定状态</th><th className="min-w-[280px]">操作</th></tr></thead>
                 <tbody>
                   {users.map((item) => {
                     const isCurrentUser = item.id === user?.id;
@@ -488,7 +540,8 @@ export function UserAdminPage() {
                         <td><span className="text-sm text-ink">{formatDepartmentNames(item)}</span></td>
                         <td>{formatDateTime(item.created_at)}</td>
                         <td>{item.must_change_password ? <span className="status-pill" style={{ background: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}>首次登录需改密</span> : <span className="status-pill" style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}>正常</span>}</td>
-                        <td>{isCurrentUser ? <span className="text-xs text-steel">请到账号设置修改自己的密码。</span> : <div className="flex flex-wrap gap-2"><button className="action-secondary px-4 py-2 text-xs" onClick={() => { setPasswordTargetId(item.id); setActiveTab('password'); }} type="button">重置密码</button>{canEditScope ? <button className="action-secondary px-4 py-2 text-xs" onClick={() => { setScopeTargetId(item.id); setScopeDepartmentIds(item.departments.map((department) => department.id)); setActiveTab('scope'); }} type="button">设置部门</button> : null}<button className="action-danger px-4 py-2 text-xs" disabled={busyKey === `delete-${item.id}`} onClick={() => void handleDeleteUser(item)} type="button">{busyKey === `delete-${item.id}` ? '删除中...' : '删除账号'}</button></div>}</td>
+                        <td>{item.employee_id ? <span className="text-sm text-ink">{item.employee_name}（{item.employee_no}）</span> : <span className="text-steel">未绑定</span>}</td>
+                        <td>{isCurrentUser ? <span className="text-xs text-steel">请到账号设置修改自己的密码。</span> : <div className="flex flex-wrap gap-2"><button className="action-secondary px-4 py-2 text-xs" onClick={() => { setPasswordTargetId(item.id); setActiveTab('password'); }} type="button">重置密码</button>{canEditScope ? <button className="action-secondary px-4 py-2 text-xs" onClick={() => { setScopeTargetId(item.id); setScopeDepartmentIds(item.departments.map((department) => department.id)); setActiveTab('scope'); }} type="button">设置部门</button> : null}{!item.employee_id ? <button className="action-secondary px-4 py-2 text-xs" onClick={() => { setBindTargetUserId(item.id); setEmployeeSearchKeyword(''); setEmployeeSearchResults([]); }} type="button">绑定员工</button> : <button className="action-secondary px-4 py-2 text-xs" disabled={busyKey === `unbind-${item.id}`} onClick={() => void handleUnbindEmployee(item)} type="button">{busyKey === `unbind-${item.id}` ? '解绑中...' : '解绑'}</button>}<button className="action-danger px-4 py-2 text-xs" disabled={busyKey === `delete-${item.id}`} onClick={() => void handleDeleteUser(item)} type="button">{busyKey === `delete-${item.id}` ? '删除中...' : '删除账号'}</button></div>}</td>
                       </tr>
                     );
                   })}
@@ -499,6 +552,42 @@ export function UserAdminPage() {
         </section>
         ) : null}
       </section>
+
+      {bindTargetUserId ? (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)' }} onClick={() => setBindTargetUserId(null)} />
+          <div className="surface" style={{ position: 'relative', width: 520, maxHeight: '80vh', overflow: 'auto', borderRadius: 8, padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h3 className="section-title">绑定员工</h3>
+              <button className="action-secondary px-3 py-1 text-xs" onClick={() => setBindTargetUserId(null)} type="button">关闭</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              <input
+                className="toolbar-input"
+                style={{ flex: 1 }}
+                placeholder="搜索员工姓名或工号"
+                value={employeeSearchKeyword}
+                onChange={(event) => setEmployeeSearchKeyword(event.target.value)}
+                onKeyDown={(event) => { if (event.key === 'Enter') void handleSearchEmployees(); }}
+              />
+              <button className="action-primary px-4 py-2 text-xs" disabled={isSearching} onClick={() => void handleSearchEmployees()} type="button">
+                {isSearching ? '搜索中...' : '搜索'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {employeeSearchResults.map((emp) => (
+                <div key={emp.id} className="surface-subtle px-4 py-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="text-sm text-ink">{emp.name}（{emp.employee_no}）— {emp.department}</span>
+                  <button className="action-primary px-3 py-1 text-xs" disabled={busyKey === 'bind'} onClick={() => void handleBindEmployee(emp.id)} type="button">
+                    {busyKey === 'bind' ? '绑定中...' : '选择'}
+                  </button>
+                </div>
+              ))}
+              {employeeSearchResults.length === 0 && !isSearching ? <p className="text-sm text-steel">请输入关键词搜索员工。</p> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </AppShell>
   );
 }

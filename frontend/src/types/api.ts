@@ -807,6 +807,21 @@ export interface WebhookEndpointCreatePayload {
   events?: string[];
 }
 
+// === Account-Employee Binding (Phase 12) ===
+
+export interface SelfBindPreviewResult {
+  employee_id: string;
+  employee_no: string;
+  name: string;
+  department: string;
+}
+
+export interface EmployeeSearchQuery {
+  page?: number;
+  page_size?: number;
+  keyword?: string;
+}
+
 export interface WebhookDeliveryLogRead {
   id: string;
   webhook_id: string;

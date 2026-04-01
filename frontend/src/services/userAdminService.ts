@@ -7,6 +7,7 @@ import type {
   DepartmentListResponse,
   DepartmentRecord,
   DepartmentUpdatePayload,
+  EmployeeRecord,
   UserListResponse,
   UserProfile,
   UserQuery,
@@ -70,4 +71,21 @@ export async function deleteManagedUser(userId: string): Promise<{ deleted_user_
 export async function bulkDeleteUsers(userIds: string[]): Promise<BulkUserDeleteResponse> {
   const response = await api.post<BulkUserDeleteResponse>('/users/bulk-delete', { user_ids: userIds });
   return response.data;
+}
+
+export async function adminBindEmployee(userId: string, employeeId: string): Promise<UserProfile> {
+  const response = await api.post<UserProfile>(`/users/${userId}/bind`, { employee_id: employeeId });
+  return response.data;
+}
+
+export async function adminUnbindEmployee(userId: string): Promise<UserProfile> {
+  const response = await api.delete<UserProfile>(`/users/${userId}/bind`);
+  return response.data;
+}
+
+export async function searchEmployeesForBinding(keyword: string): Promise<EmployeeRecord[]> {
+  const response = await api.get<{ items: EmployeeRecord[] }>('/employees', {
+    params: { page: 1, page_size: 20, keyword: keyword || undefined },
+  });
+  return response.data.items;
 }
