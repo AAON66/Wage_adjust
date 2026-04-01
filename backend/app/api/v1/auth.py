@@ -76,8 +76,8 @@ def _build_auth_response(user: User, settings) -> AuthResponse:
     return AuthResponse(
         user=UserRead.model_validate(user),
         tokens=TokenPair(
-            access_token=create_access_token(user.id, role=user.role, settings=settings),
-            refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),
+            access_token=create_access_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
+            refresh_token=create_refresh_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
         ),
     )
 
@@ -133,8 +133,8 @@ def login_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password.')
     _reset_failed_login(ip, settings)
     return TokenPair(
-        access_token=create_access_token(user.id, role=user.role, settings=settings),
-        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),
+        access_token=create_access_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
+        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
     )
 
 
@@ -153,9 +153,14 @@ def refresh_tokens(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid refresh token.')
 
+    # Reject refresh tokens issued before a token_version change (e.g. after unbind)
+    tv_claim = token_payload.get('tv')
+    if tv_claim is not None and int(tv_claim) != user.token_version:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid refresh token.')
+
     return TokenPair(
-        access_token=create_access_token(user.id, role=user.role, settings=settings),
-        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),
+        access_token=create_access_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
+        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
     )
 
 

@@ -34,6 +34,7 @@ def _build_token(
     expires_delta: timedelta,
     settings: Settings,
     role: str | None = None,
+    token_version: int | None = None,
 ) -> str:
     expire_at = datetime.now(UTC) + expires_delta
     payload: dict[str, object] = {
@@ -43,11 +44,13 @@ def _build_token(
     }
     if role is not None:
         payload["role"] = role
+    if token_version is not None:
+        payload["tv"] = token_version
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
 
-def create_access_token(subject: str, role: str | None = None, settings: Settings | None = None) -> str:
+def create_access_token(subject: str, role: str | None = None, settings: Settings | None = None, token_version: int | None = None) -> str:
     resolved_settings = settings or get_settings()
     return _build_token(
         subject=subject,
@@ -55,11 +58,12 @@ def create_access_token(subject: str, role: str | None = None, settings: Setting
         expires_delta=timedelta(minutes=resolved_settings.jwt_access_token_expire_minutes),
         settings=resolved_settings,
         role=role,
+        token_version=token_version,
     )
 
 
 
-def create_refresh_token(subject: str, role: str | None = None, settings: Settings | None = None) -> str:
+def create_refresh_token(subject: str, role: str | None = None, settings: Settings | None = None, token_version: int | None = None) -> str:
     resolved_settings = settings or get_settings()
     return _build_token(
         subject=subject,
@@ -67,6 +71,7 @@ def create_refresh_token(subject: str, role: str | None = None, settings: Settin
         expires_delta=timedelta(days=resolved_settings.jwt_refresh_token_expire_days),
         settings=resolved_settings,
         role=role,
+        token_version=token_version,
     )
 
 
