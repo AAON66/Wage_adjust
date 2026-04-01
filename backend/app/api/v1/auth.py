@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 import redis as redis_lib
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -20,6 +20,8 @@ from backend.app.models.user import User
 from backend.app.schemas.user import (
     AuthResponse,
     PasswordChangeRequest,
+    SelfBindPreview,
+    SelfBindRequest,
     TokenPair,
     TokenRefreshRequest,
     UserCreate,
@@ -76,8 +78,8 @@ def _build_auth_response(user: User, settings) -> AuthResponse:
     return AuthResponse(
         user=UserRead.model_validate(user),
         tokens=TokenPair(
-            access_token=create_access_token(user.id, role=user.role, settings=settings),
-            refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),
+            access_token=create_access_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
+            refresh_token=create_refresh_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
         ),
     )
 
@@ -133,8 +135,8 @@ def login_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid email or password.')
     _reset_failed_login(ip, settings)
     return TokenPair(
-        access_token=create_access_token(user.id, role=user.role, settings=settings),
-        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),
+        access_token=create_access_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
+        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
     )
 
 
@@ -153,9 +155,14 @@ def refresh_tokens(
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid refresh token.')
 
+    # Reject refresh tokens issued before a token_version change (e.g. after unbind)
+    tv_claim = token_payload.get('tv')
+    if tv_claim is not None and int(tv_claim) != user.token_version:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid refresh token.')
+
     return TokenPair(
-        access_token=create_access_token(user.id, role=user.role, settings=settings),
-        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings),
+        access_token=create_access_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
+        refresh_token=create_refresh_token(user.id, role=user.role, settings=settings, token_version=user.token_version),
     )
 
 
@@ -180,3 +187,76 @@ def change_password(
     db.add(current_user)
     db.commit()
     return {'message': 'Password updated successfully.'}
+
+
+@router.get('/self-bind/preview', response_model=SelfBindPreview)
+def self_bind_preview(
+    id_card_no: str = Query(min_length=1, max_length=32),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> SelfBindPreview:
+    identity_service = IdentityBindingService(db)
+    original_id_card_no = current_user.id_card_no
+
+    try:
+        normalized = identity_service.normalize_id_card_no(id_card_no)
+        current_user.id_card_no = normalized
+        employee = identity_service.search_employee_for_user_by_identity(user=current_user)
+    finally:
+        current_user.id_card_no = original_id_card_no
+
+    if employee is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='未找到匹配的员工信息')
+
+    # Check if employee is already bound to another user
+    bound_user = db.scalar(
+        select(User).where(User.employee_id == employee.id, User.id != current_user.id)
+    )
+    if bound_user is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f'该员工已绑定到账号 {bound_user.email}，请联系管理员处理',
+        )
+
+    return SelfBindPreview(
+        employee_id=employee.id,
+        employee_no=employee.employee_no,
+        name=employee.name,
+        department=employee.department,
+    )
+
+
+@router.post('/self-bind', response_model=UserRead)
+def self_bind_confirm(
+    payload: SelfBindRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> UserRead:
+    if current_user.employee_id is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='当前账号已绑定员工信息')
+
+    identity_service = IdentityBindingService(db)
+    normalized = identity_service.normalize_id_card_no(payload.id_card_no)
+    current_user.id_card_no = normalized
+
+    try:
+        bound = identity_service.auto_bind_user_and_employee(user=current_user)
+    except ValueError as exc:
+        message = str(exc)
+        # Enrich conflict message with bound user email per D-05
+        if 'already bound to another account' in message:
+            employee = identity_service.search_employee_for_user_by_identity(user=current_user)
+            if employee is not None:
+                bound_user = db.scalar(
+                    select(User).where(User.employee_id == employee.id, User.id != current_user.id)
+                )
+                if bound_user is not None:
+                    message = f'该员工已绑定到账号 {bound_user.email}，请联系管理员处理'
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
+
+    if not bound:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='未找到匹配的员工信息')
+
+    db.commit()
+    db.refresh(current_user)
+    return UserRead.model_validate(current_user)

@@ -44,6 +44,12 @@ def get_current_user(
     user = db.scalar(select(User).options(selectinload(User.departments)).where(User.id == payload["sub"]))
     if user is None:
         raise credentials_error
+
+    # Reject tokens issued before a token_version change (e.g. after unbind)
+    tv_claim = payload.get("tv")
+    if tv_claim is not None and int(tv_claim) != user.token_version:
+        raise credentials_error
+
     return user
 
 
