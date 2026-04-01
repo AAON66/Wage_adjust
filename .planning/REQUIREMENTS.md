@@ -7,9 +7,9 @@
 
 ## 账号绑定 (BIND)
 
-- [ ] **BIND-01**: 管理员可在用户管理页面将用户账号与员工信息手动绑定/解绑
-- [ ] **BIND-02**: 员工可在个人设置页面通过身份证号自助绑定自己的员工信息
-- [ ] **BIND-03**: 绑定冲突时（员工已被其他账号绑定）系统阻止操作并提示当前绑定方
+- [x] **BIND-01**: 管理员可在用户管理页面将用户账号与员工信息手动绑定/解绑
+- [x] **BIND-02**: 员工可在个人设置页面通过身份证号自助绑定自己的员工信息
+- [x] **BIND-03**: 绑定冲突时（员工已被其他账号绑定）系统阻止操作并提示当前绑定方
 
 ## 文件共享 (SHARE)
 
@@ -76,9 +76,9 @@
 | NAV-01 | Phase 11 | Pending |
 | NAV-02 | Phase 11 | Pending |
 | NAV-03 | Phase 11 | Pending |
-| BIND-01 | Phase 12 | Pending |
-| BIND-02 | Phase 12 | Pending |
-| BIND-03 | Phase 12 | Pending |
+| BIND-01 | Phase 12 | Complete |
+| BIND-02 | Phase 12 | Complete |
+| BIND-03 | Phase 12 | Complete |
 | ELIG-01 | Phase 13 | Pending |
 | ELIG-02 | Phase 13 | Pending |
 | ELIG-03 | Phase 13 | Pending |
