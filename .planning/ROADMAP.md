@@ -45,7 +45,7 @@
   3. admin 角色可见全部分组和菜单项，employee 角色仅可见与自身相关的分组和菜单项
 **Plans**: 1 plan
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [x] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
 **UI hint**: yes
 
 ### Phase 12: Account-Employee Binding
@@ -56,9 +56,10 @@ Plans:
   1. 管理员可在用户管理页面选择一个用户和一个员工进行绑定，也可解除已有绑定
   2. 员工可在个人设置页面输入身份证号完成自助绑定
   3. 当目标员工已被其他账号绑定时，绑定操作被阻止并提示当前绑定方信息
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [ ] 12-01-PLAN.md — Backend API + token_version 失效机制 + 4 个绑定端点
+- [ ] 12-02-PLAN.md — Frontend 管理员绑定 UI + 员工自助绑定 + 未绑定警告条
 **UI hint**: yes
 
 ### Phase 13: Eligibility Engine & Data Layer
@@ -147,7 +148,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 9. Feishu Attendance | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 11. Menu & Navigation | v1.1 | 1/1 | Complete | 2026-03-31 |
-| 12. Account Binding | v1.1 | 0/TBD | Not started | - |
+| 12. Account Binding | v1.1 | 0/2 | Not started | - |
 | 13. Eligibility Engine | v1.1 | 0/TBD | Not started | - |
 | 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
 | 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
