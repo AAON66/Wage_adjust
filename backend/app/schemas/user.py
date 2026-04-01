@@ -130,3 +130,20 @@ class BulkUserDeleteResponse(BaseModel):
     deleted_user_ids: list[str]
     failed: list[BulkUserFailure]
     total_requested: int
+
+
+class AdminBindRequest(BaseModel):
+    employee_id: str
+
+
+class SelfBindRequest(BaseModel):
+    id_card_no: str = Field(min_length=1, max_length=32)
+
+
+class SelfBindPreview(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    employee_id: str
+    employee_no: str
+    name: str
+    department: str

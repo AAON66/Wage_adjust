@@ -188,6 +188,7 @@ class UserAdminService:
 
         if employee_id is None:
             user.employee_id = None
+            user.token_version += 1
             self.db.add(user)
             self._log_action(
                 operator_id=operator.id,
@@ -205,7 +206,7 @@ class UserAdminService:
 
         existing_binding = self.db.scalar(select(User).where(User.employee_id == employee_id, User.id != user.id))
         if existing_binding is not None:
-            raise ValueError('This employee profile is already bound to another account.')
+            raise ValueError(f'该员工已绑定到账号 {existing_binding.email}，请联系管理员处理')
 
         user.employee_id = employee_id
         self.db.add(user)

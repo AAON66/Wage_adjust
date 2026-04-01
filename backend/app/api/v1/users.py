@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from backend.app.dependencies import get_db, require_roles
 from backend.app.models.user import User
 from backend.app.schemas.user import (
+    AdminBindRequest,
     AdminPasswordUpdateRequest,
     BulkUserCreateRequest,
     BulkUserCreateResponse,
@@ -154,3 +155,38 @@ def bulk_delete_users(
         failed=[BulkUserFailure(identifier=item.identifier, message=item.message) for item in failed],
         total_requested=len(payload.user_ids),
     )
+
+
+@router.post('/{user_id}/bind', response_model=UserRead)
+def admin_bind_employee(
+    user_id: str,
+    payload: AdminBindRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> UserRead:
+    service = UserAdminService(db)
+    try:
+        user = service.bind_employee(user_id, employee_id=payload.employee_id, operator=current_user)
+    except ValueError as exc:
+        message = str(exc)
+        if message in {'User not found.', 'Employee not found.'}:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
+    return UserRead.model_validate(user)
+
+
+@router.delete('/{user_id}/bind', response_model=UserRead)
+def admin_unbind_employee(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> UserRead:
+    service = UserAdminService(db)
+    try:
+        user = service.bind_employee(user_id, employee_id=None, operator=current_user)
+    except ValueError as exc:
+        message = str(exc)
+        if message == 'User not found.':
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
+    return UserRead.model_validate(user)
