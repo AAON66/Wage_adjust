@@ -35,6 +35,7 @@ def list_employees(
     department: str | None = Query(default=None),
     job_family: str | None = Query(default=None),
     status_filter: str | None = Query(default=None, alias="status"),
+    keyword: str | None = Query(default=None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> EmployeeListResponse:
@@ -46,6 +47,7 @@ def list_employees(
         department=department,
         job_family=job_family,
         status=status_filter,
+        keyword=keyword,
     )
     return EmployeeListResponse(
         items=[EmployeeRead.model_validate(item) for item in items],
