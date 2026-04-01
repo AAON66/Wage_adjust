@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
-status: planning
+status: executing
 stopped_at: Completed 12-01-PLAN.md
 last_updated: "2026-04-01T06:40:53.229Z"
-last_activity: 2026-03-30 -- Roadmap created for v1.1
+last_activity: 2026-04-01 -- Phase 12 execution started
 progress:
   total_phases: 7
   completed_phases: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Milestone v1.1 -- Phase 11 Menu & Navigation Restructuring
+**Current focus:** Phase 12 — account-employee-binding
 
 ## Current Position
 
-Phase: 11 (Menu & Navigation Restructuring) -- first of 7 phases in v1.1
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-30 -- Roadmap created for v1.1
+Phase: 12 (account-employee-binding) — EXECUTING
+Plan: 1 of 2
+Status: Executing Phase 12
+Last activity: 2026-04-01 -- Phase 12 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -36,7 +36,7 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 
-- Total plans completed: 0 (v1.1) / 31 (v1.0)
+- Total plans completed: 1 (v1.1) / 31 (v1.0)
 - Average duration: ~7 min (v1.0 baseline)
 - Total execution time: 0 hours (v1.1)
 
@@ -44,7 +44,7 @@ Progress: [░░░░░░░░░░] 0%
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| Phase 12 P01 | 5min | 2 tasks | 8 files |
 
 **Recent Trend (v1.0 tail):**
 
@@ -52,7 +52,6 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: Stable
 
 *Updated after each plan completion*
-| Phase 12 P01 | 5min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
