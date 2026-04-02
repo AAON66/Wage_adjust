@@ -74,7 +74,7 @@ Plans:
   5. 当某条规则所需数据未导入时，该条规则状态显示"数据缺失"而非直接判定不合格
 **Plans**: 2 plans
 Plans:
-- [ ] 13-01-PLAN.md — Models + Migration + EligibilityEngine + Config + Schemas + Unit Tests
+- [x] 13-01-PLAN.md — Models + Migration + EligibilityEngine + Config + Schemas + Unit Tests
 - [ ] 13-02-PLAN.md — EligibilityService + API + ImportService Extension + Feishu Sync
 
 ### Phase 14: Eligibility Visibility & Overrides
@@ -150,7 +150,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 11. Menu & Navigation | v1.1 | 1/1 | Complete | 2026-03-31 |
 | 12. Account Binding | v1.1 | 1/2 | Complete    | 2026-04-01 |
-| 13. Eligibility Engine | v1.1 | 0/2 | Not started | - |
+| 13. Eligibility Engine | v1.1 | 1/2 | In Progress|  |
 | 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
 | 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
 | 16. File Sharing | v1.1 | 0/TBD | Not started | - |
