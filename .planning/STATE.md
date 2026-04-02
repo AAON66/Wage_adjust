@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
 status: executing
-stopped_at: Phase 13 context gathered
-last_updated: "2026-04-02T05:36:20.702Z"
-last_activity: 2026-04-02 -- Phase 13 execution started
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-04-02T05:53:12.792Z"
+last_activity: 2026-04-01
 progress:
   total_phases: 7
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Phase 13 — eligibility-engine-data-layer
+**Current focus:** Phase 12 — account-employee-binding
 
 ## Current Position
 
-Phase: 13 (eligibility-engine-data-layer) — EXECUTING
-Plan: 1 of 2
-Status: Executing Phase 13
-Last activity: 2026-04-02 -- Phase 13 execution started
+Phase: 13
+Plan: Not started
+Status: Executing Phase 12
+Last activity: 2026-04-01
 
 Progress: [######░░░░] 66%
 
@@ -53,6 +53,7 @@ Progress: [######░░░░] 66%
 - Trend: Stable
 
 *Updated after each plan completion*
+| Phase 13 P02 | 7min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,7 @@ v1.1 pending decisions:
 - NAV: visual-only grouping, no URL path changes (avoid bookmark breakage)
 - [Phase 12]: token_version approach for JWT invalidation on unbind — simpler than blacklist, no Redis dependency
 - [Phase 12-02]: Added keyword search to employees API for bind modal
+- [Phase 13]: Performance grade lookup defaults to previous year; salary adjustment import appends (not upserts); Chinese-to-code mapping for adjustment types
 
 ### Pending Todos
 
@@ -85,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-01T23:39:31.618Z
-Stopped at: Phase 13 context gathered
-Resume file: .planning/phases/13-eligibility-engine-data-layer/13-CONTEXT.md
+Last session: 2026-04-02T05:53:12.790Z
+Stopped at: Completed 13-02-PLAN.md
+Resume file: None

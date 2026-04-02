@@ -35,7 +35,7 @@
 - [ ] **ELIG-06**: HR 可批量查看某部门/全公司的员工调薪资格状态
 - [ ] **ELIG-07**: 不符合资格但有特殊情况的员工，部门可提交特殊申请（经 HR 和管理层审批）
 - [x] **ELIG-08**: 缺失数据源时（如绩效未导入），资格状态显示"数据缺失"而非直接判定不合格
-- [ ] **ELIG-09**: 调薪资格所需数据（绩效等级、调薪历史、入职日期、请假天数）支持三种导入通道：Excel 批量导入、飞书多维表格同步、管理端手动录入
+- [x] **ELIG-09**: 调薪资格所需数据（绩效等级、调薪历史、入职日期、请假天数）支持三种导入通道：Excel 批量导入、飞书多维表格同步、管理端手动录入
 
 ## 多模态视觉评估 (VISION)
 
@@ -84,7 +84,7 @@
 | ELIG-03 | Phase 13 | Complete |
 | ELIG-04 | Phase 13 | Complete |
 | ELIG-08 | Phase 13 | Complete |
-| ELIG-09 | Phase 13 | Pending |
+| ELIG-09 | Phase 13 | Complete |
 | ELIG-05 | Phase 14 | Pending |
 | ELIG-06 | Phase 14 | Pending |
 | ELIG-07 | Phase 14 | Pending |

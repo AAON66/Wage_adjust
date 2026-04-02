@@ -14,6 +14,7 @@ from backend.app.core.database import SessionLocal
 from backend.app.core.encryption import decrypt_value, encrypt_value
 from backend.app.models.attendance_record import AttendanceRecord
 from backend.app.models.employee import Employee
+from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.feishu_config import FeishuConfig
 from backend.app.models.feishu_sync_log import FeishuSyncLog
 from backend.app.schemas.feishu import FeishuConfigCreate, FeishuConfigUpdate, FieldMappingItem
@@ -392,6 +393,110 @@ class FeishuService:
             except Exception:
                 logger.exception('Failed to save sync failure log')
             raise
+
+    # ------------------------------------------------------------------
+    # Performance records sync (D-09/ELIG-09)
+    # ------------------------------------------------------------------
+
+    def sync_performance_records(
+        self,
+        *,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> dict:
+        """Sync performance records from Feishu bitable with upsert on (employee_id, year)."""
+        if field_mapping is None:
+            field_mapping = {
+                '员工工号': 'employee_no',
+                '年度': 'year',
+                '绩效等级': 'grade',
+            }
+
+        # Get active config for token
+        config = self.get_config()
+        if config is None:
+            raise RuntimeError('No active Feishu config found')
+
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+        token = self._ensure_token(config.app_id, app_secret)
+
+        # Fetch records
+        records = self._fetch_all_records(token, app_token, table_id, field_mapping)
+
+        # Build employee_no -> employee_id mapping
+        emp_rows = self.db.execute(
+            select(Employee.employee_no, Employee.id)
+        ).all()
+        emp_map = {row[0]: row[1] for row in emp_rows}
+
+        synced = 0
+        skipped = 0
+        failed = 0
+        total = len(records)
+
+        for record in records:
+            try:
+                emp_no = record.get('employee_no')
+                employee_id = emp_map.get(emp_no) if emp_no else None
+                if employee_id is None:
+                    logger.warning('Performance sync: employee_no=%s not found, skipping', emp_no)
+                    skipped += 1
+                    continue
+
+                # Parse year
+                raw_year = record.get('year')
+                if raw_year is None:
+                    skipped += 1
+                    continue
+                try:
+                    year = int(float(str(raw_year)))
+                except (ValueError, TypeError):
+                    logger.warning('Performance sync: invalid year=%r for emp_no=%s', raw_year, emp_no)
+                    skipped += 1
+                    continue
+
+                # Normalize grade
+                raw_grade = record.get('grade')
+                if raw_grade is None:
+                    skipped += 1
+                    continue
+                grade = str(raw_grade).strip().upper()
+                if grade not in ('A', 'B', 'C', 'D', 'E'):
+                    logger.warning('Performance sync: invalid grade=%s for emp_no=%s', grade, emp_no)
+                    skipped += 1
+                    continue
+
+                # Idempotent upsert on (employee_id, year)
+                existing = self.db.scalar(
+                    select(PerformanceRecord).where(
+                        PerformanceRecord.employee_id == employee_id,
+                        PerformanceRecord.year == year,
+                    )
+                )
+                if existing is not None:
+                    existing.grade = grade
+                    existing.source = 'feishu'
+                    self.db.add(existing)
+                else:
+                    new_record = PerformanceRecord(
+                        employee_id=employee_id,
+                        employee_no=emp_no,
+                        year=year,
+                        grade=grade,
+                        source='feishu',
+                    )
+                    self.db.add(new_record)
+                self.db.flush()
+                synced += 1
+
+            except Exception:
+                logger.exception('Failed to process performance record: emp_no=%s', record.get('employee_no'))
+                failed += 1
+
+        self.db.commit()
+        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
 
     # ------------------------------------------------------------------
     # Retry wrapper

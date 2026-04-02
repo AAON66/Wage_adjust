@@ -11,6 +11,7 @@ from backend.app.api.v1.auth import router as auth_router
 from backend.app.api.v1.cycles import router as cycles_router
 from backend.app.api.v1.dashboard import router as dashboard_router
 from backend.app.api.v1.departments import router as departments_router
+from backend.app.api.v1.eligibility import router as eligibility_router
 from backend.app.api.v1.employees import router as employees_router
 from backend.app.api.v1.evaluations import router as evaluations_router
 from backend.app.api.v1.feishu import router as feishu_router
@@ -39,6 +40,7 @@ api_router.include_router(approvals_router)
 api_router.include_router(contributors_router)
 api_router.include_router(audit_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(eligibility_router)
 api_router.include_router(imports_router)
 api_router.include_router(handbooks_router)
 api_router.include_router(public_router)
