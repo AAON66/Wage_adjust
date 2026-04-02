@@ -1,6 +1,8 @@
 ﻿from __future__ import annotations
 
-from sqlalchemy import ForeignKey, String
+from datetime import date
+
+from sqlalchemy import Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
@@ -20,6 +22,8 @@ class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     job_level: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     manager_id: Mapped[str | None] = mapped_column(ForeignKey("employees.id"), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="active", index=True)
+    hire_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_salary_adjustment_date: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     manager = relationship(
         "Employee",

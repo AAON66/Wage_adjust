@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     public_api_key: str = "your_public_api_key"
     public_api_rate_limit: str = "1000/hour"
 
+    # Eligibility thresholds (D-04)
+    eligibility_min_tenure_months: int = 6
+    eligibility_min_adjustment_interval_months: int = 6
+    eligibility_performance_fail_grades: str = 'C,D,E'
+    eligibility_max_non_statutory_leave_days: float = 30.0
+
     log_level: str = "INFO"
     log_format: str = "json"
 
