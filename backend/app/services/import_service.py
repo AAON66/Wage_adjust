@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from decimal import Decimal, InvalidOperation
 
 import pandas as pd
 from fastapi import UploadFile
@@ -14,17 +15,21 @@ from backend.app.models.certification import Certification
 from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.import_job import ImportJob
+from backend.app.models.performance_record import PerformanceRecord
+from backend.app.models.salary_adjustment_record import SalaryAdjustmentRecord
 from backend.app.services.identity_binding_service import IdentityBindingService
 
 logger = logging.getLogger(__name__)
 
 
 class ImportService:
-    SUPPORTED_TYPES = {'employees', 'certifications'}
+    SUPPORTED_TYPES = {'employees', 'certifications', 'performance_grades', 'salary_adjustments'}
     MAX_ROWS = 5000  # D-06: 单次导入最大行数
     REQUIRED_COLUMNS = {
         'employees': ['employee_no', 'name', 'department', 'job_family', 'job_level'],
         'certifications': ['employee_no', 'certification_type', 'certification_stage', 'bonus_rate', 'issued_at'],
+        'performance_grades': ['employee_no', 'year', 'grade'],
+        'salary_adjustments': ['employee_no', 'adjustment_date', 'adjustment_type'],
     }
     COLUMN_ALIASES = {
         'employees': {
@@ -46,6 +51,17 @@ class ImportService:
             '发证时间': 'issued_at',
             '到期时间': 'expires_at',
         },
+        'performance_grades': {
+            '员工工号': 'employee_no',
+            '年度': 'year',
+            '绩效等级': 'grade',
+        },
+        'salary_adjustments': {
+            '员工工号': 'employee_no',
+            '调薪日期': 'adjustment_date',
+            '调薪类型': 'adjustment_type',
+            '调薪金额': 'amount',
+        },
     }
     COLUMN_LABELS = {
         'employee_no': '员工工号',
@@ -62,6 +78,11 @@ class ImportService:
         'bonus_rate': '补贴比例',
         'issued_at': '发证时间',
         'expires_at': '到期时间',
+        'year': '年度',
+        'grade': '绩效等级',
+        'adjustment_date': '调薪日期',
+        'adjustment_type': '调薪类型',
+        'amount': '调薪金额',
     }
 
     def __init__(
@@ -202,9 +223,15 @@ class ImportService:
         if normalized_type == 'employees':
             writer.writerow(['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '岗位族', '岗位级别', '在职状态', '直属上级工号'])
             writer.writerow(['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '平台研发', 'P5', 'active', ''])
-        else:
+        elif normalized_type == 'certifications':
             writer.writerow(['员工工号', '认证类型', '认证阶段', '补贴比例', '发证时间', '到期时间'])
             writer.writerow(['EMP-1001', 'ai_skill', 'advanced', '0.02', '2026-01-15T00:00:00+00:00', ''])
+        elif normalized_type == 'performance_grades':
+            writer.writerow(['员工工号', '年度', '绩效等级'])
+            writer.writerow(['EMP-1001', '2025', 'B'])
+        elif normalized_type == 'salary_adjustments':
+            writer.writerow(['员工工号', '调薪日期', '调薪类型', '调薪金额'])
+            writer.writerow(['EMP-1001', '2025-06-01', '年度调薪', '2000'])
         # UTF-8 BOM helps Excel on Windows open Chinese CSVs correctly.
         content = output.getvalue().encode('utf-8-sig')
         return f'{normalized_type}_template.csv', content, 'text/csv; charset=utf-8'
@@ -229,9 +256,18 @@ class ImportService:
         if normalized_type == 'employees':
             headers = ['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '岗位族', '岗位级别', '在职状态', '直属上级工号']
             example = ['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '平台研发', 'P5', 'active', '']
-        else:
+        elif normalized_type == 'certifications':
             headers = ['员工工号', '认证类型', '认证阶段', '补贴比例', '发证时间', '到期时间']
             example = ['EMP-1001', 'ai_skill', 'advanced', '0.02', '2026-01-15T00:00:00+00:00', '']
+        elif normalized_type == 'performance_grades':
+            headers = ['员工工号', '年度', '绩效等级']
+            example = ['EMP-1001', '2025', 'B']
+        elif normalized_type == 'salary_adjustments':
+            headers = ['员工工号', '调薪日期', '调薪类型', '调薪金额']
+            example = ['EMP-1001', '2025-06-01', '年度调薪', '2000']
+        else:
+            headers = []
+            example = []
 
         for col_idx, header in enumerate(headers, start=1):
             cell = ws.cell(row=1, column=col_idx, value=header)
@@ -353,6 +389,10 @@ class ImportService:
             raise ValueError(f'缺少必填列：{missing_labels}。请重新下载最新模板后填写。')
         if import_type == 'employees':
             return self._import_employees(dataframe)
+        if import_type == 'performance_grades':
+            return self._import_performance_grades(dataframe)
+        if import_type == 'salary_adjustments':
+            return self._import_salary_adjustments(dataframe)
         return self._import_certifications(dataframe)
 
     def _normalize_columns(self, import_type: str, dataframe: pd.DataFrame) -> pd.DataFrame:
@@ -570,3 +610,144 @@ class ImportService:
                 })
         self.db.commit()
         return results
+
+    # ------------------------------------------------------------------
+    # Performance grades import (D-07/ELIG-09)
+    # ------------------------------------------------------------------
+
+    def _import_performance_grades(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+        results: list[dict[str, object]] = []
+        for index, row in dataframe.iterrows():
+            try:
+                with self.db.begin_nested():  # SAVEPOINT
+                    employee_no = str(row['employee_no']).strip()
+                    employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
+                    if employee is None:
+                        raise ValueError(f'未找到员工工号 "{employee_no}"')
+
+                    year = int(row['year'])
+                    grade = str(row['grade']).strip().upper()
+                    if grade not in ('A', 'B', 'C', 'D', 'E'):
+                        raise ValueError(f'绩效等级 "{grade}" 不合法，请填写 A/B/C/D/E')
+
+                    # Idempotent upsert on (employee_id, year)
+                    existing = self.db.scalar(
+                        select(PerformanceRecord).where(
+                            PerformanceRecord.employee_id == employee.id,
+                            PerformanceRecord.year == year,
+                        )
+                    )
+                    if existing is not None:
+                        existing.grade = grade
+                        existing.source = 'excel'
+                        self.db.add(existing)
+                    else:
+                        record = PerformanceRecord(
+                            employee_id=employee.id,
+                            employee_no=employee_no,
+                            year=year,
+                            grade=grade,
+                            source='excel',
+                        )
+                        self.db.add(record)
+                    self.db.flush()
+                results.append({'row_index': int(index) + 1, 'status': 'success', 'message': '绩效记录导入成功。'})
+            except Exception as exc:
+                self.db.expire_all()
+                results.append({
+                    'row_index': int(index) + 1,
+                    'status': 'failed',
+                    'message': str(exc),
+                    'error_column': self._detect_perf_error_column(exc),
+                })
+        self.db.commit()
+        return results
+
+    def _detect_perf_error_column(self, exc: Exception) -> str:
+        msg = str(exc)
+        if '员工工号' in msg or '未找到' in msg:
+            return '员工工号'
+        if '绩效等级' in msg:
+            return '绩效等级'
+        if '年度' in msg or 'year' in msg.lower():
+            return '年度'
+        return ''
+
+    # ------------------------------------------------------------------
+    # Salary adjustments import (D-07/ELIG-09)
+    # ------------------------------------------------------------------
+
+    _ADJ_TYPE_MAP: dict[str, str] = {
+        '转正调薪': 'probation',
+        '年度调薪': 'annual',
+        '专项调薪': 'special',
+    }
+
+    def _import_salary_adjustments(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+        results: list[dict[str, object]] = []
+        for index, row in dataframe.iterrows():
+            try:
+                with self.db.begin_nested():  # SAVEPOINT
+                    employee_no = str(row['employee_no']).strip()
+                    employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
+                    if employee is None:
+                        raise ValueError(f'未找到员工工号 "{employee_no}"')
+
+                    # Parse adjustment_date
+                    try:
+                        adjustment_date = pd.to_datetime(row['adjustment_date']).date()
+                    except Exception:
+                        raise ValueError(f'调薪日期格式无效: "{row["adjustment_date"]}"')
+
+                    # Parse adjustment_type with Chinese-to-code mapping
+                    raw_type = str(row['adjustment_type']).strip()
+                    adj_type = self._ADJ_TYPE_MAP.get(raw_type, raw_type.lower())
+                    if adj_type not in ('probation', 'annual', 'special'):
+                        raise ValueError(
+                            f'调薪类型 "{raw_type}" 不合法，请填写 转正调薪/年度调薪/专项调薪 或 probation/annual/special'
+                        )
+
+                    # Parse amount (optional)
+                    amount: Decimal | None = None
+                    if 'amount' in dataframe.columns:
+                        raw_amount = row['amount']
+                        if pd.notna(raw_amount) and str(raw_amount).strip():
+                            try:
+                                amount = Decimal(str(raw_amount).strip())
+                            except InvalidOperation:
+                                raise ValueError(f'调薪金额格式无效: "{raw_amount}"')
+
+                    # Append (not upsert) -- multiple adjustments are expected
+                    record = SalaryAdjustmentRecord(
+                        employee_id=employee.id,
+                        employee_no=employee_no,
+                        adjustment_date=adjustment_date,
+                        adjustment_type=adj_type,
+                        amount=amount,
+                        source='excel',
+                    )
+                    self.db.add(record)
+                    self.db.flush()
+                results.append({'row_index': int(index) + 1, 'status': 'success', 'message': '调薪记录导入成功。'})
+            except Exception as exc:
+                self.db.expire_all()
+                results.append({
+                    'row_index': int(index) + 1,
+                    'status': 'failed',
+                    'message': str(exc),
+                    'error_column': self._detect_adj_error_column(exc),
+                })
+        self.db.commit()
+        return results
+
+    def _detect_adj_error_column(self, exc: Exception) -> str:
+        msg = str(exc)
+        if '员工工号' in msg or '未找到' in msg:
+            return '员工工号'
+        if '调薪日期' in msg:
+            return '调薪日期'
+        if '调薪类型' in msg:
+            return '调薪类型'
+        if '调薪金额' in msg:
+            return '调薪金额'
+        return ''
