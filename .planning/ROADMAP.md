@@ -150,7 +150,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 10. External API | v1.0 | 3/3 | Complete | 2026-03-31 |
 | 11. Menu & Navigation | v1.1 | 1/1 | Complete | 2026-03-31 |
 | 12. Account Binding | v1.1 | 1/2 | Complete    | 2026-04-01 |
-| 13. Eligibility Engine | v1.1 | 0/2 | Not started | - |
+| 13. Eligibility Engine | v1.1 | 0/2 | Planned    |  |
 | 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
 | 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
 | 16. File Sharing | v1.1 | 0/TBD | Not started | - |
