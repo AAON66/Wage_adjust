@@ -29,6 +29,7 @@ class AttendanceRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base
     late_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     early_leave_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     leave_days: Mapped[float | None] = mapped_column(Float, nullable=True)
+    non_statutory_leave_days: Mapped[float | None] = mapped_column(Float, nullable=True)
     feishu_record_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     source_modified_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     data_as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
