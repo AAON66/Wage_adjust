@@ -85,9 +85,10 @@ Plans:
   1. 员工登录后看不到任何调薪资格信息，HR/主管/管理员可以看到
   2. HR 可按部门或全公司维度批量查看员工调薪资格状态列表
   3. 部门可为不合格但有特殊情况的员工提交特殊申请，经 HR 和管理层审批后覆盖资格判定
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [ ] 14-01-PLAN.md — EligibilityOverride model + migration + batch query/export + override service + API endpoints
+- [ ] 14-02-PLAN.md — Frontend EligibilityManagementPage with two tabs + route/menu registration
 **UI hint**: yes
 
 ### Phase 15: Multimodal Vision Evaluation
@@ -151,7 +152,7 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 11. Menu & Navigation | v1.1 | 1/1 | Complete | 2026-03-31 |
 | 12. Account Binding | v1.1 | 1/2 | Complete    | 2026-04-01 |
 | 13. Eligibility Engine | v1.1 | 0/2 | Complete    | 2026-04-02 |
-| 14. Eligibility Visibility | v1.1 | 0/TBD | Not started | - |
+| 14. Eligibility Visibility | v1.1 | 0/2 | Not started | - |
 | 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
 | 16. File Sharing | v1.1 | 0/TBD | Not started | - |
 | 17. Display Simplification | v1.1 | 0/TBD | Not started | - |
