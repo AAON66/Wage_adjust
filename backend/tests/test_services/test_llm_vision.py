@@ -123,14 +123,10 @@ def test_evaluate_image_vision_compresses_large_images() -> None:
     )
     service._invoke_json = MagicMock(return_value=mock_result)
 
-    with patch('backend.app.services.llm_service.compress_image_if_needed', return_value=_make_tiny_png()) as mock_compress:
-        # Need to patch at import location in llm_service after the import happens
-        # Since evaluate_image_vision does a local import, patch at source
-        with patch('backend.app.parsers.image_parser.compress_image_if_needed', return_value=_make_tiny_png()) as mock_compress2:
-            result = service.evaluate_image_vision(_make_tiny_png(), 'png', 'image/png')
+    with patch('backend.app.parsers.image_parser.compress_image_if_needed', return_value=_make_tiny_png()) as mock_compress:
+        result = service.evaluate_image_vision(_make_tiny_png(), 'png', 'image/png')
 
-    # The function should have been called (via local import from image_parser)
-    assert mock_compress2.called or mock_compress.called
+    assert mock_compress.called
 
 
 def test_evaluate_image_vision_fallback_payload() -> None:
