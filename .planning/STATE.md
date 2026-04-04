@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
 status: executing
-stopped_at: Phase 14 context gathered
-last_updated: "2026-04-03T13:58:17.684Z"
-last_activity: 2026-04-02
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-04-04T06:49:00Z"
+last_activity: 2026-04-04 -- Phase 14 plan 01 complete
 progress:
   total_phases: 7
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 4
-  percent: 66
+  total_plans: 7
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Phase 12 — account-employee-binding
+**Current focus:** Phase 14 — eligibility-visibility-overrides
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
-Status: Executing Phase 12
-Last activity: 2026-04-02
+Phase: 14 (eligibility-visibility-overrides) — EXECUTING
+Plan: 2 of 2
+Status: Plan 01 complete, Plan 02 pending
+Last activity: 2026-04-04 -- Phase 14 plan 01 complete
 
-Progress: [######░░░░] 66%
+Progress: [#######░░░] 71%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [######░░░░] 66%
 
 *Updated after each plan completion*
 | Phase 13 P02 | 7min | 2 tasks | 7 files |
+| Phase 14 P01 | 12min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,7 @@ v1.1 pending decisions:
 - [Phase 12]: token_version approach for JWT invalidation on unbind — simpler than blacklist, no Redis dependency
 - [Phase 12-02]: Added keyword search to employees API for bind modal
 - [Phase 13]: Performance grade lookup defaults to previous year; salary adjustment import appends (not upserts); Chinese-to-code mapping for adjustment types
+- [Phase 14-01]: UniqueConstraint on (employee_id, year) for overrides; non-rejected filtering at app level (SQLite limitation); filter-before-paginate for batch query; override creation restricted to manager/hrbp per D-03; role-step binding for override approval
 
 ### Pending Todos
 
@@ -87,6 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-03T13:58:17.680Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-eligibility-visibility-overrides/14-CONTEXT.md
+Last session: 2026-04-04T06:49:00Z
+Stopped at: Completed 14-01-PLAN.md
+Resume file: .planning/phases/14-eligibility-visibility-overrides/14-01-SUMMARY.md
