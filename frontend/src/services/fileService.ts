@@ -47,6 +47,25 @@ export async function uploadSubmissionFiles(
   }
 }
 
+export async function uploadSubmissionFilesWithDuplicate(
+  submissionId: string,
+  file: File,
+  originalFileId: string,
+  contributors?: ContributorInput[],
+): Promise<UploadedFileListResponse> {
+  const formData = new FormData();
+  formData.append('files', file);
+  if (contributors && contributors.length > 0) {
+    formData.append('contributors', JSON.stringify(contributors));
+  }
+  const response = await api.post<UploadedFileListResponse>(
+    `/submissions/${submissionId}/files?allow_duplicate=true&original_file_id=${encodeURIComponent(originalFileId)}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return response.data;
+}
+
 export async function importGitHubSubmissionFile(submissionId: string, url: string): Promise<UploadedFileRecord> {
   const response = await api.post<UploadedFileRecord>(`/submissions/${submissionId}/github-import`, { url }, { timeout: LONG_RUNNING_TIMEOUT });
   return response.data;
