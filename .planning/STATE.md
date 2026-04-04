@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
-status: verifying
-stopped_at: Phase 15 context gathered
-last_updated: "2026-04-04T07:27:52.874Z"
-last_activity: 2026-04-04
+status: executing
+stopped_at: Phase 15 UI-SPEC approved
+last_updated: "2026-04-04T10:39:36.845Z"
+last_activity: 2026-04-04 -- Phase 15 execution started
 progress:
   total_phases: 7
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
-  percent: 78
+  total_plans: 9
+  completed_plans: 6
+  percent: 71
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-31)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Phase 14 — eligibility-visibility-overrides
+**Current focus:** Phase 15 — multimodal-vision-evaluation
 
 ## Current Position
 
 Phase: 15 (multimodal-vision-evaluation) — EXECUTING
-Plan: 2 of 2
-Status: Completed 15-01 (vision evaluation infrastructure)
-Last activity: 2026-04-04 -- Completed 15-01-PLAN.md
+Plan: 1 of 2
+Status: Executing Phase 15
+Last activity: 2026-04-04 -- Phase 15 execution started
 
-Progress: [########░░] 78%
+Progress: [#######░░░] 71%
 
 ## Performance Metrics
 
@@ -56,7 +56,6 @@ Progress: [########░░] 78%
 | Phase 13 P02 | 7min | 2 tasks | 7 files |
 | Phase 14 P01 | 12min | 2 tasks | 8 files |
 | Phase 14 P02 | 8min | 2 tasks | 9 files |
-| Phase 15 P01 | 4min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -79,7 +78,6 @@ v1.1 pending decisions:
 - [Phase 13]: Performance grade lookup defaults to previous year; salary adjustment import appends (not upserts); Chinese-to-code mapping for adjustment types
 - [Phase 14-01]: UniqueConstraint on (employee_id, year) for overrides; non-rejected filtering at app level (SQLite limitation); filter-before-paginate for batch query; override creation restricted to manager/hrbp per D-03; role-step binding for override approval
 - [Phase 14]: Role-conditional action rendering: useAuth() role check hides override button from admin (D-03), step-aware approve/reject matches request status to user role
-- [Phase 15-01]: Vision evaluation reuses parsing timeout (120s); compress_image_if_needed in image_parser.py with local import in llm_service; ExtractedImage uses python-pptx native sha1 for dedup
 
 ### Pending Todos
 
@@ -93,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T10:44:22Z
-Stopped at: Completed 15-01-PLAN.md
-Resume file: .planning/phases/15-multimodal-vision-evaluation/15-02-PLAN.md
+Last session: 2026-04-04T10:19:50.068Z
+Stopped at: Phase 15 UI-SPEC approved
+Resume file: .planning/phases/15-multimodal-vision-evaluation/15-UI-SPEC.md
