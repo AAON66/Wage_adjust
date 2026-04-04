@@ -512,6 +512,8 @@ SOURCE_RELIABILITY = {
     'manager_review': 1.08,
     'business_metric': 1.12,
     'system_detected': 1.06,
+    'vision_evaluation': 0.90,
+    'vision_failed': 0.0,
 }
 
 LEVEL_THRESHOLDS = (

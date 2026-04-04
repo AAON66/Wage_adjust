@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     deepseek_model: str = "deepseek-reasoner"
     deepseek_parsing_model: str = ""
     deepseek_evaluation_model: str = ""
+    deepseek_vision_model: str = 'deepseek-chat'
     deepseek_timeout_seconds: int = 30
     deepseek_parsing_timeout_seconds: int = 120
     deepseek_evaluation_timeout_seconds: int = 120
