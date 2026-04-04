@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
 status: verifying
-stopped_at: Phase 15 context gathered
-last_updated: "2026-04-04T07:27:52.874Z"
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-04-04T10:57:33.660Z"
 last_activity: 2026-04-04
 progress:
   total_phases: 7
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 4
+  total_plans: 9
+  completed_plans: 8
   percent: 78
 ---
 
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 15 (multimodal-vision-evaluation) — EXECUTING
 Plan: 2 of 2
-Status: Completed 15-01 (vision evaluation infrastructure)
-Last activity: 2026-04-04 -- Completed 15-01-PLAN.md
+Status: Phase complete — ready for verification
+Last activity: 2026-04-04
 
 Progress: [########░░] 78%
 
@@ -57,6 +57,7 @@ Progress: [########░░] 78%
 | Phase 14 P01 | 12min | 2 tasks | 8 files |
 | Phase 14 P02 | 8min | 2 tasks | 9 files |
 | Phase 15 P01 | 4min | 2 tasks | 7 files |
+| Phase 15 P02 | 5min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,7 @@ v1.1 pending decisions:
 - [Phase 14-01]: UniqueConstraint on (employee_id, year) for overrides; non-rejected filtering at app level (SQLite limitation); filter-before-paginate for batch query; override creation restricted to manager/hrbp per D-03; role-step binding for override approval
 - [Phase 14]: Role-conditional action rendering: useAuth() role check hides override button from admin (D-03), step-aware approve/reject matches request status to user role
 - [Phase 15-01]: Vision evaluation reuses parsing timeout (120s); compress_image_if_needed in image_parser.py with local import in llm_service; ExtractedImage uses python-pptx native sha1 for dedup
+- [Phase 15]: Vision evaluation wired after text parsing in parse_file() to keep text evidence independent of vision success
 
 ### Pending Todos
 
@@ -93,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T10:44:22Z
-Stopped at: Completed 15-01-PLAN.md
-Resume file: .planning/phases/15-multimodal-vision-evaluation/15-02-PLAN.md
+Last session: 2026-04-04T10:57:33.657Z
+Stopped at: Completed 15-02-PLAN.md
+Resume file: None
