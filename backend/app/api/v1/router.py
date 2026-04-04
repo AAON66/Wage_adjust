@@ -20,6 +20,7 @@ from backend.app.api.v1.handbooks import router as handbooks_router
 from backend.app.api.v1.imports import router as imports_router
 from backend.app.api.v1.public import router as public_router
 from backend.app.api.v1.salary import router as salary_router
+from backend.app.api.v1.sharing import router as sharing_router
 from backend.app.api.v1.submissions import router as submissions_router
 from backend.app.api.v1.system import router as system_router
 from backend.app.api.v1.users import router as users_router
@@ -36,6 +37,7 @@ api_router.include_router(submissions_router)
 api_router.include_router(files_router)
 api_router.include_router(evaluations_router)
 api_router.include_router(salary_router)
+api_router.include_router(sharing_router)
 api_router.include_router(approvals_router)
 api_router.include_router(contributors_router)
 api_router.include_router(audit_router)

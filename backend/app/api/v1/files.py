@@ -3,11 +3,13 @@ from __future__ import annotations
 import json
 import logging
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings
 from backend.app.dependencies import get_app_settings, get_current_user, get_db
+from backend.app.models.submission import EmployeeSubmission
+from backend.app.models.uploaded_file import UploadedFile
 from backend.app.models.user import User
 from backend.app.schemas.file import (
     ContributorInput,
@@ -21,10 +23,12 @@ from backend.app.schemas.file import (
     UploadedFileListResponse,
     UploadedFileRead,
 )
+from backend.app.schemas.sharing import CheckDuplicateRequest, CheckDuplicateResponse
 from backend.app.services.evidence_service import RequiredLLMError
 from backend.app.services.access_scope_service import AccessScopeService
 from backend.app.services.file_service import FileService
 from backend.app.services.parse_service import ParseService
+from backend.app.services.sharing_service import SharingService
 
 logger = logging.getLogger(__name__)
 
@@ -55,11 +59,44 @@ def ensure_file_access(db: Session, current_user: User, file_id: str):
     return file_record
 
 
+@router.post('/files/check-duplicate', response_model=CheckDuplicateResponse)
+def check_file_duplicate(
+    payload: CheckDuplicateRequest,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
+) -> CheckDuplicateResponse:
+    """Preflight duplicate check (D-01 hash-only).
+
+    REVIEW FIX #4: uses payload.submission_id to resolve the target employee,
+    not current_user — supports HR/admin uploading on behalf of others.
+    """
+    ensure_submission_access(db, current_user, payload.submission_id)
+    service = FileService(db, settings)
+    existing = service.check_duplicate_for_sharing(payload.content_hash, payload.submission_id)
+    if existing is None:
+        return CheckDuplicateResponse(is_duplicate=False)
+    uploader_name = ''
+    original_submission_id = existing.submission_id or ''
+    if existing.submission and existing.submission.employee:
+        uploader_name = existing.submission.employee.name or ''
+    uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else ''
+    return CheckDuplicateResponse(
+        is_duplicate=True,
+        original_file_id=existing.id,
+        original_submission_id=original_submission_id,
+        uploader_name=uploader_name,
+        uploaded_at=uploaded_at,
+    )
+
+
 @router.post('/submissions/{submission_id}/files', response_model=UploadedFileListResponse, status_code=status.HTTP_201_CREATED)
 def upload_submission_files(
     submission_id: str,
     files: list[UploadFile] = File(...),
     contributors: str = Form(default='[]'),
+    allow_duplicate: bool = Query(default=False),
+    original_file_id: str | None = Query(default=None),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(get_current_user),
@@ -77,6 +114,43 @@ def upload_submission_files(
         ) from exc
 
     service = FileService(db, settings)
+    # REVIEW FIX #1/#2: atomic upload + sharing request when allow_duplicate=true
+    if allow_duplicate and original_file_id:
+        original_file = db.get(UploadedFile, original_file_id)
+        if original_file is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail='Original file not found.',
+            )
+        try:
+            items = service.upload_files(
+                submission_id, files, contributors=contributor_list, skip_duplicate_check=True,
+            )
+        except ValueError as exc:
+            message = str(exc)
+            status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
+            raise HTTPException(status_code=status_code, detail=message) from exc
+        # Create sharing request atomically in SAME transaction
+        if items:
+            try:
+                SharingService(db).create_request(
+                    requester_file_id=items[0].id,
+                    original_file_id=original_file_id,
+                    requester_submission_id=submission_id,
+                    original_submission_id=original_file.submission_id,
+                )
+                db.commit()
+            except ValueError as exc:
+                # Roll back the upload if we can't create the sharing request (D-15 conflict)
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=str(exc),
+                ) from exc
+        return UploadedFileListResponse(
+            items=[UploadedFileRead.model_validate(item) for item in items], total=len(items),
+        )
+
     try:
         items = service.upload_files(submission_id, files, contributors=contributor_list)
     except ValueError as exc:
