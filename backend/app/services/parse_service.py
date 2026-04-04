@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 from posixpath import basename
@@ -15,6 +16,7 @@ from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
 from backend.app.parsers import CodeParser, DocumentParser, ImageParser, PPTParser
 from backend.app.parsers.base_parser import BaseParser, ParsedDocument
+from backend.app.parsers.ppt_parser import ExtractedImage
 from backend.app.services.evidence_service import EvidenceService, RequiredLLMError
 
 if TYPE_CHECKING:
@@ -28,6 +30,7 @@ DEFAULT_ARCHIVE_EVIDENCE_ITEMS = 24
 
 
 IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg'}
+MIME_MAP = {'.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp'}
 
 
 class ParseService:
@@ -131,6 +134,100 @@ class ParseService:
             configured_limit = min(configured_limit, sampled_file_count)
         return max(1, min(total_matches, configured_limit))
 
+    def _evaluate_vision_for_images(
+        self,
+        file_record: UploadedFile,
+        images: list[dict],
+    ) -> list[EvidenceItem]:
+        """Evaluate images via vision API serially (per D-06), with per-image failure isolation (per D-07).
+
+        Each image dict must have: blob (bytes), ext (str), content_type (str),
+        and optionally: slide_number (int), image_source (str).
+        """
+        if self.deepseek_service is None:
+            return []
+
+        evidence_items: list[EvidenceItem] = []
+        for image_info in images:
+            context: dict = {}
+            if 'slide_number' in image_info:
+                context['slide_number'] = image_info['slide_number']
+            context['image_source'] = image_info.get('image_source', 'unknown')
+
+            try:
+                result = self.deepseek_service.evaluate_image_vision(
+                    image_bytes=image_info['blob'],
+                    ext=image_info['ext'],
+                    mime_type=image_info['content_type'],
+                    context=context,
+                )
+
+                if result.used_fallback:
+                    evidence = EvidenceItem(
+                        submission_id=file_record.submission_id,
+                        source_type='vision_failed',
+                        title=f'Vision failed: {file_record.file_name}',
+                        content=json.dumps({'reason': result.reason or 'vision_api_unavailable'}, ensure_ascii=False),
+                        confidence_score=0.0,
+                        metadata_json={
+                            'file_id': file_record.id,
+                            'storage_key': file_record.storage_key,
+                            'vision_failed': True,
+                            'vision_failure_reason': result.reason or 'unknown',
+                            'image_source': context.get('image_source', 'unknown'),
+                            **(({'slide_number': image_info['slide_number']} if 'slide_number' in image_info else {})),
+                        },
+                    )
+                else:
+                    payload = result.payload
+                    description = str(payload.get('description', ''))
+                    quality_score = int(payload.get('quality_score', 0))
+                    dimension_relevance = payload.get('dimension_relevance', {})
+
+                    confidence = quality_score / 5.0 if quality_score > 0 else 0.0
+
+                    evidence = EvidenceItem(
+                        submission_id=file_record.submission_id,
+                        source_type='vision_evaluation',
+                        title=f'Vision: {description[:80]}' if description else f'Vision: {file_record.file_name}',
+                        content=json.dumps(payload, ensure_ascii=False),
+                        confidence_score=round(confidence, 2),
+                        metadata_json={
+                            'file_id': file_record.id,
+                            'storage_key': file_record.storage_key,
+                            'vision_quality_score': quality_score,
+                            'vision_description': description,
+                            'vision_dimension_relevance': dimension_relevance if isinstance(dimension_relevance, dict) else {},
+                            'image_source': context.get('image_source', 'unknown'),
+                            **(({'slide_number': image_info['slide_number']} if 'slide_number' in image_info else {})),
+                        },
+                    )
+
+                self.db.add(evidence)
+                evidence_items.append(evidence)
+
+            except Exception as exc:
+                logger.warning('Vision evaluation failed for image in %s: %s', file_record.file_name, exc)
+                evidence = EvidenceItem(
+                    submission_id=file_record.submission_id,
+                    source_type='vision_failed',
+                    title=f'Vision failed: {file_record.file_name}',
+                    content=json.dumps({'reason': str(exc)}, ensure_ascii=False),
+                    confidence_score=0.0,
+                    metadata_json={
+                        'file_id': file_record.id,
+                        'storage_key': file_record.storage_key,
+                        'vision_failed': True,
+                        'vision_failure_reason': str(exc),
+                        'image_source': image_info.get('image_source', 'unknown'),
+                        **(({'slide_number': image_info['slide_number']} if 'slide_number' in image_info else {})),
+                    },
+                )
+                self.db.add(evidence)
+                evidence_items.append(evidence)
+
+        return evidence_items
+
     def _upsert_evidence(self, file_record: UploadedFile, *, path: Path, parsed) -> list[EvidenceItem]:
         submission = self.db.get(EmployeeSubmission, file_record.submission_id)
         assert submission is not None
@@ -179,6 +276,38 @@ class ParseService:
             if path.suffix.lower() in IMAGE_EXTENSIONS:
                 parsed = self._enrich_image_document(parsed, path)
             evidence_items = self._upsert_evidence(file_record, path=path, parsed=parsed)
+
+            # Vision evaluation for PPT images (VISION-01, D-04, D-05)
+            if path.suffix.lower() in ('.pptx',):
+                ppt_parser = self._pick_parser(path)
+                if isinstance(ppt_parser, PPTParser):
+                    extracted_images = ppt_parser.extract_images(path)
+                    image_dicts = [
+                        {
+                            'blob': img.blob,
+                            'ext': img.ext,
+                            'content_type': img.content_type,
+                            'slide_number': img.slide_number,
+                            'image_source': 'ppt_embedded',
+                        }
+                        for img in extracted_images
+                    ]
+                    vision_evidence = self._evaluate_vision_for_images(file_record, image_dicts)
+                    evidence_items.extend(vision_evidence)
+
+            # Vision evaluation for standalone images (VISION-02)
+            if path.suffix.lower() in IMAGE_EXTENSIONS:
+                image_bytes = path.read_bytes()
+                mime = MIME_MAP.get(path.suffix.lower(), 'image/png')
+                image_dicts = [{
+                    'blob': image_bytes,
+                    'ext': path.suffix.lower().lstrip('.'),
+                    'content_type': mime,
+                    'image_source': 'standalone_upload',
+                }]
+                vision_evidence = self._evaluate_vision_for_images(file_record, image_dicts)
+                evidence_items.extend(vision_evidence)
+
             file_record.parse_status = 'parsed'
             submission = self.db.get(EmployeeSubmission, file_record.submission_id)
             if submission is not None:
