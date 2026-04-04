@@ -41,9 +41,11 @@ Declared values (must be multiples of 4):
 | 2xl | 48px | Not used in this phase |
 | 3xl | 64px | Not used in this phase |
 
-Exceptions: none
+Justified exceptions from existing CSS (not new to this phase):
+- `20px`: Used in `.app-main` horizontal padding — inherited from existing layout, not introduced by this phase.
+- `14px`: Used in `.list-row` vertical padding — inherited from existing component pattern, not introduced by this phase.
 
-Source: Existing `index.css` patterns -- `.app-main` uses `padding: 20px 24px 32px`, `.list-row` uses `padding: 14px 16px`, modal content uses `padding: 24px`. This phase follows the same values.
+Source: Existing `index.css` patterns -- `.app-main` uses `padding: 20px 24px 32px`, `.list-row` uses `padding: 14px 16px`, modal content uses `padding: 24px`. This phase follows the same values and does not introduce new off-scale spacing.
 
 ---
 
@@ -52,11 +54,15 @@ Source: Existing `index.css` patterns -- `.app-main` uses `padding: 20px 24px 32
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 13.5px | 400 | 1.5 |
-| Label | 12px | 500 | 1.5 |
+| Label | 12px | 400 | 1.5 |
 | Heading (section) | 15px | 600 | 1.4 |
 | Heading (page) | 20px | 600 | 1.3 |
 
-Source: Extracted from existing `index.css` classes -- `.table-lite` body is 13.5px, `.metric-label` is 12px/500, `.section-title` is 15px/600, `.page-title` is 20px/600. This phase reuses the exact same scale.
+Weights declared: **2** (400 regular, 600 semibold).
+
+Labels at 12px are visually distinct from 13.5px body text through size alone; a separate 500 weight is unnecessary.
+
+Source: Extracted from existing `index.css` classes -- `.table-lite` body is 13.5px, `.section-title` is 15px/600, `.page-title` is 20px/600. The existing `.metric-label` uses 12px/500 in the codebase, but this phase normalizes label weight to 400 for contract compliance. Implementers should use 400 for all new label elements in this phase; existing `.metric-label` outside this phase is unaffected.
 
 ---
 
@@ -73,7 +79,7 @@ Source: Extracted from existing `index.css` classes -- `.table-lite` body is 13.
 
 Accent reserved for:
 - "继续上传" primary CTA button in duplicate warning modal
-- "审批" primary CTA button on sharing request approval
+- "审批申请" primary CTA button on sharing request approval
 - Active sidebar menu item highlight for "共享申请" page
 - Focus ring on ratio input slider/field
 
@@ -202,16 +208,16 @@ Toast style: Bottom-right position, `--color-info-bg` background, `--color-info`
 
 | Button | Class | Label | Behavior |
 |--------|-------|-------|----------|
-| Approve | `action-primary` (height 28px, font 12.5px) | "审批" | Opens inline ratio editor row below the table row |
+| Approve | `action-primary` (height 28px, font 12.5px) | "审批申请" | Opens inline ratio editor row below the table row |
 | Reject | `action-danger` (height 28px, font 12.5px) | "拒绝" | Shows confirmation via `window.confirm("确认拒绝此共享申请？拒绝后对方将无法再次申请。")` |
 
-**Inline ratio editor (shown after clicking "审批"):**
+**Inline ratio editor (shown after clicking "审批申请"):**
 
 | Element | Specification |
 |---------|---------------|
 | Container | Expands below the row, `surface-subtle` background, 16px padding, 8px border-radius |
-| Label | "调整贡献比例", 12px, weight 500, color `--color-steel` |
-| Ratio display | "申请者 {pct}% : 您 {100-pct}%", 13.5px, weight 500, color `--color-ink` |
+| Label | "调整贡献比例", 12px, weight 400, color `--color-steel` |
+| Ratio display | "申请者 {pct}% : 您 {100-pct}%", 13.5px, weight 400, color `--color-ink` |
 | Input | `toolbar-input`, type="number", min=1, max=99, step=1, width 80px. Pre-filled with `proposed_pct` (default 50). |
 | Confirm button | `action-primary`, height 28px, label "确认审批" |
 | Cancel link | Plain text button, 12.5px, color `--color-steel`, label "取消", underline on hover |
@@ -262,7 +268,7 @@ For non-pending requests: no action buttons shown. Status pill only.
 | Element | Copy |
 |---------|------|
 | Primary CTA (modal) | 继续上传 |
-| Primary CTA (approval) | 审批 |
+| Primary CTA (approval) | 审批申请 |
 | Secondary CTA (modal) | 取消 |
 | Destructive CTA | 拒绝 |
 | Destructive confirmation | 拒绝共享申请: "确认拒绝此共享申请？拒绝后对方将无法再次申请。" |
