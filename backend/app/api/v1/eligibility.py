@@ -22,10 +22,25 @@ from backend.app.schemas.eligibility import (
     SalaryAdjustmentRecordCreate,
     SalaryAdjustmentRecordRead,
 )
+from backend.app.models.employee import Employee
+from backend.app.models.eligibility_override import EligibilityOverride
 from backend.app.services.access_scope_service import AccessScopeService
 from backend.app.services.eligibility_service import EligibilityService
 
 router = APIRouter(prefix='/eligibility', tags=['eligibility'])
+
+
+def _enrich_override(override: EligibilityOverride, db: Session) -> OverrideRequestRead:
+    """Enrich override with employee and requester names for display."""
+    data = OverrideRequestRead.model_validate(override)
+    employee = db.get(Employee, override.employee_id)
+    if employee:
+        data.employee_no = employee.employee_no
+        data.employee_name = employee.name
+    requester = db.get(User, override.requester_id)
+    if requester:
+        data.requester_name = requester.email
+    return data
 
 
 # ------------------------------------------------------------------
@@ -141,7 +156,7 @@ def create_override(
     db.add(audit)
     db.commit()
     db.refresh(override)
-    return OverrideRequestRead.model_validate(override)
+    return _enrich_override(override, db)
 
 
 @router.get('/overrides', response_model=OverrideListResponse)
@@ -160,7 +175,7 @@ def list_overrides(
         current_user=current_user,
     )
     return OverrideListResponse(
-        items=[OverrideRequestRead.model_validate(item) for item in items],
+        items=[_enrich_override(item, db) for item in items],
         total=total,
         page=page,
         page_size=page_size,
@@ -173,11 +188,10 @@ def get_override_detail(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
 ) -> OverrideRequestRead:
-    from backend.app.models.eligibility_override import EligibilityOverride
     override = db.get(EligibilityOverride, override_id)
     if override is None:
         raise HTTPException(status_code=404, detail='Override not found.')
-    return OverrideRequestRead.model_validate(override)
+    return _enrich_override(override, db)
 
 
 @router.post(
@@ -212,7 +226,7 @@ def decide_override(
     db.add(audit)
     db.commit()
     db.refresh(override)
-    return OverrideRequestRead.model_validate(override)
+    return _enrich_override(override, db)
 
 
 # ------------------------------------------------------------------

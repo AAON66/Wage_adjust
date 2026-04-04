@@ -72,7 +72,10 @@ class OverrideRequestRead(BaseModel):
 
     id: str
     employee_id: str
+    employee_no: str | None = None
+    employee_name: str | None = None
     requester_id: str
+    requester_name: str | None = None
     override_rules: list[str]
     reason: str
     status: str
