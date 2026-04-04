@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
-status: executing
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-04-04T06:49:00Z"
-last_activity: 2026-04-04 -- Phase 14 plan 01 complete
+status: verifying
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-04-04T07:11:01.962Z"
+last_activity: 2026-04-04
 progress:
   total_phases: 7
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 71
 ---
 
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 Phase: 14 (eligibility-visibility-overrides) — EXECUTING
 Plan: 2 of 2
-Status: Plan 01 complete, Plan 02 pending
-Last activity: 2026-04-04 -- Phase 14 plan 01 complete
+Status: Phase complete — ready for verification
+Last activity: 2026-04-04
 
 Progress: [#######░░░] 71%
 
@@ -55,6 +55,7 @@ Progress: [#######░░░] 71%
 *Updated after each plan completion*
 | Phase 13 P02 | 7min | 2 tasks | 7 files |
 | Phase 14 P01 | 12min | 2 tasks | 8 files |
+| Phase 14 P02 | 8min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,7 @@ v1.1 pending decisions:
 - [Phase 12-02]: Added keyword search to employees API for bind modal
 - [Phase 13]: Performance grade lookup defaults to previous year; salary adjustment import appends (not upserts); Chinese-to-code mapping for adjustment types
 - [Phase 14-01]: UniqueConstraint on (employee_id, year) for overrides; non-rejected filtering at app level (SQLite limitation); filter-before-paginate for batch query; override creation restricted to manager/hrbp per D-03; role-step binding for override approval
+- [Phase 14]: Role-conditional action rendering: useAuth() role check hides override button from admin (D-03), step-aware approve/reject matches request status to user role
 
 ### Pending Todos
 
@@ -89,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T06:49:00Z
-Stopped at: Completed 14-01-PLAN.md
-Resume file: .planning/phases/14-eligibility-visibility-overrides/14-01-SUMMARY.md
+Last session: 2026-04-04T07:11:01.959Z
+Stopped at: Completed 14-02-PLAN.md
+Resume file: None
