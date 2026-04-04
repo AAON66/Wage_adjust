@@ -100,9 +100,11 @@ Plans:
   2. 独立上传的 PNG/JPG 图片通过视觉模型进行作品质量评估
   3. 视觉评估结果以结构化 JSON 输出（图片描述、质量评级、维度关联度），并纳入整体评分计算
   4. 一次提交中多个图片文件可批量处理，单个文件失败不影响其余文件的评估
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [ ] 15-01-PLAN.md — PPT image extraction + vision LLM prompt + config + SOURCE_RELIABILITY + unit tests
+- [ ] 15-02-PLAN.md — ParseService vision wiring + batch failure isolation + EvidenceCard frontend
+**UI hint**: yes
 
 ### Phase 16: File Sharing Workflow
 **Goal**: 上传与他人重复的文件时系统警告但允许继续，并自动发起共享申请，原上传者可审批/拒绝并协商贡献比例
@@ -153,6 +155,6 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 12. Account Binding | v1.1 | 1/2 | Complete    | 2026-04-01 |
 | 13. Eligibility Engine | v1.1 | 0/2 | Complete    | 2026-04-02 |
 | 14. Eligibility Visibility | v1.1 | 2/2 | Complete    | 2026-04-04 |
-| 15. Vision Evaluation | v1.1 | 0/TBD | Not started | - |
+| 15. Vision Evaluation | v1.1 | 0/2 | Not started | - |
 | 16. File Sharing | v1.1 | 0/TBD | Not started | - |
 | 17. Display Simplification | v1.1 | 0/TBD | Not started | - |
