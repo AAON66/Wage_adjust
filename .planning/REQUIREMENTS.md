@@ -39,9 +39,9 @@
 
 ## 多模态视觉评估 (VISION)
 
-- [ ] **VISION-01**: PPT 文件中的图片（图表、设计稿、截图等）提取后通过视觉模型进行内容理解和质量评估，而非仅提取文字
-- [ ] **VISION-02**: 独立上传的图片文件（PNG/JPG 等）通过视觉模型进行作品质量评估（设计作品、数据可视化、界面截图等）
-- [ ] **VISION-03**: 视觉评估结果以结构化 JSON 输出（图片描述、质量评级、与 AI 能力维度的关联度），纳入整体评分计算
+- [x] **VISION-01**: PPT 文件中的图片（图表、设计稿、截图等）提取后通过视觉模型进行内容理解和质量评估，而非仅提取文字
+- [x] **VISION-02**: 独立上传的图片文件（PNG/JPG 等）通过视觉模型进行作品质量评估（设计作品、数据可视化、界面截图等）
+- [x] **VISION-03**: 视觉评估结果以结构化 JSON 输出（图片描述、质量评级、与 AI 能力维度的关联度），纳入整体评分计算
 - [ ] **VISION-04**: 视觉评估支持批量处理（一次提交中多个图片文件），单个文件评估失败不影响其余文件
 
 ## 调薪展示 (DISP)
@@ -88,9 +88,9 @@
 | ELIG-05 | Phase 14 | Complete |
 | ELIG-06 | Phase 14 | Complete |
 | ELIG-07 | Phase 14 | Complete |
-| VISION-01 | Phase 15 | Pending |
-| VISION-02 | Phase 15 | Pending |
-| VISION-03 | Phase 15 | Pending |
+| VISION-01 | Phase 15 | Complete |
+| VISION-02 | Phase 15 | Complete |
+| VISION-03 | Phase 15 | Complete |
 | VISION-04 | Phase 15 | Pending |
 | SHARE-01 | Phase 16 | Pending |
 | SHARE-02 | Phase 16 | Pending |

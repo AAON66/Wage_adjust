@@ -100,9 +100,10 @@ Plans:
   2. 独立上传的 PNG/JPG 图片通过视觉模型进行作品质量评估
   3. 视觉评估结果以结构化 JSON 输出（图片描述、质量评级、维度关联度），并纳入整体评分计算
   4. 一次提交中多个图片文件可批量处理，单个文件失败不影响其余文件的评估
-**Plans**: 1 plan
+**Plans**: 2 plans (1/2 complete)
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [x] 15-01-PLAN.md — Vision evaluation infrastructure (PPT image extraction, vision LLM prompt, compression)
+- [ ] 15-02-PLAN.md — Wire vision evaluation into parse flow
 
 ### Phase 16: File Sharing Workflow
 **Goal**: 上传与他人重复的文件时系统警告但允许继续，并自动发起共享申请，原上传者可审批/拒绝并协商贡献比例
