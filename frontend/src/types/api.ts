@@ -834,3 +834,74 @@ export interface WebhookDeliveryLogRead {
   error_message: string | null;
   created_at: string;
 }
+
+// === Eligibility Management (Phase 14) ===
+
+export interface EligibilityRuleResult {
+  rule_code: string;
+  rule_label: string;
+  status: 'eligible' | 'ineligible' | 'data_missing' | 'overridden';
+  detail: string;
+}
+
+export interface EligibilityBatchItem {
+  employee_id: string;
+  employee_no: string;
+  name: string;
+  department: string;
+  job_family: string | null;
+  job_level: string | null;
+  overall_status: 'eligible' | 'ineligible' | 'pending';
+  rules: EligibilityRuleResult[];
+}
+
+export interface EligibilityBatchResponse {
+  items: EligibilityBatchItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface EligibilityOverrideRecord {
+  id: string;
+  employee_id: string;
+  employee_no: string;
+  employee_name: string;
+  requester_id: string;
+  requester_name: string;
+  override_rules: string[];
+  reason: string;
+  status: 'pending_hrbp' | 'pending_admin' | 'approved' | 'rejected';
+  hrbp_approver_id: string | null;
+  hrbp_decision: string | null;
+  hrbp_comment: string | null;
+  hrbp_decided_at: string | null;
+  admin_approver_id: string | null;
+  admin_decision: string | null;
+  admin_comment: string | null;
+  admin_decided_at: string | null;
+  year: number;
+  reference_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EligibilityOverrideListResponse {
+  items: EligibilityOverrideRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface EligibilityOverrideCreatePayload {
+  employee_id: string;
+  override_rules: string[];
+  reason: string;
+  year?: number;
+  reference_date?: string;
+}
+
+export interface EligibilityOverrideDecisionPayload {
+  decision: 'approve' | 'reject';
+  comment?: string;
+}
