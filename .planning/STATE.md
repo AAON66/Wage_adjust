@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: 体验优化与业务规则完善
-status: verifying
-stopped_at: Phase 16 context gathered
-last_updated: "2026-04-04T11:27:12.696Z"
-last_activity: 2026-04-04
+status: executing
+stopped_at: Completed 16-01 — file sharing backend
+last_updated: "2026-04-04T20:02:00Z"
+last_activity: 2026-04-04 -- Plan 16-01 completed
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 9
-  completed_plans: 8
-  percent: 78
+  completed_plans: 9
+  percent: 85
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-31)
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
-Status: Phase complete — ready for verification
-Last activity: 2026-04-04
+Phase: 16 (file-sharing-workflow) — EXECUTING
+Plan: 2 of 2 (16-01 complete, 16-02 pending)
+Status: 16-01 complete
+Last activity: 2026-04-04 -- Plan 16-01 completed
 
-Progress: [########░░] 78%
+Progress: [#########░] 85%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [########░░] 78%
 | Phase 14 P02 | 8min | 2 tasks | 9 files |
 | Phase 15 P01 | 4min | 2 tasks | 7 files |
 | Phase 15 P02 | 5min | 2 tasks | 3 files |
+| Phase 16 P01 | 8min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,12 @@ v1.1 pending decisions:
 - [Phase 14]: Role-conditional action rendering: useAuth() role check hides override button from admin (D-03), step-aware approve/reject matches request status to user role
 - [Phase 15-01]: Vision evaluation reuses parsing timeout (120s); compress_image_if_needed in image_parser.py with local import in llm_service; ExtractedImage uses python-pptx native sha1 for dedup
 - [Phase 15]: Vision evaluation wired after text parsing in parse_file() to keep text evidence independent of vision success
+- [Phase 16-01]: Refactored _check_duplicate to hash-only with deterministic oldest-first ordering (D-01, review #5)
+- [Phase 16-01]: check_duplicate_for_sharing uses submission_id for target-employee context (review #4)
+- [Phase 16-01]: Atomic upload+SharingRequest creation via skip_duplicate_check flag + single db.commit (review #2)
+- [Phase 16-01]: No public POST /sharing-requests — only created via upload endpoint (review #3)
+- [Phase 16-01]: Lazy expiry called by BOTH list_requests AND get_pending_count (review #6)
+- [Phase 16-01]: ID-list subquery for _expire_stale_requests avoids SQLAlchemy evaluator timezone bug
 
 ### Pending Todos
 
@@ -95,6 +102,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-04T11:27:12.693Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-file-sharing-workflow/16-CONTEXT.md
+Last session: 2026-04-04T20:02:00Z
+Stopped at: Completed 16-01-PLAN.md
+Resume file: .planning/phases/16-file-sharing-workflow/16-02-PLAN.md
