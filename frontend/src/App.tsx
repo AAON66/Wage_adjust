@@ -13,6 +13,7 @@ import { CreateCyclePage } from "./pages/CreateCycle";
 import { DashboardPage } from "./pages/Dashboard";
 import { EmployeesPage } from "./pages/Employees";
 import { EmployeeAdminPage } from "./pages/EmployeeAdmin";
+import { EligibilityManagementPage } from "./pages/EligibilityManagementPage";
 import { EvaluationDetailPage } from "./pages/EvaluationDetail";
 import { FeishuConfigPage } from "./pages/FeishuConfig";
 import { ImportCenterPage } from "./pages/ImportCenter";
@@ -430,6 +431,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute allowedRoles={["admin", "hrbp", "manager"]} />}>
             <Route element={<EmployeesPage />} path="/employees" />
+            <Route element={<EligibilityManagementPage />} path="/eligibility" />
             <Route element={<ApprovalsPage />} path="/approvals" />
             <Route element={<DashboardPage />} path="/dashboard" />
             <Route element={<UserAdminPage />} path="/user-admin" />
