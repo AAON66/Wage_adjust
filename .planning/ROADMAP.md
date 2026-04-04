@@ -115,9 +115,10 @@ Plans:
   3. 原始上传者可在通知列表中看到共享申请，并可审批或拒绝
   4. 审批共享申请时可修改贡献比例字段
   5. 共享申请超过 72 小时未处理自动标记为超时状态
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [ ] 16-01-PLAN.md — Backend: SharingRequest model + migration + refactored dedup + SharingService + API endpoints + tests
+- [ ] 16-02-PLAN.md — Frontend: DuplicateWarningModal + hash-before-upload + SharingRequestsPage + nav/route wiring
 **UI hint**: yes
 
 ### Phase 17: Salary Display Simplification
@@ -155,5 +156,5 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 13. Eligibility Engine | v1.1 | 0/2 | Complete    | 2026-04-02 |
 | 14. Eligibility Visibility | v1.1 | 2/2 | Complete    | 2026-04-04 |
 | 15. Vision Evaluation | v1.1 | 2/2 | Complete    | 2026-04-04 |
-| 16. File Sharing | v1.1 | 0/TBD | Not started | - |
+| 16. File Sharing | v1.1 | 0/2 | Not started | - |
 | 17. Display Simplification | v1.1 | 0/TBD | Not started | - |
