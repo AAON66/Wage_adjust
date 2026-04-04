@@ -11,7 +11,7 @@ interface FileUploadPanelProps {
   contributors?: ContributorInput[];
   onContributorsChange?: (contributors: ContributorInput[]) => void;
   showContributorPicker?: boolean;
-  duplicateError?: string | null;
+  hashCheckStatus?: 'idle' | 'checking' | 'error';
 }
 
 export function FileUploadPanel({
@@ -22,7 +22,7 @@ export function FileUploadPanel({
   contributors,
   onContributorsChange,
   showContributorPicker = false,
-  duplicateError,
+  hashCheckStatus = 'idle',
 }: FileUploadPanelProps) {
   const inputId = useId();
   const [githubUrl, setGitHubUrl] = useState('');
@@ -53,9 +53,12 @@ export function FileUploadPanel({
         type="file"
       />
 
-      {duplicateError ? (
-        <div className="mt-4 rounded-[10px] bg-[var(--color-danger-bg,#fef2f2)] px-4 py-3 text-sm text-[var(--color-danger)]">
-          {duplicateError}
+      {hashCheckStatus === 'checking' ? (
+        <p className="mt-3 text-[13px] text-steel">正在检查文件...</p>
+      ) : null}
+      {hashCheckStatus === 'error' ? (
+        <div className="mt-4 rounded-[10px] bg-[var(--color-danger-bg,#fef2f2)] px-4 py-3 text-[13px] text-[var(--color-danger)]">
+          无法检查文件重复状态，请稍后重试。您也可以直接上传。
         </div>
       ) : null}
 

@@ -628,6 +628,42 @@ export interface DuplicateFileError {
   message: string;
 }
 
+// === File Sharing (Phase 16) ===
+
+export interface CheckDuplicateRequest {
+  content_hash: string;
+  submission_id: string;
+}
+
+export interface CheckDuplicateResponse {
+  is_duplicate: boolean;
+  original_file_id: string;
+  original_submission_id: string;
+  uploader_name: string;
+  uploaded_at: string;
+}
+
+export interface SharingRequestRecord {
+  id: string;
+  requester_file_id: string;
+  original_file_id: string;
+  requester_submission_id: string;
+  original_submission_id: string;
+  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  proposed_pct: number;
+  final_pct: number | null;
+  resolved_at: string | null;
+  created_at: string;
+  requester_name: string;
+  file_name: string;
+  original_uploader_name: string;
+}
+
+export interface SharingRequestListResponse {
+  items: SharingRequestRecord[];
+  total: number;
+}
+
 export interface AuditLogRead {
   id: string;
   operator_id: string | null;

@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 
+import { DuplicateWarningModal } from '../components/evaluation/DuplicateWarningModal';
 import { EvidenceCard } from '../components/evaluation/EvidenceCard';
 import { EvidenceWorkspaceOverview } from '../components/evaluation/EvidenceWorkspaceOverview';
 import { FileList } from '../components/evaluation/FileList';
@@ -25,8 +26,11 @@ import {
   parseFile,
   replaceSubmissionFile,
   uploadSubmissionFiles,
+  uploadSubmissionFilesWithDuplicate,
   DuplicateFileException,
 } from '../services/fileService';
+import { checkDuplicate } from '../services/sharingService';
+import { computeFileSHA256 } from '../utils/fileHash';
 import { fetchEmployee } from '../services/employeeService';
 import { fetchSalaryHistoryByEmployee, fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
@@ -68,6 +72,27 @@ type ModuleTab = {
   note: string;
   helper: string;
 };
+
+type FileQueueStatus =
+  | 'pending'
+  | 'checking'
+  | 'currentDuplicate'
+  | 'approvedToUpload'
+  | 'skipped'
+  | 'clean'
+  | 'completed'
+  | 'failed';
+
+interface FileQueueItem {
+  file: File;
+  status: FileQueueStatus;
+  duplicateInfo?: {
+    originalFileId: string;
+    originalSubmissionId: string;
+    uploaderName: string;
+    uploadedAt: string;
+  };
+}
 
 type BatchParseItemStatus = 'queued' | 'parsing' | 'parsed' | 'failed';
 
@@ -481,7 +506,9 @@ export function EvaluationDetailPage() {
   const [reviewComment, setReviewComment] = useState('请填写主管评分依据；如进入 HR 审核，请填写同意或打回原因。');
   const [isUploading, setIsUploading] = useState(false);
   const [pendingContributors, setPendingContributors] = useState<import('../types/api').ContributorInput[]>([]);
-  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [fileQueue, setFileQueue] = useState<FileQueueItem[]>([]);
+  const [hashCheckStatus, setHashCheckStatus] = useState<'idle' | 'checking' | 'error'>('idle');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isGithubImporting, setIsGithubImporting] = useState(false);
   const [isParsingAll, setIsParsingAll] = useState(false);
   const [batchParseTotal, setBatchParseTotal] = useState(0);
@@ -1019,39 +1046,140 @@ export function EvaluationDetailPage() {
     return { completed, failed, errors, total: targetFiles.length };
   }
 
-  async function handleFilesSelected(selectedFiles: globalThis.FileList | null) {
-    if (!selectedFiles?.length || !submission) {
+  function showToast(message: string) {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 4000);
+  }
+
+  async function finishQueueAndUpload(queue: FileQueueItem[]) {
+    if (!submission) return;
+    const cleanFiles = queue.filter((i) => i.status === 'clean').map((i) => i.file);
+    const duplicateItems = queue.filter((i) => i.status === 'approvedToUpload');
+
+    if (cleanFiles.length === 0 && duplicateItems.length === 0) {
+      setIsUploading(false);
+      setFileQueue([]);
       return;
     }
 
     setIsUploading(true);
     setErrorMessage(null);
-    setSuccessMessage(null);
-    setDuplicateError(null);
     try {
-      const uploadResponse = await uploadSubmissionFiles(
-        submission.id,
-        Array.from(selectedFiles),
-        pendingContributors.length > 0 ? pendingContributors : undefined,
-      );
+      const uploadedFiles: typeof files = [];
+      if (cleanFiles.length > 0) {
+        const resp = await uploadSubmissionFiles(
+          submission.id,
+          cleanFiles,
+          pendingContributors.length > 0 ? pendingContributors : undefined,
+        );
+        uploadedFiles.push(...resp.items);
+      }
+      for (const item of duplicateItems) {
+        // upload with allow_duplicate=true creates SharingRequest atomically (REVIEW FIX #2)
+        const resp = await uploadSubmissionFilesWithDuplicate(
+          submission.id,
+          item.file,
+          item.duplicateInfo!.originalFileId,
+          pendingContributors.length > 0 ? pendingContributors : undefined,
+        );
+        uploadedFiles.push(...resp.items);
+        showToast(`文件已上传，共享申请已发送给 ${item.duplicateInfo!.uploaderName}`);
+      }
+
       await reloadCurrentCycleData();
-      const summary = await parseFilesInParallel(uploadResponse.items, { showBatchProgress: false });
-      await reloadCurrentCycleData();
-      if (summary.failed > 0) {
-        setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击”重新解析”。`);
-      } else {
-        setSuccessMessage('材料已上传，系统正在自动解析。');
+      if (uploadedFiles.length > 0) {
+        const summary = await parseFilesInParallel(uploadedFiles, { showBatchProgress: false });
+        await reloadCurrentCycleData();
+        if (summary.failed > 0) {
+          setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击”重新解析”。`);
+        } else {
+          setSuccessMessage('材料已上传，系统正在自动解析。');
+        }
       }
     } catch (error) {
       if (error instanceof DuplicateFileException) {
         const who = error.detail.uploaded_by || '其他人';
-        setDuplicateError(`此文件已由「${who}」提交过，无法重复上传。`);
+        setErrorMessage(`此文件已由「${who}」提交过，无法重复上传。`);
       } else {
         setErrorMessage(resolveError(error));
       }
     } finally {
       setIsUploading(false);
+      setFileQueue([]);
     }
+  }
+
+  async function processQueue(queue: FileQueueItem[]) {
+    if (!submission) return;
+    const nextQueue = queue.map((i) => ({ ...i }));
+    for (let idx = 0; idx < nextQueue.length; idx++) {
+      const item = nextQueue[idx];
+      if (item.status !== 'pending') continue;
+      item.status = 'checking';
+      setHashCheckStatus('checking');
+      setFileQueue([...nextQueue]);
+      try {
+        const hash = await computeFileSHA256(item.file);
+        const result = await checkDuplicate(hash, submission.id);
+        setHashCheckStatus('idle');
+        if (result.is_duplicate) {
+          item.status = 'currentDuplicate';
+          item.duplicateInfo = {
+            originalFileId: result.original_file_id,
+            originalSubmissionId: result.original_submission_id,
+            uploaderName: result.uploader_name,
+            uploadedAt: result.uploaded_at,
+          };
+          setFileQueue([...nextQueue]);
+          return; // wait for user decision
+        }
+        item.status = 'clean';
+        setFileQueue([...nextQueue]);
+      } catch {
+        // graceful degradation: mark as clean, allow upload without check
+        setHashCheckStatus('error');
+        item.status = 'clean';
+        setFileQueue([...nextQueue]);
+      }
+    }
+
+    // All items resolved — upload
+    await finishQueueAndUpload(nextQueue);
+  }
+
+  async function handleFilesSelected(selectedFiles: globalThis.FileList | null) {
+    if (!selectedFiles?.length || !submission) {
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setHashCheckStatus('idle');
+
+    const initialQueue: FileQueueItem[] = Array.from(selectedFiles).map((f) => ({
+      file: f,
+      status: 'pending' as const,
+    }));
+    setFileQueue(initialQueue);
+    await processQueue(initialQueue);
+  }
+
+  async function handleDuplicateConfirm() {
+    const queue = fileQueue.map((i) => ({ ...i }));
+    const idx = queue.findIndex((i) => i.status === 'currentDuplicate');
+    if (idx === -1) return;
+    queue[idx].status = 'approvedToUpload';
+    setFileQueue(queue);
+    await processQueue(queue);
+  }
+
+  async function handleDuplicateCancel() {
+    const queue = fileQueue.map((i) => ({ ...i }));
+    const idx = queue.findIndex((i) => i.status === 'currentDuplicate');
+    if (idx === -1) return;
+    queue[idx].status = 'skipped';
+    setFileQueue(queue);
+    await processQueue(queue);
   }
 
   async function handleGitHubImport(url: string) {
@@ -1555,7 +1683,7 @@ export function EvaluationDetailPage() {
                 showContributorPicker
                 contributors={pendingContributors}
                 onContributorsChange={setPendingContributors}
-                duplicateError={duplicateError}
+                hashCheckStatus={hashCheckStatus}
               />
             </div>
             <div className="surface px-6 py-6 lg:px-7">
@@ -2152,6 +2280,40 @@ export function EvaluationDetailPage() {
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载员工评估详情...</p> : null}
       {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
       {successMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-success)" }}>{successMessage}</p> : null}
+
+      {(() => {
+        const currentDuplicate = fileQueue.find((i) => i.status === 'currentDuplicate');
+        if (!currentDuplicate) return null;
+        return (
+          <DuplicateWarningModal
+            isOpen
+            fileName={currentDuplicate.file.name}
+            uploaderName={currentDuplicate.duplicateInfo!.uploaderName}
+            uploadedAt={currentDuplicate.duplicateInfo!.uploadedAt}
+            onConfirm={handleDuplicateConfirm}
+            onCancel={handleDuplicateCancel}
+          />
+        );
+      })()}
+
+      {toastMessage ? (
+        <div
+          style={{
+            position: 'fixed',
+            right: 24,
+            bottom: 24,
+            zIndex: 900,
+            background: 'var(--color-info-bg)',
+            color: 'var(--color-info)',
+            fontSize: 13,
+            padding: '8px 16px',
+            borderRadius: 6,
+            boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
+          }}
+        >
+          {toastMessage}
+        </div>
+      ) : null}
 
       {employee ? (
         <>
