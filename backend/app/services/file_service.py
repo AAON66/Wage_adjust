@@ -44,37 +44,58 @@ class FileService:
 
     def _check_duplicate(
         self,
-        file_name: str,
         content_hash: str,
         *,
         exclude_file_id: str | None = None,
     ) -> UploadedFile | None:
-        """Global dedup check (D-02): no employee_id filter."""
+        """Global dedup check (D-01): hash-only, deterministic oldest-first ordering."""
         query = select(UploadedFile).where(
-            UploadedFile.file_name == file_name,
             UploadedFile.content_hash == content_hash,
-        )
+        ).order_by(UploadedFile.created_at.asc())
         if exclude_file_id is not None:
             query = query.where(UploadedFile.id != exclude_file_id)
         return self.db.scalars(query).first()
 
     def check_duplicate(
         self,
-        file_name: str,
         content_hash: str,
-        submission_id: str | None = None,
         *,
         exclude_file_id: str | None = None,
-        source: str | None = None,
     ) -> None:
         """Public method for tests and external callers. Raises ValueError if duplicate found."""
-        existing = self._check_duplicate(file_name, content_hash, exclude_file_id=exclude_file_id)
+        existing = self._check_duplicate(content_hash, exclude_file_id=exclude_file_id)
         if existing is not None:
             uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
             raise ValueError(
                 f'Duplicate file detected: existing file {existing.id} '
                 f'(uploaded at {uploaded_at})'
             )
+
+    def check_duplicate_for_sharing(
+        self,
+        content_hash: str,
+        submission_id: str,
+    ) -> UploadedFile | None:
+        """Check for duplicate excluding files belonging to the target submission's employee.
+
+        Returns oldest match by created_at. Used by check-duplicate API.
+        REVIEW FIX #4: uses submission_id to resolve target employee, not current_user.
+        """
+        sub = self.db.get(EmployeeSubmission, submission_id)
+        if sub is None:
+            return None
+        target_employee_id = sub.employee_id
+        # Find oldest file with same hash NOT belonging to this employee
+        query = (
+            select(UploadedFile)
+            .join(EmployeeSubmission, UploadedFile.submission_id == EmployeeSubmission.id)
+            .where(
+                UploadedFile.content_hash == content_hash,
+                EmployeeSubmission.employee_id != target_employee_id,
+            )
+            .order_by(UploadedFile.created_at.asc())
+        )
+        return self.db.scalars(query).first()
 
     # ------------------------------------------------------------------
     # Contributor validation and persistence (SUB-02)
@@ -404,6 +425,7 @@ class FileService:
         uploads: list[UploadFile],
         *,
         contributors: list[ContributorInput] | None = None,
+        skip_duplicate_check: bool = False,
     ) -> list[UploadedFile]:
         submission = self.get_submission(submission_id)
         if submission is None:
@@ -421,7 +443,7 @@ class FileService:
             # Compute hash and check for duplicates (D-04: dedup before upload completes)
             content_hash = self._compute_hash(content)
             file_name = upload.filename or 'upload.bin'
-            existing = self._check_duplicate(file_name, content_hash)
+            existing = self._check_duplicate(content_hash) if not skip_duplicate_check else None
             if existing is not None:
                 uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
                 # Resolve uploader name via submission -> employee
@@ -461,6 +483,8 @@ class FileService:
         file_type: str,
         content: bytes,
         content_hash: str = '',
+        *,
+        skip_duplicate_check: bool = False,
     ) -> UploadedFile:
         """Simple file upload for programmatic use (e.g., supplementary materials)."""
         submission = self.get_submission(submission_id)
@@ -471,7 +495,7 @@ class FileService:
             content_hash = self._compute_hash(content)
 
         # Check for duplicates
-        existing = self._check_duplicate(file_name, content_hash)
+        existing = self._check_duplicate(content_hash) if not skip_duplicate_check else None
         if existing is not None:
             uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
             raise ValueError(
@@ -638,7 +662,7 @@ class FileService:
 
         # Dedup check for GitHub imports
         content_hash = self._compute_hash(content)
-        existing = self._check_duplicate(file_name, content_hash)
+        existing = self._check_duplicate(content_hash)
         if existing is not None:
             uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
             raise ValueError(
@@ -674,7 +698,7 @@ class FileService:
         # Dedup check for replacement (exclude current file)
         content_hash = self._compute_hash(content)
         next_file_name = upload.filename or file_record.file_name
-        existing = self._check_duplicate(next_file_name, content_hash, exclude_file_id=file_id)
+        existing = self._check_duplicate(content_hash, exclude_file_id=file_id)
         if existing is not None:
             uploaded_at = existing.created_at.strftime('%Y-%m-%d') if existing.created_at else 'unknown'
             raise ValueError(

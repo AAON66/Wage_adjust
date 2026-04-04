@@ -13,11 +13,11 @@
 
 ## 文件共享 (SHARE)
 
-- [ ] **SHARE-01**: 上传与他人已有文件内容相同的文件时，系统弹出警告但允许继续上传
-- [ ] **SHARE-02**: 上传重复文件后，系统自动向原始上传者发起共享申请
-- [ ] **SHARE-03**: 原始上传者可在通知列表中审批或拒绝共享申请
-- [ ] **SHARE-04**: 共享申请包含贡献比例字段，原始上传者可修改后审批
-- [ ] **SHARE-05**: 共享申请超过 72 小时未处理自动标记为超时（不自动审批）
+- [x] **SHARE-01**: 上传与他人已有文件内容相同的文件时，系统弹出警告但允许继续上传
+- [x] **SHARE-02**: 上传重复文件后，系统自动向原始上传者发起共享申请
+- [x] **SHARE-03**: 原始上传者可在通知列表中审批或拒绝共享申请
+- [x] **SHARE-04**: 共享申请包含贡献比例字段，原始上传者可修改后审批
+- [x] **SHARE-05**: 共享申请超过 72 小时未处理自动标记为超时（不自动审批）
 
 ## 菜单导航 (NAV)
 
@@ -92,11 +92,11 @@
 | VISION-02 | Phase 15 | Complete |
 | VISION-03 | Phase 15 | Complete |
 | VISION-04 | Phase 15 | Complete |
-| SHARE-01 | Phase 16 | Pending |
-| SHARE-02 | Phase 16 | Pending |
-| SHARE-03 | Phase 16 | Pending |
-| SHARE-04 | Phase 16 | Pending |
-| SHARE-05 | Phase 16 | Pending |
+| SHARE-01 | Phase 16 | Complete |
+| SHARE-02 | Phase 16 | Complete |
+| SHARE-03 | Phase 16 | Complete |
+| SHARE-04 | Phase 16 | Complete |
+| SHARE-05 | Phase 16 | Complete |
 | DISP-01 | Phase 17 | Pending |
 | DISP-02 | Phase 17 | Pending |
 | DISP-03 | Phase 17 | Pending |
