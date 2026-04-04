@@ -45,6 +45,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
         { title: '审批中心', description: '处理待审批与历史记录。', href: '/approvals', icon: 'check-square' },
         { title: '调薪资格', description: '查看资格状态与特殊申请。', href: '/eligibility', icon: 'shield' },
         { title: '考勤管理', description: '查看考勤数据与飞书同步。', href: '/attendance', icon: 'calendar' },
+        { title: '共享申请', description: '查看和管理文件共享申请', href: '/sharing-requests', icon: 'share' },
       ],
     },
     {
@@ -81,6 +82,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
         { title: '审批中心', description: '处理待审批建议。', href: '/approvals', icon: 'check-square' },
         { title: '调薪资格', description: '查看资格状态与特殊申请。', href: '/eligibility', icon: 'shield' },
         { title: '考勤管理', description: '查看考勤数据与同步状态。', href: '/attendance', icon: 'calendar' },
+        { title: '共享申请', description: '查看和管理文件共享申请', href: '/sharing-requests', icon: 'share' },
       ],
     },
     {
@@ -111,6 +113,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
         { title: '员工评估', description: '查看团队评估与材料。', href: '/employees', icon: 'clipboard' },
         { title: '审批中心', description: '处理分配给你的审批。', href: '/approvals', icon: 'check-square' },
         { title: '调薪资格', description: '查看资格状态与特殊申请。', href: '/eligibility', icon: 'shield' },
+        { title: '共享申请', description: '查看和管理文件共享申请', href: '/sharing-requests', icon: 'share' },
       ],
     },
     {
@@ -139,6 +142,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
       collapsible: false,
       items: [
         { title: '个人评估中心', description: '查看材料与评估进展。', href: '/my-review', icon: 'edit' },
+        { title: '共享申请', description: '查看和管理文件共享申请', href: '/sharing-requests', icon: 'share' },
       ],
     },
   ],
