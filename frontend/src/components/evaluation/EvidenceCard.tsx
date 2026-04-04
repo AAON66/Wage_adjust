@@ -16,13 +16,38 @@ const METADATA_LABELS: Record<string, string> = {
   prompt_manipulation_detected: '诚信风险',
   source_file: '来源文件',
   storage_key: '存储路径',
+  vision_quality_score: '视觉质量',
+  vision_description: '图片描述',
+  vision_dimension_relevance: '维度关联',
+  slide_number: '幻灯片页码',
+  image_source: '图片来源',
+  vision_failed: '视觉评估',
+};
+
+const SOURCE_TYPE_LABELS: Record<string, string> = {
+  vision_evaluation: '视觉评估',
+  vision_failed: '视觉失败',
 };
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function formatMetadataValue(value: unknown): string {
+function formatMetadataValue(key: string, value: unknown): string {
+  // Vision-specific formatting per UI-SPEC
+  if (key === 'slide_number' && typeof value === 'number') return `第 ${value} 页`;
+  if (key === 'image_source') {
+    if (value === 'ppt_embedded') return 'PPT 提取';
+    if (value === 'standalone_upload') return '独立上传';
+  }
+  if (key === 'vision_failed') return value ? '失败' : '';
+  if (key === 'vision_quality_score' && typeof value === 'number') return `${value}/5`;
+  if (key === 'vision_description' && typeof value === 'string') return value.length > 80 ? `${value.slice(0, 80)}...` : value;
+  if (key === 'vision_dimension_relevance' && typeof value === 'object' && value !== null) {
+    const entries = Object.entries(value as Record<string, number>);
+    if (entries.length === 0) return '--';
+    return entries.map(([dim, score]) => `${dim} ${(score as number).toFixed(1)}`).join(', ');
+  }
   if (typeof value === 'boolean') return value ? '是' : '否';
   if (Array.isArray(value)) return value.join(' / ');
   if (value == null) return '--';
@@ -49,7 +74,7 @@ function buildMetadataRows(evidence: EvidenceRecord): Array<{ label: string; val
     .slice(0, 6)
     .map(([key, value]) => ({
       label: METADATA_LABELS[key] ?? key,
-      value: formatMetadataValue(value),
+      value: formatMetadataValue(key, value),
     }));
 }
 
@@ -84,8 +109,22 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
-              <span style={{ background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: 4, padding: '1px 7px', fontSize: 11.5, fontWeight: 500 }}>
-                {evidence.source_type}
+              <span style={{
+                background: evidence.source_type === 'vision_failed'
+                  ? 'var(--color-danger-bg)'
+                  : 'var(--color-primary-light)',
+                color: evidence.source_type === 'vision_failed'
+                  ? 'var(--color-danger)'
+                  : 'var(--color-primary)',
+                borderRadius: 4,
+                padding: '1px 7px',
+                fontSize: 11.5,
+                fontWeight: 500,
+                ...(evidence.source_type === 'vision_failed' ? {
+                  border: '1px solid var(--color-danger-border, #FFCDD0)',
+                } : {}),
+              }}>
+                {SOURCE_TYPE_LABELS[evidence.source_type] ?? evidence.source_type}
               </span>
               {integrityFlagged ? (
                 <span className="status-pill" style={{ background: 'var(--color-danger-bg)', color: 'var(--color-danger)', border: '1px solid var(--color-danger-border)' }}>需重点复核</span>
@@ -155,7 +194,32 @@ export function EvidenceCard({ evidence }: EvidenceCardProps) {
                 visibleMetadata.map((item) => (
                   <div key={`${item.label}-${item.value}`} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, padding: '5px 0', borderBottom: '1px solid var(--color-border)', fontSize: 12.5 }}>
                     <span style={{ color: 'var(--color-steel)', flexShrink: 0 }}>{item.label}</span>
-                    <span style={{ maxWidth: '58%', wordBreak: 'break-all', textAlign: 'right', fontWeight: 500, color: 'var(--color-ink)' }}>{truncateText(item.value, isExpanded ? 64 : 26)}</span>
+                    <span style={{
+                      maxWidth: '58%',
+                      wordBreak: 'break-all',
+                      textAlign: 'right',
+                      fontWeight: 500,
+                      color: item.label === '视觉质量'
+                        ? (() => {
+                            const score = Number(item.value.replace('/5', ''));
+                            if (score >= 4) return 'var(--color-success)';
+                            if (score >= 3) return 'var(--color-warning)';
+                            return 'var(--color-danger)';
+                          })()
+                        : 'var(--color-ink)',
+                      ...(item.label === '��觉质量' ? {
+                        background: (() => {
+                          const score = Number(item.value.replace('/5', ''));
+                          if (score >= 4) return 'var(--color-success-bg, #E8FFEA)';
+                          if (score >= 3) return 'var(--color-warning-bg, #FFF3E8)';
+                          return 'var(--color-danger-bg, #FFECE8)';
+                        })(),
+                        borderRadius: 4,
+                        padding: '1px 6px',
+                      } : {}),
+                    }}>
+                      {truncateText(item.value, isExpanded ? 64 : 26)}
+                    </span>
                   </div>
                 ))
               ) : (
