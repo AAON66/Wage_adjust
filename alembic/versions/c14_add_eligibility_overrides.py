@@ -10,7 +10,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = 'c14_add_eligibility_overrides'
-down_revision = '013_add_eligibility_models'
+down_revision = '013_eligibility'
 branch_labels = None
 depends_on = None
 
