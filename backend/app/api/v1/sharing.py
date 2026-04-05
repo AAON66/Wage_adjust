@@ -40,7 +40,7 @@ def list_sharing_requests(
 ) -> SharingRequestListResponse:
     employee_id = current_user.employee_id
     if not employee_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='User not bound to employee')
+        return SharingRequestListResponse(items=[], total=0)
     svc = SharingService(db)
     items = svc.list_requests(employee_id=employee_id, direction=direction)
     db.commit()  # persist any lazy-expiry updates
