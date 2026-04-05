@@ -6,6 +6,7 @@ import {
   approveSharingRequest,
   listSharingRequests,
   rejectSharingRequest,
+  revokeSharingApproval,
 } from '../services/sharingService';
 import type { SharingRequestRecord } from '../types/api';
 
@@ -52,6 +53,16 @@ export function SharingRequestsPage() {
       await fetchRequests(direction);
     } catch {
       setError('操作失败，请稍后重试。');
+    }
+  }
+
+  async function handleRevoke(id: string) {
+    setError(null);
+    try {
+      await revokeSharingApproval(id);
+      await fetchRequests(direction);
+    } catch {
+      setError('撤销失败，请稍后重试。');
     }
   }
 
@@ -118,7 +129,7 @@ export function SharingRequestsPage() {
                   <th>{isIncoming ? '申请人' : '原上传者'}</th>
                   <th>文件名</th>
                   <th>申请日期</th>
-                  <th>建议比例</th>
+                  <th>贡献比例</th>
                   <th>状态</th>
                   <th>{isIncoming ? '操作' : '最终比例'}</th>
                 </tr>
@@ -131,6 +142,7 @@ export function SharingRequestsPage() {
                     direction={direction}
                     onApprove={handleApprove}
                     onReject={handleReject}
+                    onRevoke={handleRevoke}
                   />
                 ))}
               </tbody>

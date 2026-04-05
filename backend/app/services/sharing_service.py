@@ -158,6 +158,51 @@ class SharingService:
         self.db.flush()
         return sr
 
+    def revoke_approval(
+        self,
+        request_id: str,
+        *,
+        revoker_employee_id: str,
+    ) -> SharingRequest:
+        """Revoke a previously approved sharing request: status back to pending,
+        remove ProjectContributor, restore owner_contribution_pct."""
+        sr = self.db.get(SharingRequest, request_id)
+        if sr is None:
+            raise ValueError('Sharing request not found')
+        if sr.status != 'approved':
+            raise ValueError(f'Cannot revoke request with status {sr.status}')
+        original_file = self.db.get(UploadedFile, sr.original_file_id)
+        original_sub = self.db.get(EmployeeSubmission, original_file.submission_id)
+        if original_sub.employee_id != revoker_employee_id:
+            raise PermissionError('Only original uploader can revoke approval')
+
+        # Remove the ProjectContributor that was created on approval
+        pc = self.db.scalar(
+            select(ProjectContributor).where(
+                ProjectContributor.uploaded_file_id == sr.original_file_id,
+                ProjectContributor.submission_id == sr.requester_submission_id,
+            )
+        )
+        if pc is not None:
+            self.db.delete(pc)
+
+        # Restore owner_contribution_pct to 100 (no contributors remain from this request)
+        # Recompute from remaining contributors to be safe
+        remaining_total = self.db.scalar(
+            select(func.coalesce(func.sum(ProjectContributor.contribution_pct), 0.0))
+            .where(
+                ProjectContributor.uploaded_file_id == sr.original_file_id,
+                ProjectContributor.id != (pc.id if pc else ''),
+            )
+        ) or 0.0
+        original_file.owner_contribution_pct = 100.0 - float(remaining_total)
+
+        sr.status = 'pending'
+        sr.final_pct = None
+        sr.resolved_at = None
+        self.db.flush()
+        return sr
+
     def get_pending_count(self, *, employee_id: str) -> int:
         """Run lazy expiry before counting (review fix #6)."""
         self._expire_stale_requests()

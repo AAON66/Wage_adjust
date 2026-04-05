@@ -7,6 +7,7 @@ interface SharingRequestCardProps {
   direction: 'incoming' | 'outgoing';
   onApprove: (id: string, finalPct: number) => Promise<void>;
   onReject: (id: string) => Promise<void>;
+  onRevoke?: (id: string) => Promise<void>;
 }
 
 type StatusStyle = {
@@ -36,7 +37,7 @@ function formatDate(iso: string | null): string {
   }
 }
 
-export function SharingRequestCard({ request, direction, onApprove, onReject }: SharingRequestCardProps) {
+export function SharingRequestCard({ request, direction, onApprove, onReject, onRevoke }: SharingRequestCardProps) {
   const [showRatioEditor, setShowRatioEditor] = useState(false);
   const [editPct, setEditPct] = useState<number>(request.proposed_pct);
   const [isBusy, setIsBusy] = useState(false);
@@ -84,10 +85,25 @@ export function SharingRequestCard({ request, direction, onApprove, onReject }: 
     }
   }
 
+  async function handleRevokeClick() {
+    if (!onRevoke) return;
+    // eslint-disable-next-line no-alert
+    const ok = window.confirm('确认撤销此审批？撤销后申请将恢复为待审批状态，贡献比例将被重置。');
+    if (!ok) return;
+    setIsBusy(true);
+    try {
+      await onRevoke(request.id);
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
   const requesterOrOwner = isIncoming ? request.requester_name : request.original_uploader_name;
   const proposedRatio = `${request.proposed_pct}% : ${100 - request.proposed_pct}%`;
   const finalRatio =
     request.final_pct != null ? `${request.final_pct}% : ${100 - request.final_pct}%` : '-';
+  // Display final_pct if approved, otherwise proposed_pct
+  const displayRatio = request.final_pct != null ? finalRatio : proposedRatio;
 
   return (
     <>
@@ -95,7 +111,7 @@ export function SharingRequestCard({ request, direction, onApprove, onReject }: 
         <td>{requesterOrOwner}</td>
         <td style={{ wordBreak: 'break-all' }}>{request.file_name}</td>
         <td>{formatDate(request.created_at)}</td>
-        <td>{proposedRatio}</td>
+        <td>{displayRatio}</td>
         <td>{statusPill}</td>
         {isIncoming ? (
           <td>
@@ -120,6 +136,16 @@ export function SharingRequestCard({ request, direction, onApprove, onReject }: 
                   拒绝
                 </button>
               </div>
+            ) : request.status === 'approved' && onRevoke ? (
+              <button
+                className="action-secondary"
+                disabled={isBusy}
+                onClick={handleRevokeClick}
+                style={{ height: 28, fontSize: 12.5, padding: '0 10px' }}
+                type="button"
+              >
+                撤销审批
+              </button>
             ) : (
               <span style={{ fontSize: 12.5, color: 'var(--color-steel)' }}>-</span>
             )}
