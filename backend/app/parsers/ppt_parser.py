@@ -35,7 +35,13 @@ class PPTParser(BaseParser):
         images: list[ExtractedImage] = []
         for slide_idx, slide in enumerate(presentation.slides, start=1):
             for shape in slide.shapes:
-                if shape.shape_type != MSO_SHAPE_TYPE.PICTURE:
+                try:
+                    # python-pptx raises NotImplementedError for some shape types
+                    # (see python-pptx #929 and similar); skip them gracefully.
+                    if shape.shape_type != MSO_SHAPE_TYPE.PICTURE:
+                        continue
+                except (NotImplementedError, ValueError) as exc:
+                    logger.warning('Skipping unrecognized shape on slide %d: %s', slide_idx, exc)
                     continue
                 try:
                     image = shape.image
