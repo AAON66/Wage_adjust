@@ -35,6 +35,7 @@ class SharingRequestRead(BaseModel):
     requester_name: str = ''
     file_name: str = ''
     original_uploader_name: str = ''
+    cycle_archived: bool = False
 
 
 class SharingRequestListResponse(BaseModel):

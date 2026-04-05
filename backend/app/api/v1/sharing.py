@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_current_user, get_db
+from backend.app.models.evaluation_cycle import EvaluationCycle
 from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
 from backend.app.models.user import User
@@ -24,11 +25,18 @@ def _enrich_sharing_request(db: Session, sr) -> SharingRequestRead:
     req_sub = db.get(EmployeeSubmission, sr.requester_submission_id)
     orig_sub = db.get(EmployeeSubmission, sr.original_submission_id)
     base = {c.name: getattr(sr, c.name) for c in sr.__table__.columns}
+    # Determine if the original submission's cycle is archived (下架)
+    cycle_archived = False
+    if orig_sub is not None and orig_sub.cycle_id:
+        cycle = db.get(EvaluationCycle, orig_sub.cycle_id)
+        if cycle is not None and cycle.status == 'archived':
+            cycle_archived = True
     return SharingRequestRead(
         **base,
         requester_name=(req_sub.employee.name if req_sub and req_sub.employee else ''),
         file_name=(orig_file.file_name if orig_file else (req_file.file_name if req_file else '')),
         original_uploader_name=(orig_sub.employee.name if orig_sub and orig_sub.employee else ''),
+        cycle_archived=cycle_archived,
     )
 
 

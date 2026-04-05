@@ -61,8 +61,13 @@ export function SharingRequestsPage() {
     try {
       await revokeSharingApproval(id);
       await fetchRequests(direction);
-    } catch {
-      setError('撤销失败，请稍后重试。');
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string; message?: string } } })
+          ?.response?.data?.detail ||
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        '撤销失败，请稍后重试。';
+      setError(msg);
     }
   }
 

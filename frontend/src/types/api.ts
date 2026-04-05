@@ -657,6 +657,7 @@ export interface SharingRequestRecord {
   requester_name: string;
   file_name: string;
   original_uploader_name: string;
+  cycle_archived: boolean;
 }
 
 export interface SharingRequestListResponse {

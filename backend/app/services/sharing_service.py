@@ -6,6 +6,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings, get_settings
+from backend.app.models.evaluation_cycle import EvaluationCycle
 from backend.app.models.project_contributor import ProjectContributor
 from backend.app.models.sharing_request import SharingRequest
 from backend.app.models.submission import EmployeeSubmission
@@ -175,6 +176,11 @@ class SharingService:
         original_sub = self.db.get(EmployeeSubmission, original_file.submission_id)
         if original_sub.employee_id != revoker_employee_id:
             raise PermissionError('Only original uploader can revoke approval')
+
+        # Block revoke if the evaluation cycle has been archived (下架)
+        cycle = self.db.get(EvaluationCycle, original_sub.cycle_id)
+        if cycle is not None and cycle.status == 'archived':
+            raise ValueError('评估周期已下架，无法撤销审批')
 
         # Remove the ProjectContributor that was created on approval
         pc = self.db.scalar(

@@ -136,7 +136,7 @@ export function SharingRequestCard({ request, direction, onApprove, onReject, on
                   拒绝
                 </button>
               </div>
-            ) : request.status === 'approved' && onRevoke ? (
+            ) : request.status === 'approved' && onRevoke && !request.cycle_archived ? (
               <button
                 className="action-secondary"
                 disabled={isBusy}
@@ -146,6 +146,10 @@ export function SharingRequestCard({ request, direction, onApprove, onReject, on
               >
                 撤销审批
               </button>
+            ) : request.status === 'approved' && request.cycle_archived ? (
+              <span style={{ fontSize: 12.5, color: 'var(--color-steel)' }} title="评估周期已下架，无法撤销审批">
+                周期已下架
+              </span>
             ) : (
               <span style={{ fontSize: 12.5, color: 'var(--color-steel)' }}>-</span>
             )}
