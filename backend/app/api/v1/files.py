@@ -152,6 +152,7 @@ def upload_submission_files(
                 requester_submission_id=submission_id,
                 original_submission_id=original_file.submission_id,
             )
+            db.commit()
         return UploadedFileListResponse(
             items=[UploadedFileRead.model_validate(item) for item in items], total=len(items),
         )

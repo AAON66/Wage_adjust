@@ -140,7 +140,7 @@ def test_create_request_d15_blocks_duplicate():
     db.commit()
     db.refresh(new_file)
 
-    with pytest.raises(ValueError, match='already exists'):
+    with pytest.raises(ValueError, match='已存在共享申请'):
         svc.create_request(
             requester_file_id=new_file.id,
             original_file_id=original['file_id'],
