@@ -1087,13 +1087,16 @@ export function EvaluationDetailPage() {
       }
 
       await reloadCurrentCycleData();
+      // Release uploading state immediately so file list is visible
+      setIsUploading(false);
+      setFileQueue([]);
       if (uploadedFiles.length > 0) {
+        setSuccessMessage('材料已上传，系统正在自动解析。');
         const summary = await parseFilesInParallel(uploadedFiles, { showBatchProgress: false });
         await reloadCurrentCycleData();
         if (summary.failed > 0) {
+          setSuccessMessage(null);
           setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击”重新解析”。`);
-        } else {
-          setSuccessMessage('材料已上传，系统正在自动解析。');
         }
       }
     } catch (error) {
@@ -1106,7 +1109,6 @@ export function EvaluationDetailPage() {
       } else {
         setErrorMessage(msg);
       }
-    } finally {
       setIsUploading(false);
       setFileQueue([]);
     }

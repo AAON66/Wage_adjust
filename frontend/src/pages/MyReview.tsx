@@ -296,11 +296,17 @@ export function MyReviewPage() {
       }
 
       await refreshCurrentWorkspace();
-      const parseResults = await Promise.allSettled(uploadedFileIds.map((id) => parseFile(id)));
-      await refreshCurrentWorkspace();
-      const failedCount = parseResults.filter((result) => result.status === 'rejected').length;
-      if (failedCount > 0) {
-        setErrorMessage(`文件已上传，但有 ${failedCount} 个文件解析失败，可在列表中点击"重新解析"。`);
+      // Release uploading state immediately so file list is visible
+      setIsUploading(false);
+      setFileQueue([]);
+      // Parse files in background — don't block the UI
+      if (uploadedFileIds.length > 0) {
+        const parseResults = await Promise.allSettled(uploadedFileIds.map((id) => parseFile(id)));
+        await refreshCurrentWorkspace();
+        const failedCount = parseResults.filter((result) => result.status === 'rejected').length;
+        if (failedCount > 0) {
+          setErrorMessage(`文件已上传，但有 ${failedCount} 个文件解析失败，可在列表中点击"重新解析"。`);
+        }
       }
     } catch (error) {
       const msg = resolveError(error);
@@ -309,7 +315,6 @@ export function MyReviewPage() {
       } else {
         setErrorMessage(msg);
       }
-    } finally {
       setIsUploading(false);
       setFileQueue([]);
     }
