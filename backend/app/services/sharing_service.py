@@ -38,6 +38,31 @@ class SharingService:
                 .values(status='expired', resolved_at=now)
             )
 
+    def check_can_create_request(
+        self,
+        *,
+        submission_id: str,
+        original_submission_id: str,
+        content_hash_hint: str,
+    ) -> None:
+        """Pre-check whether a sharing request can be created (D-15).
+
+        Raises ValueError if a non-expired request already exists for the same
+        content_hash + original submission. Called BEFORE upload so the file
+        is not persisted when the request would be blocked.
+        """
+        existing = self.db.scalars(
+            select(SharingRequest)
+            .join(UploadedFile, SharingRequest.requester_file_id == UploadedFile.id)
+            .where(
+                UploadedFile.content_hash == content_hash_hint,
+                SharingRequest.original_submission_id == original_submission_id,
+                SharingRequest.status.in_(['pending', 'approved', 'rejected']),
+            )
+        ).first()
+        if existing:
+            raise ValueError('该文件已存在共享申请，无法重复发起。')
+
     def create_request(
         self,
         *,

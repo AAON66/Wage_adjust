@@ -122,6 +122,20 @@ def upload_submission_files(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail='Original file not found.',
             )
+        # Pre-check: verify sharing request can be created BEFORE uploading the file.
+        # This prevents the file being persisted when create_request would fail (D-15 conflict).
+        sharing_svc = SharingService(db)
+        try:
+            sharing_svc.check_can_create_request(
+                submission_id=submission_id,
+                original_submission_id=original_file.submission_id,
+                content_hash_hint=original_file.content_hash,
+            )
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(exc),
+            ) from exc
         try:
             items = service.upload_files(
                 submission_id, files, contributors=contributor_list, skip_duplicate_check=True,
@@ -130,23 +144,14 @@ def upload_submission_files(
             message = str(exc)
             status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
             raise HTTPException(status_code=status_code, detail=message) from exc
-        # Create sharing request atomically in SAME transaction
+        # Create sharing request — pre-check passed, so this should succeed
         if items:
-            try:
-                SharingService(db).create_request(
-                    requester_file_id=items[0].id,
-                    original_file_id=original_file_id,
-                    requester_submission_id=submission_id,
-                    original_submission_id=original_file.submission_id,
-                )
-                db.commit()
-            except ValueError as exc:
-                # Roll back the upload if we can't create the sharing request (D-15 conflict)
-                db.rollback()
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=str(exc),
-                ) from exc
+            sharing_svc.create_request(
+                requester_file_id=items[0].id,
+                original_file_id=original_file_id,
+                requester_submission_id=submission_id,
+                original_submission_id=original_file.submission_id,
+            )
         return UploadedFileListResponse(
             items=[UploadedFileRead.model_validate(item) for item in items], total=len(items),
         )
