@@ -1097,11 +1097,14 @@ export function EvaluationDetailPage() {
         }
       }
     } catch (error) {
-      if (error instanceof DuplicateFileException) {
+      const msg = resolveError(error);
+      if (msg.includes('共享申请')) {
+        window.alert(msg);
+      } else if (error instanceof DuplicateFileException) {
         const who = error.detail.uploaded_by || '其他人';
         setErrorMessage(`此文件已由「${who}」提交过，无法重复上传。`);
       } else {
-        setErrorMessage(resolveError(error));
+        setErrorMessage(msg);
       }
     } finally {
       setIsUploading(false);

@@ -66,7 +66,7 @@ class SharingService:
             )
         ).first()
         if existing:
-            raise ValueError('A sharing request already exists for this file pair.')
+            raise ValueError('该文件已存在共享申请，无法重复发起。')
 
         sr = SharingRequest(
             requester_file_id=requester_file_id,

@@ -303,7 +303,12 @@ export function MyReviewPage() {
         setErrorMessage(`文件已上传，但有 ${failedCount} 个文件解析失败，可在列表中点击"重新解析"。`);
       }
     } catch (error) {
-      setErrorMessage(resolveError(error));
+      const msg = resolveError(error);
+      if (msg.includes('共享申请')) {
+        window.alert(msg);
+      } else {
+        setErrorMessage(msg);
+      }
     } finally {
       setIsUploading(false);
       setFileQueue([]);
