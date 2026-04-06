@@ -159,6 +159,32 @@ class SharingService:
         self.db.flush()
         return sr
 
+    def revoke_rejection(
+        self,
+        request_id: str,
+        *,
+        revoker_employee_id: str,
+    ) -> SharingRequest:
+        """Revoke a previously rejected sharing request: status back to pending."""
+        sr = self.db.get(SharingRequest, request_id)
+        if sr is None:
+            raise ValueError('Sharing request not found')
+        if sr.status != 'rejected':
+            raise ValueError(f'Cannot revoke rejection with status {sr.status}')
+        original_file = self.db.get(UploadedFile, sr.original_file_id)
+        original_sub = self.db.get(EmployeeSubmission, original_file.submission_id)
+        if original_sub.employee_id != revoker_employee_id:
+            raise PermissionError('Only original uploader can revoke rejection')
+
+        cycle = self.db.get(EvaluationCycle, original_sub.cycle_id)
+        if cycle is not None and cycle.status == 'archived':
+            raise ValueError('评估周期已下架，无法撤销拒绝')
+
+        sr.status = 'pending'
+        sr.resolved_at = None
+        self.db.flush()
+        return sr
+
     def revoke_approval(
         self,
         request_id: str,
