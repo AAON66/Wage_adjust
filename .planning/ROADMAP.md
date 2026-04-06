@@ -30,7 +30,7 @@
 - [x] **Phase 13: Eligibility Engine & Data Layer** - 调薪资格 4 条规则引擎、数据缺失处理、三通道导入 (completed 2026-04-02)
 - [x] **Phase 14: Eligibility Visibility & Overrides** - 资格结果权限控制、批量查看、特殊申请审批 (completed 2026-04-04)
 - [x] **Phase 15: Multimodal Vision Evaluation** - PPT 图片提取视觉评估、独立图片评估、结构化输出 (completed 2026-04-04)
-- [ ] **Phase 16: File Sharing Workflow** - 重复上传警告、共享申请、审批/拒绝、贡献比例、超时标记
+- [x] **Phase 16: File Sharing Workflow** - 重复上传警告、共享申请、审批/拒绝、贡献比例、超时标记 (completed 2026-04-06)
 - [ ] **Phase 17: Salary Display Simplification** - 调薪建议摘要优先、展开详情、资格徽章集成
 
 ## Phase Details
@@ -117,8 +117,8 @@ Plans:
   5. 共享申请超过 72 小时未处理自动标记为超时状态
 **Plans**: 2 plans
 Plans:
-- [ ] 16-01-PLAN.md — Backend: SharingRequest model + migration + refactored dedup + SharingService + API endpoints + tests
-- [ ] 16-02-PLAN.md — Frontend: DuplicateWarningModal + hash-before-upload + SharingRequestsPage + nav/route wiring
+- [x] 16-01-PLAN.md — Backend: SharingRequest model + migration + refactored dedup + SharingService + API endpoints + tests
+- [x] 16-02-PLAN.md — Frontend: DuplicateWarningModal + hash-before-upload + SharingRequestsPage + nav/route wiring
 **UI hint**: yes
 
 ### Phase 17: Salary Display Simplification
@@ -156,5 +156,5 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 13. Eligibility Engine | v1.1 | 0/2 | Complete    | 2026-04-02 |
 | 14. Eligibility Visibility | v1.1 | 2/2 | Complete    | 2026-04-04 |
 | 15. Vision Evaluation | v1.1 | 2/2 | Complete    | 2026-04-04 |
-| 16. File Sharing | v1.1 | 0/2 | Not started | - |
+| 16. File Sharing | v1.1 | 2/2 | Complete    | 2026-04-06 |
 | 17. Display Simplification | v1.1 | 0/TBD | Not started | - |
