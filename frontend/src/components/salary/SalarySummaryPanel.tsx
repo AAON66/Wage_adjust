@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import type { SalaryRecommendationRecord, EvaluationRecord, EmployeeRecord } from '../../types/api';
+import { EligibilityBadge } from '../eligibility/EligibilityBadge';
 
 /** Formatting helpers passed from parent -- avoids duplicating logic */
 export interface SalaryFormatters {
@@ -53,8 +54,8 @@ export interface SalarySummaryPanelProps {
 export function SalarySummaryPanel({
   salaryRecommendation,
   evaluation,
-  employee: _employee,
-  userRole: _userRole,
+  employee,
+  userRole,
   manualAdjustment,
   fmt,
   isDetailExpanded,
@@ -86,11 +87,11 @@ export function SalarySummaryPanel({
 
       {/* 3 Indicator Cards */}
       <div className="mt-5 grid gap-3 md:grid-cols-3">
-        {/* Card 1: Eligibility placeholder (Plan 02 replaces with real EligibilityBadge) */}
-        <div className="surface-subtle px-4 py-4">
-          <p className="metric-label">调薪资格</p>
-          <p className="mt-2" style={{ color: 'var(--color-placeholder)' }}>资格待检</p>
-        </div>
+        {/* Card 1: Eligibility Badge */}
+        <EligibilityBadge
+          employeeId={employee?.id ?? ''}
+          userRole={userRole}
+        />
         {/* Card 2: AI Score */}
         <div className="surface-subtle px-4 py-4">
           <p className="metric-label">AI 综合评分</p>
