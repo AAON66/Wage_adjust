@@ -1,544 +1,512 @@
-# Architecture Patterns: v1.1 Feature Integration
+# Architecture Patterns: v1.2 Feature Integration
 
-**Domain:** Enterprise Salary Adjustment Platform - v1.1 feature additions
-**Researched:** 2026-03-30
-**Overall confidence:** HIGH (based on direct codebase analysis)
+**Domain:** Enterprise Salary Adjustment Platform -- v1.2 production readiness and data management
+**Researched:** 2026-04-07
+**Overall confidence:** HIGH (based on direct codebase analysis of 30k+ Python LOC and 20k+ TypeScript LOC)
 
 ## Recommended Architecture
 
-All 5 features integrate into the existing `api/ -> services/ -> engines/ -> models/` layered architecture. No new layers are needed. The key principle: **add new models/services/engines alongside existing ones, modify existing ones minimally.**
+All 5 v1.2 features integrate into the existing `api/ -> services/ -> engines/ -> models/` layered architecture. One new package (`tasks/`) is added for Celery task definitions. No structural changes to existing layers.
 
-### Component Map: What's New vs What Changes
+### Component Map: New vs Modified
 
 ```
-NEW components (create from scratch):
-  backend/app/models/file_share_request.py       -- Feature 2
-  backend/app/engines/eligibility_engine.py       -- Feature 4
-  backend/app/services/file_share_service.py      -- Feature 2
-  backend/app/services/eligibility_service.py     -- Feature 4
-  backend/app/api/v1/file_sharing.py              -- Feature 2
-  backend/app/api/v1/eligibility.py               -- Feature 4
-  frontend/src/pages/BindingManagement.tsx         -- Feature 1
-  frontend/src/components/file/ShareRequestPanel.tsx     -- Feature 2
-  frontend/src/components/file/ShareRequestList.tsx      -- Feature 2
-  frontend/src/components/salary/EligibilityBadge.tsx    -- Feature 4
+NEW FILES:
+  backend/app/core/celery_app.py              -- Celery application factory + config
+  backend/app/tasks/__init__.py               -- Celery task package
+  backend/app/tasks/feishu_tasks.py           -- Feishu sync as Celery tasks
+  alembic/versions/xxxx_add_company_to_employee.py  -- Migration
 
-MODIFIED components (extend existing):
-  backend/app/services/file_service.py            -- Feature 2: change dedup from reject to warn+share
-  backend/app/services/identity_binding_service.py -- Feature 1: add manual bind/unbind
-  backend/app/api/v1/users.py                     -- Feature 1: binding endpoints
-  frontend/src/utils/roleAccess.ts                -- Feature 3: grouped navigation
-  frontend/src/components/layout/AppShell.tsx      -- Feature 3: grouped sidebar
-  frontend/src/components/evaluation/SalaryResultCard.tsx -- Feature 5: collapsible sections
-  frontend/src/pages/EvaluationDetail.tsx          -- Feature 4+5: eligibility + collapsible
-  frontend/src/pages/MyReview.tsx                  -- Feature 5: collapsible salary
-  frontend/src/App.tsx                             -- Feature 1+3: new routes
+MODIFIED FILES:
+  backend/app/core/config.py                  -- Celery config settings (broker, backend)
+  backend/app/core/database.py                -- Add SQLite PRAGMA foreign_keys=ON event listener
+  backend/app/main.py                         -- Remove threading.Thread for sync
+  backend/app/models/*.py                     -- Replace Mapped[X | None] with Mapped[Optional[X]] for Python 3.9
+  backend/app/schemas/*.py                    -- Replace X | None with Optional[X] for Python 3.9
+  backend/app/models/employee.py              -- Add company column
+  backend/app/schemas/employee.py             -- Add company to read/write schemas
+  backend/app/services/sharing_service.py     -- reject_request() cascades file deletion
+  backend/app/services/file_service.py        -- Minor: ensure delete_file() is callable from SharingService
+  backend/app/api/v1/feishu.py                -- Replace threading.Thread with celery task.delay()
+  backend/app/api/v1/imports.py               -- Add import_type filter query param
+  frontend/src/pages/EligibilityManagementPage.tsx  -- Add "数据导入" tab
+  frontend/src/pages/ImportCenter.tsx          -- Add eligibility import types to IMPORT_TYPES
+
+PYTHON 3.9 COMPAT (broad changes across codebase):
+  All model files: Mapped[X | None] -> Mapped[Optional[X]] (SQLAlchemy eval() bypass)
+  All schema files: X | None -> Optional[X] (Pydantic eval() bypass)
+  Service/API files: str | None in function sigs OK (deferred by __future__)
+  requirements.txt: numpy==2.0.2, Pillow==10.4.0 (downgrade for 3.9)
 ```
+
+### Component Boundaries
+
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| `core/celery_app.py` (NEW) | Celery app instance, broker/backend config | `core/config.py`, Redis |
+| `tasks/feishu_tasks.py` (NEW) | Celery task wrappers for async operations | `FeishuService`, `SessionLocal` |
+| `SharingService` (MODIFIED) | Rejection now cascades to requester file deletion | `FileService` (new dependency) |
+| `Employee` model (MODIFIED) | Adds nullable `company` field | Alembic migration |
+| `ImportService` (REUSED, unmodified) | Already supports `performance_grades` + `salary_adjustments` types | No changes needed |
+| `FeishuService` (REUSED, unmodified) | `sync_performance_records()` already exists | No changes needed |
+| `EligibilityManagementPage` (MODIFIED) | Adds unified import tab | Reuses `ImportJobTable`, `ImportResultPanel` |
 
 ---
 
-## Feature 1: Account-Employee Binding (账号-员工绑定加固)
+## Feature 1: Celery+Redis Async Task Activation
 
 ### Current State
 
-- `User.employee_id` FK to `employees.id` exists (nullable, unique)
-- `IdentityBindingService` does auto-bind via `id_card_no` matching
-- No dedicated UI for manual binding management -- binding happens silently in backend
-- `SettingsPage` and `UserAdminPage` exist but don't expose binding controls
+- `celery==5.4.0` in `requirements.txt` but **zero Celery code exists** -- no `celery_app.py`, no task definitions, no worker config
+- `redis==5.2.1` installed; `core/redis.py` provides working `get_redis()` singleton with `redis_url` from config
+- Feishu sync currently uses `threading.Thread` in `api/v1/feishu.py:_run_sync_in_background()` (line 152-159)
+- APScheduler (`feishu_scheduler.py`) handles periodic Feishu attendance sync
+- `FeishuService.sync_with_retry()` already has retry logic with `[5, 15, 45]` second delays
 
-### Architecture Changes
-
-**Backend -- minimal:**
-
-| Component | Change | Details |
-|-----------|--------|---------|
-| `IdentityBindingService` | ADD methods | `manual_bind(user_id, employee_id)`, `unbind(user_id)`, `get_binding_status(user_id)` |
-| `api/v1/users.py` | ADD endpoints | `POST /users/{id}/bind`, `DELETE /users/{id}/bind`, `GET /users/{id}/binding-status` |
-| `User` model | NO CHANGE | `employee_id` FK already exists and works |
-
-**Frontend:**
-
-| Component | Type | Details |
-|-----------|------|---------|
-| `BindingManagement.tsx` page OR section in `UserAdminPage` | NEW or MODIFY | Admin/HRBP can search employee, bind/unbind from user record |
-| `SettingsPage.tsx` | MODIFY | Show binding status for current user, self-service bind if `id_card_no` matches |
-
-**Data flow:**
+### Where Celery Fits in the Layer Structure
 
 ```
-Admin clicks "Bind" on UserAdmin
-  -> POST /api/v1/users/{user_id}/bind { employee_id }
-  -> IdentityBindingService.manual_bind()
-  -> Validates no conflicting binds
-  -> Sets User.employee_id = employee_id
-  -> Returns updated UserProfile with employee_name, employee_no
+backend/app/
+  core/
+    celery_app.py     <-- NEW: same level as redis.py, config.py (cross-cutting)
+  tasks/
+    __init__.py       <-- NEW: task package (parallel to services/, not inside it)
+    feishu_tasks.py   <-- NEW: wraps FeishuService calls as Celery tasks
 ```
 
-**Access control:** Admin/HRBP can bind any user. Employees can only self-bind (if `id_card_no` matches). Use existing `require_roles()` dependency.
+The `tasks/` package is a **peer of `services/`**, not a child. Tasks invoke service-layer methods with their own database sessions. This follows the exact same pattern as `scheduler/feishu_scheduler.py:run_incremental_sync()` which creates its own `SessionLocal()`.
 
-### Why This Design
+**Dependency direction:** `tasks/ -> services/ -> engines/ -> models/` (extends existing chain)
 
-The `IdentityBindingService` already encapsulates all bind logic and conflict detection. Adding `manual_bind`/`unbind` methods is a natural extension. No new model needed -- the FK is already there.
+### Celery App Configuration
+
+```python
+# backend/app/core/celery_app.py
+from __future__ import annotations
+from celery import Celery
+from backend.app.core.config import get_settings
+
+def create_celery_app() -> Celery:
+    settings = get_settings()
+    app = Celery(
+        'wage_adjust',
+        broker=settings.celery_broker_url or settings.redis_url,
+        backend=settings.celery_result_backend or settings.redis_url,
+    )
+    app.conf.update(
+        task_serializer='json',
+        accept_content=['json'],
+        result_serializer='json',
+        timezone='Asia/Shanghai',
+        task_track_started=True,
+        task_acks_late=True,
+        worker_prefetch_multiplier=1,
+        task_time_limit=1800,           # 30 min hard limit
+        task_soft_time_limit=1500,      # 25 min soft limit
+        result_expires=3600,            # Results expire after 1 hour
+    )
+    app.autodiscover_tasks(['backend.app.tasks'])
+    return app
+
+celery_app = create_celery_app()
+```
+
+### Critical: Celery Worker DB Session Isolation
+
+Celery workers fork from the parent process. The global `Engine` and `SessionLocal` in `database.py` are inherited but their connections become invalid after fork. Use `worker_process_init` signal:
+
+```python
+from celery.signals import worker_process_init
+
+@worker_process_init.connect
+def init_worker_db(**kwargs):
+    """Re-create DB engine in each worker process after fork."""
+    from backend.app.core.database import engine
+    engine.dispose()  # Dispose inherited connections
+```
+
+Each task must create and close its own session:
+
+```python
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+def feishu_sync_task(self, mode, triggered_by=None):
+    db = SessionLocal()
+    try:
+        from backend.app.services.feishu_service import FeishuService
+        service = FeishuService(db)
+        service.sync_with_retry(mode=mode, triggered_by=triggered_by)
+    except Exception as exc:
+        raise self.retry(exc=exc)
+    finally:
+        db.close()
+```
+
+### Migration Path from threading.Thread
+
+**Before** (current `api/v1/feishu.py` line 188-195):
+```python
+thread = threading.Thread(
+    target=_run_sync_in_background,
+    args=(data.mode, current_user.id),
+    daemon=True,
+)
+thread.start()
+```
+
+**After:**
+```python
+from backend.app.tasks.feishu_tasks import feishu_sync_task
+task = feishu_sync_task.delay(data.mode, current_user.id)
+return SyncTriggerResponse(
+    sync_log_id=task.id,
+    status='running',
+    message='同步已启动',
+)
+```
+
+### APScheduler Coexistence
+
+APScheduler in `scheduler/feishu_scheduler.py` can coexist with Celery. It handles periodic cron scheduling, separate from on-demand async tasks. Migrating to Celery Beat is optional and deferred.
+
+### Redis DB Separation
+
+Use separate Redis databases to avoid key namespace collisions:
+- `redis://localhost:6379/0` -- app cache, rate limiting (existing)
+- `redis://localhost:6379/1` -- Celery broker
+- `redis://localhost:6379/2` -- Celery result backend
+
+**Confidence:** HIGH -- Celery 5.4 with Redis broker is production-proven. The isolated-session pattern already exists in `feishu_scheduler.py`.
 
 ---
 
-## Feature 2: File Upload Sharing/Approval (文件上传共享申请机制)
+## Feature 2: Employee Company Field
 
 ### Current State
 
-- `FileService._check_duplicate()` does global dedup by `(file_name, content_hash)`
-- On duplicate found: raises `ValueError` and rejects upload entirely
-- `UploadedFile` tracks `submission_id` (owner's submission), `content_hash`, `owner_contribution_pct`
-- `ProjectContributor` model already exists for multi-contributor tracking
+`Employee` model columns: `employee_no`, `name`, `id_card_no`, `department`, `sub_department`, `job_family`, `job_level`, `manager_id`, `status`, `hire_date`, `last_salary_adjustment_date`. No `company` field.
 
-### Architecture Changes
+### Changes Required
 
-**New model: `FileShareRequest`**
+1. **Model** (`backend/app/models/employee.py`):
+   ```python
+   company: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+   ```
+   Note: Uses `Optional[str]` not `str | None` for Python 3.9 compatibility with SQLAlchemy's `Mapped` eval.
 
-```python
-class FileShareRequest(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
-    __tablename__ = 'file_share_requests'
+2. **Migration**: `op.add_column('employees', sa.Column('company', sa.String(128), nullable=True))` with `batch_alter_table` for SQLite compat
 
-    requester_submission_id: Mapped[str]     # submission requesting access
-    original_file_id: Mapped[str]            # the UploadedFile being shared
-    status: Mapped[str]                      # pending -> approved / rejected
-    requester_note: Mapped[str | None]       # "I co-authored this"
-    responder_note: Mapped[str | None]       # "Approved, 30% contribution"
-    contribution_pct: Mapped[float | None]   # agreed percentage for requester
-    responded_at: Mapped[datetime | None]
-    responded_by: Mapped[str | None]         # user_id of responder
-```
+3. **Schema** (`backend/app/schemas/employee.py`): Add `company: Optional[str] = None` to read schemas
 
-**New service: `FileShareService`**
+4. **Import** (`backend/app/services/import_service.py`): Add `'所属公司': 'company'` to `COLUMN_ALIASES['employees']`
 
-```
-FileShareService
-  +-- create_share_request(requester_submission_id, original_file_id, note)
-  +-- list_pending_requests(user_id)       # for file owner
-  +-- list_my_requests(submission_id)      # for requester
-  +-- approve_request(request_id, contribution_pct, note)
-  +-- reject_request(request_id, note)
-  +-- _clone_file_to_submission(original_file_id, target_submission_id, contribution_pct)
-```
+5. **Frontend**: Display company in employee detail page only (per spec: "仅档案详情可见")
 
-**Modified: `FileService._check_duplicate()`**
+**Impact scope:** Minimal. No engine logic, no eligibility rules, no API contracts affected.
 
-Change from "reject" to "warn + offer share":
-```python
-# Before: raises ValueError
-# After: returns DuplicateInfo(existing_file, owner_submission, can_request_share=True)
-```
-
-The upload endpoint returns a warning payload instead of 409, letting the frontend show a dialog: "This file was already uploaded by [Employee Name]. Request to share?"
-
-**New API routes: `api/v1/file_sharing.py`**
-
-```
-POST   /submissions/{id}/share-requests          # create request
-GET    /share-requests/pending                   # list my pending (as owner)
-GET    /submissions/{id}/share-requests           # list requests for a submission
-PATCH  /share-requests/{id}/approve              # approve
-PATCH  /share-requests/{id}/reject               # reject
-```
-
-**Frontend components:**
-
-| Component | Type | Details |
-|-----------|------|---------|
-| `ShareRequestPanel.tsx` | NEW | Dialog shown when duplicate detected: "Request sharing?" |
-| `ShareRequestList.tsx` | NEW | Notification-style list of pending share requests for file owners |
-| `FileUploadPanel.tsx` | MODIFY | Integrate duplicate-warning flow instead of hard error |
-
-**Data flow (happy path):**
-
-```
-Employee B uploads file that Employee A already uploaded
-  -> FileService detects duplicate by content_hash
-  -> Returns 200 with { duplicate: true, original_file_id, owner_name }
-  -> Frontend shows ShareRequestPanel
-  -> Employee B clicks "Request Share"
-  -> POST /share-requests { original_file_id, note }
-  -> FileShareService creates pending request
-  -> Employee A sees notification in their file list
-  -> Employee A approves with contribution_pct = 40%
-  -> FileShareService clones file record to Employee B's submission
-     with owner_contribution_pct = 40%
-```
-
-### Why This Design
-
-Keeps `UploadedFile` model unchanged. The share request is a separate workflow entity with its own lifecycle. Cloning the file record (not the physical file) means storage is efficient -- two `UploadedFile` rows point to the same `storage_key`. The `owner_contribution_pct` field already exists on `UploadedFile` to track this.
+**Confidence:** HIGH
 
 ---
 
-## Feature 3: Menu/Navigation Restructuring (菜单与导航重构)
+## Feature 3: Python 3.9 Compatibility
 
-### Current State
+### CRITICAL FINDING: `Mapped[str | None]` Breaks on Python 3.9
 
-- `roleAccess.ts` defines flat `WorkspaceModuleLink[]` per role -- no grouping
-- `AppShell.tsx` renders all nav links in a single flat list under one "导航" header
-- Admin has 13 links, HRBP has 9 -- already getting long
+**This is the highest-impact change in v1.2.** Initial analysis suggested `from __future__ import annotations` would protect all PEP 604 union syntax. This is WRONG for SQLAlchemy `Mapped` and Pydantic `BaseModel` fields.
 
-### Architecture Changes
+**Why `__future__` is insufficient:**
+- `from __future__ import annotations` defers annotation evaluation by the Python interpreter
+- BUT SQLAlchemy 2.0's `DeclarativeBase` explicitly calls `eval()` on `Mapped[T]` type parameters during class initialization to determine column types and nullable attributes
+- Similarly, Pydantic v2's `ModelMetaclass` calls `typing.get_type_hints()` which evaluates annotations at runtime
+- On Python 3.9, `eval("str | None")` raises `TypeError: unsupported operand type(s) for |`
 
-**Modified: `roleAccess.ts`**
+**Scope of changes:**
+- 20+ model files, 80+ occurrences of `Mapped[X | None]`
+- 81 schema files, 361+ occurrences of `X | None` in Pydantic fields
+- Total: ~440 replacements across ~100 files
 
-```typescript
-export interface NavGroup {
-  label: string;           // group header: "评估管理", "系统管理", "数据导入"
-  modules: WorkspaceModuleLink[];
-}
+**What MUST change:**
+```python
+# BEFORE (breaks on 3.9):
+company: Mapped[str | None] = mapped_column(...)
 
-// Replace flat ROLE_MODULES with grouped structure:
-const ROLE_NAV_GROUPS: Record<string, NavGroup[]> = {
-  admin: [
-    {
-      label: '评估与审批',
-      modules: [
-        { title: '员工评估', ... },
-        { title: '审批中心', ... },
-        { title: '调薪模拟', ... },
-      ],
-    },
-    {
-      label: '组织与数据',
-      modules: [
-        { title: '组织看板', ... },
-        { title: '考勤管理', ... },
-        { title: '员工档案', ... },
-        { title: '导入中心', ... },
-      ],
-    },
-    {
-      label: '系统管理',
-      modules: [
-        { title: '创建周期', ... },
-        { title: '平台账号', ... },
-        { title: '审计日志', ... },
-        { title: 'API Key 管理', ... },
-        { title: 'Webhook 管理', ... },
-        { title: '飞书配置', ... },
-        { title: '账号设置', ... },
-      ],
-    },
-  ],
-  // ... hrbp, manager, employee groups
-};
-
-// Keep getRoleModules() for backward compat (flatten groups)
-// Add new: getRoleNavGroups(role): NavGroup[]
+# AFTER (works on 3.9):
+from typing import Optional
+company: Mapped[Optional[str]] = mapped_column(...)
 ```
 
-**Modified: `AppShell.tsx` sidebar**
+```python
+# BEFORE (breaks on 3.9 in Pydantic schemas):
+class EmployeeRead(BaseModel):
+    company: str | None = None
 
-```
-Before: single "导航" header + flat NavLink list
-After:  multiple group headers + NavLink lists per group
-```
-
-Rendering pattern:
-```tsx
-{groups.map(group => (
-  <div key={group.label}>
-    <div className="nav-group-header">{group.label}</div>
-    {group.modules.map(module => (
-      <NavLink ...>{module.title}</NavLink>
-    ))}
-  </div>
-))}
+# AFTER:
+from typing import Optional
+class EmployeeRead(BaseModel):
+    company: Optional[str] = None
 ```
 
-**Modified: `WorkspacePage`** in `App.tsx`
+**What does NOT need changing:**
+- Regular function signatures: `def foo(x: str | None) -> str | None:` -- these are deferred by `__future__` and never eval'd at runtime
+- Local variable annotations: `result: str | None = None` -- same reason
 
-The workspace page grid also benefits from grouping -- show modules grouped by category instead of a flat grid.
+**Dependency downgrades required:**
+- `numpy==2.2.1` -> `numpy==2.0.2` (2.2+ requires Python 3.10)
+- `Pillow==11.0.0` -> `Pillow==10.4.0` (11+ requires Python 3.10)
 
-**No backend changes needed.**
-
-### Suggested Grouping
-
-| Group (zh) | Admin | HRBP | Manager |
-|------------|-------|------|---------|
-| 评估与审批 | 员工评估, 审批中心, 调薪模拟 | 员工评估, 审批中心, 调薪模拟 | 员工评估, 审批中心 |
-| 组织与数据 | 组织看板, 考勤管理, 员工档案, 导入中心 | 组织看板, 考勤管理, 员工档案, 导入中心 | 组织看板, 员工档案, 导入中心 |
-| 系统管理 | 创建周期, 平台账号, 审计日志, API Key, Webhook, 飞书配置, 账号设置 | 平台账号, 账号设置 | 平台账号, 账号设置 |
-
-Employee role stays flat (only 2 items).
-
-### Why This Design
-
-Pure frontend refactor. The `NavGroup` interface is additive -- the flat `getRoleModules()` function can remain for backward compatibility (flatten all groups). The sidebar change is cosmetic but high-impact for usability as the module count grows.
+**Confidence:** HIGH for the problem identification (verified via SQLAlchemy and Pydantic issue trackers). The fix is mechanical but broad.
 
 ---
 
-## Feature 4: Salary Eligibility Engine (调薪资格校验引擎)
+## Feature 4: File Sharing Rejection Auto-Delete
 
 ### Current State
 
-- `SalaryEngine` in `engines/salary_engine.py` computes multipliers and ratios -- pure computation, no eligibility checks
-- `SalaryService` orchestrates salary recommendation creation
-- No pre-check exists before salary computation begins
+`SharingService.reject_request()` (lines 165-185) sets `sr.status = 'rejected'` but does NOT delete the requester's file.
 
-### Architecture Changes
+`SharingRequest` model has `ondelete='CASCADE'` on `requester_file_id` FK. **However, SQLite does not enforce `ON DELETE CASCADE` by default** -- `database.py` has no `PRAGMA foreign_keys = ON`.
 
-**New engine: `engines/eligibility_engine.py`**
+### Critical Prerequisite: Enable SQLite Foreign Keys
 
-This is a **pure computation engine** (no I/O, no DB) -- consistent with the existing engine layer pattern.
+Before implementing auto-delete, fix `database.py` to enable FK enforcement:
 
 ```python
-@dataclass(frozen=True)
-class EligibilityRule:
-    code: str           # 'TENURE', 'ATTENDANCE', 'PERFORMANCE', 'DISCIPLINARY'
-    label: str
-    description: str
+from sqlalchemy import event, Engine
 
-@dataclass(frozen=True)
-class EligibilityCheckResult:
-    rule: EligibilityRule
-    passed: bool
-    reason: str         # human-readable explanation
-    data_available: bool  # False = rule couldn't be checked (missing data)
-
-@dataclass(frozen=True)
-class EligibilityVerdict:
-    eligible: bool
-    results: list[EligibilityCheckResult]
-    missing_data_rules: list[str]    # rules that couldn't be evaluated
-    exception_allowed: bool          # True if override is possible
-
-class EligibilityEngine:
-    """Pure computation: takes employee data dict, returns eligibility verdict."""
-
-    RULES = [
-        EligibilityRule('TENURE', '在职时长', '员工需在职满试用期（通常3个月）'),
-        EligibilityRule('ATTENDANCE', '出勤达标', '考勤出勤率需达到95%以上'),
-        EligibilityRule('PERFORMANCE', '绩效合格', '最近绩效评级不低于"合格"'),
-        EligibilityRule('DISCIPLINARY', '无处分记录', '近12个月无纪律处分'),
-    ]
-
-    def check(self, employee_data: dict) -> EligibilityVerdict:
-        # Pure function: evaluates each rule against provided data
-        ...
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_conn, connection_record):
+    if 'sqlite' in str(dbapi_conn.__class__.__module__):
+        cursor = dbapi_conn.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 ```
 
-**Key design decision:** The engine receives a flat `dict` of employee attributes (tenure_months, attendance_rate, performance_rating, has_disciplinary_action). The **service** layer is responsible for assembling this dict from multiple DB sources (Employee, AttendanceRecord, etc.).
+### Architecture Decision: Service Composition
 
-**New service: `services/eligibility_service.py`**
+**Recommended: Inject FileService into SharingService**
 
 ```python
-class EligibilityService:
-    def __init__(self, db: Session, *, engine: EligibilityEngine | None = None):
+class SharingService:
+    def __init__(self, db: Session, *, file_service: FileService | None = None, settings: Settings | None = None):
         self.db = db
-        self.engine = engine or EligibilityEngine()
+        self.settings = settings or get_settings()
+        self._file_service = file_service
 
-    def check_employee_eligibility(self, employee_id: str, cycle_id: str) -> EligibilityVerdict:
-        # 1. Load employee from DB
-        # 2. Load attendance from AttendanceRecord (latest period)
-        # 3. Load performance data (if model exists; otherwise mark as missing)
-        # 4. Check disciplinary status (if model exists; otherwise mark as missing)
-        # 5. Build data dict
-        # 6. Call engine.check(data)
-        ...
-
-    def batch_check(self, employee_ids: list[str], cycle_id: str) -> dict[str, EligibilityVerdict]:
-        ...
+    @property
+    def file_service(self) -> FileService:
+        if self._file_service is None:
+            self._file_service = FileService(self.db, self.settings)
+        return self._file_service
 ```
 
-**New API: `api/v1/eligibility.py`**
+### Modified reject_request Flow
 
+**Order of operations matters** (CASCADE FK consideration):
+
+```python
+def reject_request(self, request_id, *, rejector_employee_id):
+    # ... existing validation ...
+    sr.status = 'rejected'
+    sr.resolved_at = utc_now()
+    self.db.flush()  # Persist rejection status FIRST
+
+    # THEN delete requester's file (may trigger CASCADE)
+    requester_file = self.db.get(UploadedFile, sr.requester_file_id)
+    if requester_file is not None:
+        # Use FileService for full cleanup (storage + evidence + DB)
+        self.file_service.delete_file(requester_file.id)
+
+    return sr
 ```
-GET /employees/{id}/eligibility?cycle_id=...    # single check
-GET /eligibility/batch?cycle_id=...&dept=...    # batch check for listing
+
+### Expired Request File Cleanup
+
+Do NOT add file deletion to `_expire_stale_requests()` (it runs on every list/count query). Instead, create a separate Celery task for expired file cleanup:
+
+```python
+@celery_app.task
+def cleanup_expired_sharing_files():
+    """Periodic task to delete files from expired sharing requests."""
+    # Run nightly via Celery Beat or cron
 ```
 
-**Access control:** Only `admin`, `hrbp`, `manager` can see eligibility. Employees never see this.
-
-**Frontend integration:**
-
-| Component | Type | Details |
-|-----------|------|---------|
-| `EligibilityBadge.tsx` | NEW | Small badge: green check / red X / yellow warning (missing data) |
-| `EvaluationDetail.tsx` | MODIFY | Show eligibility check results before salary recommendation |
-| Employee list page | MODIFY | Optional eligibility column (lazy-loaded) |
-
-**Data dependencies:**
-
-The eligibility engine needs data that may not exist yet:
-- **Tenure:** Calculable from `Employee.created_at` or a `hire_date` field (may need to add `hire_date` to Employee model)
-- **Attendance:** `AttendanceRecord` model exists, synced from Feishu
-- **Performance:** No performance rating model exists. Mark as `data_available: false` until imported
-- **Disciplinary:** No model exists. Mark as `data_available: false` until imported
-
-The engine handles missing data gracefully with `data_available: bool` on each rule result. The UI shows which rules couldn't be checked and offers an import path.
-
-### Why This Design
-
-Following the established pattern: engine is pure computation (testable without DB), service orchestrates data assembly, API exposes it. The `dict` input to the engine means it doesn't depend on ORM models -- easy to test with plain dicts. Missing data is a first-class concept, not an error.
+**Confidence:** HIGH -- `FileService.delete_file()` is well-tested. FK prerequisite is the main risk.
 
 ---
 
-## Feature 5: Salary Recommendation Display Simplification (调薪建议展示精简)
+## Feature 5: Unified Eligibility Data Import Management
 
 ### Current State
 
-- `SalaryResultCard.tsx` shows only `adjustmentRatio` -- extremely minimal (5 lines of display)
-- `EvaluationDetail.tsx` and `MyReview.tsx` embed all salary/evaluation info in a long scrollable page
-- No collapsible sections exist
+**Backend -- all endpoints exist:**
+- `POST /api/v1/imports/jobs` with `import_type=performance_grades` -- works
+- `POST /api/v1/imports/jobs` with `import_type=salary_adjustments` -- works
+- `FeishuService.sync_performance_records()` exists but has no API endpoint
 
-### Architecture Changes
+**Frontend -- incomplete:**
+- `ImportCenter.tsx` `IMPORT_TYPES` only includes `employees` and `certifications`
+- `EligibilityManagementPage.tsx` has 2 tabs, no import tab
 
-**No backend changes needed.** This is purely a frontend display refactor.
+### Architecture: Unified Import Tab
 
-**Modified: `SalaryResultCard.tsx`**
+Add a third tab "数据导入" to `EligibilityManagementPage`:
 
-Expand to show two tiers of information:
+1. **Excel import** for `performance_grades` and `salary_adjustments` (reuses `ImportService`)
+2. **Feishu bitable sync** for performance records (reuses `FeishuService`)
+3. **Import history** filtered to eligibility-related types
 
-```
-DEFAULT VIEW (always visible):
-  - 最终调薪幅度: +8.50%
-  - AI等级: Level 4
-  - 资格状态: [EligibilityBadge] (from Feature 4)
+### Backend Changes
 
-EXPANDABLE DETAIL (click to show):
-  - 当前薪资 / 建议薪资
-  - AI乘数 / 认证加成 / 最终系数
-  - 引擎解释文本 (explanation field)
-  - 审批状态时间线
-```
+1. Add `import_type` filter query param to `GET /imports/jobs`
+2. Add `POST /api/v1/feishu/sync-performance` endpoint
+3. Update `ImportCenter.tsx` `IMPORT_TYPES` to include all 4 types
 
-**Implementation pattern:**
+### Frontend Component Reuse
 
-```tsx
-function SalaryResultCard({ recommendation, eligibility }: Props) {
-  const [expanded, setExpanded] = useState(false);
+Reuses existing: `ImportJobTable`, `ImportResultPanel`, `importService.ts` functions.
 
-  return (
-    <div className="surface">
-      {/* Always visible: key metrics */}
-      <SalarySummaryRow ... />
+New in tab: import type selector, Feishu sync trigger, filtered history.
 
-      {/* Toggle button */}
-      <button onClick={() => setExpanded(!expanded)}>
-        {expanded ? '收起详情' : '展开详情'}
-      </button>
-
-      {/* Collapsible detail */}
-      {expanded && <SalaryDetailPanel ... />}
-    </div>
-  );
-}
-```
-
-**New sub-components (inside `components/evaluation/`):**
-
-| Component | Purpose |
-|-----------|---------|
-| `SalarySummaryRow.tsx` | Key metrics always visible |
-| `SalaryDetailPanel.tsx` | Full breakdown, shown on expand |
-| `CollapsibleSection.tsx` | Reusable expand/collapse wrapper |
-
-**Modified pages:**
-
-- `EvaluationDetail.tsx`: Wrap the salary section in `CollapsibleSection`
-- `MyReview.tsx`: Same treatment, default collapsed for employee view
-
-### Why This Design
-
-No backend API changes. The `SalaryRecommendation` model already has all needed fields (`current_salary`, `recommended_salary`, `ai_multiplier`, `certification_bonus`, `final_adjustment_ratio`, `explanation`). The frontend just needs to render them in a collapsible layout instead of flat.
+**Confidence:** MEDIUM -- backend ready, frontend needs UX design.
 
 ---
 
-## Build Order and Dependencies
+## Data Flow Diagrams
+
+### Celery Task Flow
 
 ```
-Phase 1: Menu/Navigation Restructuring (Feature 3)
-    - Zero backend changes, pure frontend refactor
-    - No dependency on other features
-    - Improves DX for all subsequent feature work (new pages slot into groups)
-    - Risk: LOW
-
-Phase 2: Account-Employee Binding (Feature 1)
-    - Small backend addition to existing service
-    - New UI section in UserAdmin or standalone page
-    - Depends on Phase 1 (new page needs a nav group slot)
-    - Risk: LOW
-
-Phase 3: Salary Eligibility Engine (Feature 4)
-    - New engine + service + API (isolated, no conflicts)
-    - Depends on nothing, but benefits from navigation being done
-    - May surface missing data models (hire_date, performance, disciplinary)
-    - Risk: MEDIUM (data availability uncertainty)
-
-Phase 4: File Upload Sharing (Feature 2)
-    - New model + service + API + frontend components
-    - Modifies existing FileService dedup logic (highest risk change)
-    - Most complex feature: involves notification-like UX, approval workflow
-    - Risk: MEDIUM-HIGH (touches critical upload path)
-
-Phase 5: Salary Display Simplification (Feature 5)
-    - Pure frontend, depends on Feature 4's EligibilityBadge
-    - Best done last since it's a polish pass on existing UI
-    - Risk: LOW
+API Handler                  Redis (db 1)             Celery Worker
+     |                          |                         |
+     |-- task.delay(args) ----->|                         |
+     |<-- task_id (immediate)---|                         |
+     |                          |-- pick up task -------->|
+     |                          |                         |-- engine.dispose()
+     |                          |                         |-- SessionLocal()
+     |                          |                         |-- service.method()
+     |                          |                         |-- db.close()
+     |                          |<-- store result (db 2)--|
 ```
 
-### Build Order Rationale
+### Rejection Auto-Delete Flow
 
-1. **Feature 3 first** because it's zero-risk, zero-backend, and sets up the navigation structure for all new pages/sections.
-2. **Feature 1 second** because it's small, well-scoped, and the binding service already exists.
-3. **Feature 4 third** because the eligibility engine is isolated (new engine, new service, new API) and doesn't modify existing code. It may reveal missing data models early, giving time to plan imports.
-4. **Feature 2 fourth** because it modifies the existing `FileService._check_duplicate()` flow -- the riskiest change. By this point, navigation and binding are stable.
-5. **Feature 5 last** because it integrates Feature 4's eligibility badge into the salary display, and it's purely cosmetic/UX.
+```
+POST /api/v1/sharing/{id}/reject
+  |
+  v
+SharingService.reject_request()
+  |-- Validate rejector == original uploader
+  |-- sr.status = 'rejected', sr.resolved_at = utc_now()
+  |-- db.flush()  (persist status BEFORE file deletion)
+  |-- FileService.delete_file(sr.requester_file_id)
+  |     |-- LocalStorageService.delete(storage_key)
+  |     |-- Delete EvidenceItem records
+  |     |-- db.delete(uploaded_file) -> CASCADE ProjectContributor
+  |     |-- Recalculate submission status
+  |-- Return rejected SharingRequest
+```
 
 ---
 
-## Cross-Cutting Concerns
+## Patterns to Follow
 
-### Database Migrations
+### Pattern 1: Celery Task with Isolated Session + Engine Disposal
+**What:** Dispose inherited engine, create fresh `SessionLocal()`, close in `finally`.
+**When:** All Celery tasks touching the database.
+**Why:** Fork-inherited connections are invalid; workers need fresh connections.
+**Precedent:** `scheduler/feishu_scheduler.py:run_incremental_sync()`.
 
-Features requiring Alembic migrations:
-- **Feature 2:** New `file_share_requests` table
-- **Feature 4:** Potentially add `hire_date` column to `employees` table
+### Pattern 2: Service Composition via Optional Constructor Injection
+**What:** Services accept optional collaborator services with lazy defaults.
+**When:** One service needs another (SharingService needs FileService).
+**Precedent:** All services accept `settings: Settings | None = None`.
 
-Features with no migration needed:
-- **Feature 1:** `User.employee_id` FK already exists
-- **Feature 3:** Frontend only
-- **Feature 5:** Frontend only
+### Pattern 3: Alembic Migration with batch_alter_table
+**What:** Use `batch_alter_table` for all SQLite-touching migrations.
+**When:** Any schema change to existing tables.
+**Precedent:** Existing Alembic migrations in the project.
 
-### Access Control Matrix
-
-| Feature | admin | hrbp | manager | employee |
-|---------|-------|------|---------|----------|
-| Binding management | Full CRUD | Bind own dept | View only | Self-bind only |
-| Share requests (create) | Yes | Yes | Yes | Yes |
-| Share requests (approve) | All | Own dept | Own team | Own files only |
-| Eligibility check | View all | View own dept | View own team | Never visible |
-| Salary detail expand | Full | Full | Own team | Own only |
-
-### Notification Patterns
-
-Feature 2 (file sharing) introduces a notification-like pattern that doesn't currently exist in the codebase. Options:
-
-**Recommended: Polling-based approach** (simplest, consistent with current architecture)
-- `GET /share-requests/pending` returns count + items
-- Frontend polls on interval or checks on page load
-- No WebSocket/SSE infrastructure needed
-
-**Deferred: Real-time notifications** (future milestone if needed)
-- Would require WebSocket layer (not currently in stack)
-- Over-engineering for v1.1 scope
+### Pattern 4: Optional[X] for Mapped/Pydantic, X | None for Function Sigs
+**What:** Use `Optional[X]` in SQLAlchemy `Mapped` and Pydantic model fields; `X | None` is safe in function signatures.
+**When:** Python 3.9 target environment.
+**Why:** SQLAlchemy and Pydantic eval annotations at runtime; function sigs are deferred by `__future__`.
 
 ---
 
-## Scalability Considerations
+## Anti-Patterns to Avoid
 
-| Concern | v1.1 (current) | Future |
-|---------|----------------|--------|
-| Eligibility checks | Per-employee on-demand | Batch precompute on cycle start |
-| File share requests | Simple status column | Could evolve into general notification system |
-| Nav groups | Hardcoded in roleAccess.ts | Could become configurable per-org |
-| Binding | Manual + auto via id_card_no | Could integrate with SSO/LDAP |
+### Anti-Pattern 1: Celery Tasks Importing FastAPI Dependencies
+**Instead:** Create `SessionLocal()` directly, instantiate services manually.
+
+### Anti-Pattern 2: Async Celery Tasks
+**Instead:** All tasks as regular `def` functions with synchronous SQLAlchemy.
+
+### Anti-Pattern 3: Deleting Files Without FileService
+**Instead:** Always use `FileService.delete_file()` for full cascade cleanup.
+
+### Anti-Pattern 4: Adding Celery Beat Prematurely
+**Instead:** Keep APScheduler for periodic tasks; Celery for on-demand async only.
+
+### Anti-Pattern 5: Sharing Same Redis DB for Celery and Rate Limiter
+**Instead:** Separate Redis databases (0, 1, 2) for different concerns.
+
+---
+
+## Build Order (Dependency-Aware)
+
+```
+Phase 1: Python 3.9 Compatibility (MUST BE FIRST -- blocker)
+  - Downgrade numpy==2.0.2, Pillow==10.4.0
+  - Replace Mapped[X | None] -> Mapped[Optional[X]] in all models (~20 files)
+  - Replace X | None -> Optional[X] in all Pydantic schemas (~81 files)
+  - Enable SQLite PRAGMA foreign_keys=ON in database.py
+  - Test on Python 3.9 interpreter
+  - WHY FIRST: Application cannot start on 3.9 without these changes
+
+Phase 2: Celery+Redis Infrastructure
+  - core/celery_app.py with separate Redis DBs
+  - tasks/ package with feishu_tasks.py
+  - worker_process_init signal for DB engine disposal
+  - Migrate feishu.py from threading.Thread to task.delay()
+  - Worker startup documentation
+  - WHY SECOND: infrastructure for Phase 5
+
+Phase 3: Employee Company Field (trivial)
+  - Alembic migration with batch_alter_table
+  - Model + schema changes (using Optional[str] syntax)
+  - Import alias addition
+  - Frontend detail page display
+  - WHY HERE: quick win
+
+Phase 4: Sharing Rejection Auto-Delete
+  - Inject FileService into SharingService
+  - Modify reject_request() with correct flush-then-delete ordering
+  - Add pending/rejected status labels to outgoing sharing requests
+  - Separate expired file cleanup (Celery task, not lazy expiry)
+  - WHY HERE: self-contained
+
+Phase 5: Unified Eligibility Import Management
+  - Backend: import_type filter on list_jobs
+  - Backend: Feishu performance sync endpoint
+  - Frontend: "数据导入" tab in EligibilityManagementPage
+  - Frontend: extend ImportCenter IMPORT_TYPES
+  - WHY LAST: most complex, benefits from Celery
+```
+
+### Phase Ordering Rationale
+
+- **Python 3.9 first:** Application literally cannot start on 3.9 without model/schema fixes and dependency downgrades. This is a hard blocker, not a nice-to-have.
+- **Celery second:** Once the app starts on 3.9, build async infrastructure.
+- **Company field third:** Small, uses patterns established in Phase 1.
+- **Rejection auto-delete fourth:** Benefits from PRAGMA fix in Phase 1.
+- **Eligibility import last:** Most complex frontend work; can use Celery from Phase 2.
+
+---
 
 ## Sources
 
-- Direct codebase analysis: all models, services, engines, frontend components
-- Existing patterns from `EvaluationEngine`, `SalaryEngine`, `IdentityBindingService`
-- Role access patterns from `roleAccess.ts` and `ProtectedRoute` in `App.tsx`
+- Direct codebase analysis: all service, model, schema, API, and frontend files referenced above
+- [SQLAlchemy Issue #9110](https://github.com/sqlalchemy/sqlalchemy/issues/9110): `Mapped[str | None]` fails on Python 3.9
+- [Pydantic Issue #7923](https://github.com/pydantic/pydantic/issues/7923): PEP 604 unions fail on Python 3.9
+- [SQLAlchemy Cascading Deletes](https://docs.sqlalchemy.org/en/20/orm/cascades.html): CASCADE behavior documentation
+- Celery 5.4 documentation: task patterns, worker signals, Redis broker config
+- `requirements.txt`: numpy==2.2.1 (requires 3.10+), Pillow==11.0.0 (requires 3.10+)
