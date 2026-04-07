@@ -13,7 +13,10 @@ import { CalibrationCompareTable, type CalibrationCompareRow } from '../componen
 import { DimensionScoreEditor, type DimensionScoreDraft } from '../components/review/DimensionScoreEditor';
 import { ReviewPanel } from '../components/review/ReviewPanel';
 import { AttendanceKpiCard } from '../components/attendance/AttendanceKpiCard';
+import { SalaryDetailPanel } from '../components/salary/SalaryDetailPanel';
 import { SalaryHistoryPanel } from '../components/salary/SalaryHistoryPanel';
+import { SalarySummaryPanel } from '../components/salary/SalarySummaryPanel';
+import type { ManualAdjustmentState, SalaryFormatters } from '../components/salary/SalarySummaryPanel';
 import { useAuth } from '../hooks/useAuth';
 import { submitDefaultApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
@@ -524,6 +527,7 @@ export function EvaluationDetailPage() {
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
   const [isSalaryHistoryLoading, setIsSalaryHistoryLoading] = useState(false);
   const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(true);
+  const [isDetailExpanded, setIsDetailExpanded] = useState(false);
   const [manualAdjustmentPercent, setManualAdjustmentPercent] = useState('');
   const [manualRecommendedSalary, setManualRecommendedSalary] = useState('');
   const [isSavingSalaryAdjustment, setIsSavingSalaryAdjustment] = useState(false);
@@ -1096,7 +1100,7 @@ export function EvaluationDetailPage() {
         await reloadCurrentCycleData();
         if (summary.failed > 0) {
           setSuccessMessage(null);
-          setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击”重新解析”。`);
+          setErrorMessage(`材料已上传，但有 ${summary.failed} 份文件解析失败，可在列表中点击"重新解析"。`);
         }
       }
     } catch (error) {
@@ -1455,6 +1459,8 @@ export function EvaluationDetailPage() {
     const nextPercent = ((numericValue - currentSalary) / currentSalary) * 100;
     setManualAdjustmentPercent(nextPercent.toFixed(2));
   }
+
+  const handleToggleDetail = () => setIsDetailExpanded((prev) => !prev);
 
   function handleCloseSalaryEditor() {
     if (!salaryRecommendation) {
@@ -2058,6 +2064,26 @@ export function EvaluationDetailPage() {
       );
     }
 
+    const manualAdjustment: ManualAdjustmentState = {
+      isSalaryEditorOpen,
+      manualAdjustmentPercent,
+      manualRecommendedSalary,
+      isManualPercentValid,
+      isManualSalaryValid,
+      manualRecommendedSalaryNumber,
+      manualSalaryDelta,
+      baseSalaryAmount,
+      canEdit: canEditSalaryRecommendation,
+      isSaving: isSavingSalaryAdjustment,
+    };
+
+    const fmt: SalaryFormatters = {
+      formatRecommendationStatus,
+      formatCurrency,
+      formatPercent,
+      formatLevelLabel,
+    };
+
     return (
       <>
       {/* 考勤概览 — 仅审批参考，不影响调薪计算 */}
@@ -2065,200 +2091,41 @@ export function EvaluationDetailPage() {
         <AttendanceKpiCard employeeId={employee.id} />
       ) : null}
       <section className="surface px-6 py-6 lg:px-7">
-        <div className="flex flex-wrap items-start justify-between gap-4" style={{ borderBottom: '1px solid var(--color-border)', paddingBottom: 12, marginBottom: 20 }}>
-          <div>
-            <p className="eyebrow">调薪建议</p>
-            <h2 className="mt-2 text-[24px] font-semibold tracking-[-0.03em] text-ink">建议结果快照</h2>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-steel">查看建议薪资和审批动作。</p>
-          </div>
-          <div style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '10px 16px', textAlign: 'right' }}>
-            <p style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--color-steel)' }}>当前状态</p>
-            <p className="mt-2 text-sm font-medium text-ink">{formatRecommendationStatus(salaryRecommendation?.status)}</p>
-          </div>
-        </div>
-
-        {salaryRecommendation ? (
-          <>
-            <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">当前薪资</p><p className="mt-2 text-2xl font-semibold text-ink">{formatCurrency(salaryRecommendation.current_salary)}</p></div>
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">建议薪资</p><p className="mt-2 text-2xl font-semibold text-ink">{formatCurrency(salaryRecommendation.recommended_salary)}</p></div>
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">最终调整比例</p><p className="mt-2 text-2xl font-semibold text-ink">{formatPercent(salaryRecommendation.final_adjustment_ratio, 2)}</p></div>
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">建议状态</p><p className="mt-2 text-2xl font-semibold text-ink">{formatRecommendationStatus(salaryRecommendation.status)}</p></div>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">建议涨幅</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.recommended_ratio, 2)}</p></div>
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">AI 系数</p><p className="mt-2 text-lg font-semibold text-ink">{salaryRecommendation.ai_multiplier.toFixed(2)}</p></div>
-              <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">认证加成</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(salaryRecommendation.certification_bonus, 2)}</p></div>
-            </div>
-
-            {liveSalaryPreview ? (
-              <div className="mt-5">
-                <div className="flex flex-wrap items-start justify-between gap-3 rounded-[8px] border px-4 py-4" style={{ borderColor: recommendationNeedsRefresh ? 'var(--color-warning)' : 'var(--color-border)', background: recommendationNeedsRefresh ? 'var(--color-warning-bg)' : 'var(--color-bg-subtle)' }}>
-                  <div>
-                    <p className="text-sm font-semibold text-ink">最新复核分联动预览</p>
-                    <p className="mt-2 text-sm leading-6 text-steel">这里显示的是按当前最终评分、等级和员工档案重新推算后的建议结果。</p>
-                  </div>
-                  <button
-                    className="action-secondary"
-                    disabled={isGeneratingSalary || !evaluation || evaluation.status !== 'confirmed'}
-                    onClick={handleGenerateSalary}
-                    type="button"
-                  >
-                    {isGeneratingSalary ? '联动中...' : '按最新评分联动'}
-                  </button>
-                </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">最新复核分</p><p className="mt-2 text-lg font-semibold text-ink">{evaluation?.overall_score.toFixed(1) ?? '--'}</p></div>
-                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">最新等级</p><p className="mt-2 text-lg font-semibold text-ink">{formatLevelLabel(evaluation?.ai_level ?? 'Level 1')}</p></div>
-                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">联动后建议涨幅</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(liveSalaryPreview.recommendedRatio, 2)}</p></div>
-                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">联动后最终比例</p><p className="mt-2 text-lg font-semibold text-ink">{formatPercent(liveSalaryPreview.finalAdjustmentRatio, 2)}</p></div>
-                  <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">联动后建议薪资</p><p className="mt-2 text-lg font-semibold text-ink">{formatCurrency(String(liveSalaryPreview.recommendedSalary.toFixed(2)))}</p></div>
-                </div>
-                {recommendationNeedsRefresh ? (
-                  <p className="mt-3 text-sm" style={{ color: 'var(--color-warning)' }}>
-                    当前页面展示的“建议涨幅 / AI 系数 / 认证加成 / 最终调整比例”还没有跟最新复核分同步，点击上面的“按最新评分联动”就会刷新。
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-
-            {salaryRecommendation.explanation ? (
-              <details className="mt-5" style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '12px 16px' }}>
-                <summary className="cursor-pointer text-sm font-semibold text-ink">查看建议说明</summary>
-                <p className="mt-3 text-sm leading-7 text-steel">{salaryRecommendation.explanation}</p>
-              </details>
-            ) : null}
-
-            <div className="mt-5" style={{ border: '1px solid var(--color-border)', borderRadius: 8, background: '#FFFFFF', padding: '18px 20px' }}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <p className="text-sm font-semibold text-ink">人工调整薪资窗口</p>
-                  <p className="mt-2 text-sm leading-6 text-steel">主管或 HR 可以在 AI 建议基础上手动调整最终涨幅和调整后薪资，再提交审批。</p>
-                </div>
-                <button
-                  className="action-secondary"
-                  disabled={!canEditSalaryRecommendation}
-                  onClick={handleCloseSalaryEditor}
-                  type="button"
-                >
-                  恢复当前建议
-                </button>
-              </div>
-
-              {isSalaryEditorOpen ? (
-                <div className="mt-5 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-                  <div className="surface-subtle px-4 py-4">
-                    <p className="text-sm font-semibold text-ink">调整参数</p>
-                    <div className="mt-4 grid gap-4 md:grid-cols-2">
-                      <label className="text-sm text-steel">
-                        <span>人工调整比例（%）</span>
-                        <input
-                          className="toolbar-input mt-2 w-full"
-                          max={100}
-                          min={0}
-                          onChange={(event) => handleManualPercentChange(event.target.value)}
-                          step="0.01"
-                          type="number"
-                          value={manualAdjustmentPercent}
-                        />
-                      </label>
-                      <label className="text-sm text-steel">
-                        <span>调整后薪资（元）</span>
-                        <input
-                          className="toolbar-input mt-2 w-full"
-                          min={baseSalaryAmount}
-                          onChange={(event) => handleManualSalaryChange(event.target.value)}
-                          step="0.01"
-                          type="number"
-                          value={manualRecommendedSalary}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      <button
-                        className="action-primary"
-                        disabled={!isManualPercentValid || !isManualSalaryValid || isSavingSalaryAdjustment}
-                        onClick={handleSaveSalaryAdjustment}
-                        type="button"
-                      >
-                        {isSavingSalaryAdjustment ? '保存中...' : '保存人工调整'}
-                      </button>
-                      <button className="action-secondary" disabled={isSavingSalaryAdjustment} onClick={handleCloseSalaryEditor} type="button">
-                        取消
-                      </button>
-                    </div>
-
-                    {!isManualPercentValid ? <p className="mt-3 text-sm" style={{ color: 'var(--color-danger)' }}>调整比例需要填写 0 到 100 之间的数字。</p> : null}
-                    {!isManualSalaryValid ? <p className="mt-3 text-sm" style={{ color: 'var(--color-danger)' }}>调整后薪资不能低于当前薪资。</p> : null}
-                  </div>
-
-                  <div className="surface-subtle px-4 py-4">
-                    <p className="text-sm font-semibold text-ink">调整预览</p>
-                    <div className="mt-4 space-y-3 text-sm text-steel">
-                      <div className="flex items-center justify-between gap-4">
-                        <span>AI 原建议薪资</span>
-                        <span className="font-medium text-ink">{formatCurrency(salaryRecommendation.recommended_salary)}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>人工调整后薪资</span>
-                        <span className="font-medium text-ink">{isManualSalaryValid ? formatCurrency(String(manualRecommendedSalaryNumber.toFixed(2))) : '--'}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>人工调整比例</span>
-                        <span className="font-medium text-ink">{isManualPercentValid ? `${manualAdjustmentPercent}%` : '--'}</span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>预计调薪金额</span>
-                        <span className="font-medium text-ink">{manualSalaryDelta != null ? formatCurrency(String(manualSalaryDelta.toFixed(2))) : '--'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-
-              {!canEditSalaryRecommendation ? (
-                <p className="mt-4 text-sm" style={{ color: 'var(--color-warning)' }}>
-                  当前调薪建议已进入审批或锁定状态，暂时不能再做人工调整。
-                </p>
-              ) : null}
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                className="action-primary"
-                disabled={
-                  !canSubmitApproval ||
-                  isSubmittingApproval ||
-                  salaryRecommendation.status === 'pending_approval' ||
-                  salaryRecommendation.status === 'approved' ||
-                  salaryRecommendation.status === 'locked'
-                }
-                onClick={handleSubmitApproval}
-                type="button"
-              >
-                {isSubmittingApproval ? '提交中...' : '提交审批'}
-              </button>
-              <Link className="chip-button" to="/approvals">
-                查看审批中心
-              </Link>
-            </div>
-
-            {!canSubmitApproval ? <p className="mt-3 text-sm" style={{ color: 'var(--color-warning)' }}>当前账号无法发起审批，请使用主管、HRBP 或管理员账号。</p> : null}
-          </>
-        ) : (
-          <div className="mt-5" style={{ border: '1px dashed var(--color-border)', borderRadius: 8, background: 'var(--color-bg-subtle)', padding: '16px 20px', fontSize: 14, lineHeight: 1.8, color: 'var(--color-steel)' }}>
-            当前评估还没有生成调薪建议。先确认评估结果，再使用上方动作或切回概览模块生成建议。
-          </div>
-        )}
-        {canViewSalaryHistory ? (
-          <div className="mt-5">
-            <SalaryHistoryPanel
-              currentCycleId={selectedCycleId}
+        <SalarySummaryPanel
+          salaryRecommendation={salaryRecommendation}
+          evaluation={evaluation}
+          employee={employee}
+          userRole={user?.role}
+          manualAdjustment={manualAdjustment}
+          fmt={fmt}
+          isDetailExpanded={isDetailExpanded}
+          canSubmitApproval={canSubmitApproval}
+          isGeneratingSalary={isGeneratingSalary}
+          isSubmittingApproval={isSubmittingApproval}
+          onToggleDetail={handleToggleDetail}
+          onGenerateSalary={handleGenerateSalary}
+          onSubmitApproval={handleSubmitApproval}
+          onSaveSalaryAdjustment={handleSaveSalaryAdjustment}
+          onCloseSalaryEditor={handleCloseSalaryEditor}
+          onManualPercentChange={handleManualPercentChange}
+          onManualSalaryChange={handleManualSalaryChange}
+        />
+        {isDetailExpanded && salaryRecommendation ? (
+          <div className="animate-fade-soft">
+            <hr className="divider" style={{ margin: '20px 0' }} />
+            <SalaryDetailPanel
+              salaryRecommendation={salaryRecommendation}
+              evaluation={evaluation}
+              liveSalaryPreview={liveSalaryPreview}
+              recommendationNeedsRefresh={recommendationNeedsRefresh}
+              isGeneratingSalary={isGeneratingSalary}
+              canViewSalaryHistory={canViewSalaryHistory}
+              salaryHistory={salaryHistory}
+              isSalaryHistoryLoading={isSalaryHistoryLoading}
+              selectedCycleId={selectedCycleId}
               employeeName={employee?.name}
-              history={salaryHistory}
-              isLoading={isSalaryHistoryLoading}
+              onGenerateSalary={handleGenerateSalary}
+              fmt={fmt}
             />
           </div>
         ) : null}
