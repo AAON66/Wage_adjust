@@ -6,6 +6,7 @@ import type {
   EligibilityOverrideCreatePayload,
   EligibilityOverrideDecisionPayload,
   DepartmentListResponse,
+  EligibilityResult,
 } from '../types/api';
 
 export interface EligibilityBatchParams {
@@ -69,6 +70,15 @@ export async function fetchOverrideDetail(id: string): Promise<EligibilityOverri
 
 export async function decideOverride(id: string, payload: EligibilityOverrideDecisionPayload): Promise<EligibilityOverrideRecord> {
   const response = await api.post<EligibilityOverrideRecord>(`/eligibility/overrides/${id}/decide`, payload);
+  return response.data;
+}
+
+export async function fetchEmployeeEligibility(
+  employeeId: string,
+): Promise<EligibilityResult> {
+  const response = await api.get<EligibilityResult>(
+    `/eligibility/${employeeId}`,
+  );
   return response.data;
 }
 

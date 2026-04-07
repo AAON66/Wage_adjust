@@ -881,6 +881,11 @@ export interface EligibilityRuleResult {
   detail: string;
 }
 
+export interface EligibilityResult {
+  overall_status: 'eligible' | 'ineligible' | 'pending';
+  rules: EligibilityRuleResult[];
+}
+
 export interface EligibilityBatchItem {
   employee_id: string;
   employee_no: string;
