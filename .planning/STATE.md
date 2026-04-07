@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.2
-milestone_name: TBD
-status: planning
-stopped_at: v1.1 milestone complete
+milestone_name: 生产就绪与数据管理完善
+status: defining-requirements
+stopped_at: Defining requirements for v1.2
 last_updated: "2026-04-07T00:00:00.000Z"
 last_activity: 2026-04-07
 progress:

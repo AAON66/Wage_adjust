@@ -1,7 +1,18 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active — v1.1 shipped 2026-04-07, planning v1.2
+**Status:** Active — v1.2 in progress (2026-04-07)
+
+## Current Milestone: v1.2 生产就绪与数据管理完善
+
+**Goal:** 使系统兼容 Python 3.9 并优化部署，启用 Celery+Redis 异步任务架构，完善调薪资格数据导入管理，修复文件共享拒绝后的显示问题，增加员工所属公司字段。
+
+**Target features:**
+- Celery+Redis 异步任务架构启用（跨应用 API 调用基础）
+- 员工档案增加所属公司字段（仅档案详情可见）
+- Python 3.9 兼容 + 服务器部署优化
+- 文件共享拒绝后自动删除 + 待审批状态标签
+- 调薪资格数据统一导入管理（飞书多维表格 + 本地 Excel）
 
 ---
 
@@ -184,4 +195,22 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 
 ---
 
-*Last updated: 2026-04-07 after v1.1 milestone*
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
+---
+*Last updated: 2026-04-07 after v1.2 milestone start*
