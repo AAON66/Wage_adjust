@@ -1,26 +1,21 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active development — Milestone v1.1 (2026-03-31)
-
-## Current Milestone: v1.1 体验优化与业务规则完善
-
-**Goal:** 完善账号绑定、文件上传共享机制、菜单结构、调薪资格校验和调薪建议展示，提升 HR 和管理层的操作效率与决策质量。
-
-**Target features:**
-- 账号-员工信息绑定加固（绑定入口、管理位置）
-- 文件上传共享申请机制重构（重复允许上传+警告、向原上传者发起共享申请）
-- 菜单与导航重构（功能归类分组、设置类集中）
-- 调薪资格校验引擎（4 条规则自动判定、仅 HR/主管/管理端可见、特殊例外申请、缺失数据导入通道）
-- 调薪建议展示精简（默认关键信息、详细数据可展开）
+**Status:** Active — v1.1 shipped 2026-04-07, planning v1.2
 
 ---
 
-## What We're Building
+## What This Is
 
 An internal enterprise platform for HR-driven talent assessment and salary adjustment decisions. The system uses AI (DeepSeek) to evaluate employees' AI capability across five dimensions, produces structured salary recommendations with traceability, routes them through a manager/HR approval workflow, and exposes the results to HR systems via a public REST API.
 
-The codebase is architecturally sound (FastAPI + React, layered architecture, role-based access) but several core user-facing features are incomplete or unreliable: the AI evaluation pipeline, approval workflow, dashboard analytics, and batch import. Security issues also need to be addressed before production use.
+As of v1.1, the platform includes: account-employee binding with JWT invalidation, automated 4-rule salary eligibility checks (tenure/interval/performance/leave), role-gated eligibility visibility with exception overrides, multimodal vision evaluation for PPT images and standalone photos, file sharing workflow with duplicate detection and contribution ratios, and a simplified salary display with summary/detail panels and eligibility badge.
+
+---
+
+## Core Value
+
+HR can run a complete, auditable salary review cycle — from employee evidence submission to AI evaluation to approved salary adjustment — with every decision explainable and traceable.
 
 ---
 
@@ -47,26 +42,44 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 
 ---
 
-## Core Capabilities
+## Requirements
 
-### Already Built (Mostly Working)
-- Auth system (JWT, role-based access control, protected routes)
-- Employee management (create, list, filter by dept/level/job family)
-- File upload and parsing (PPT, PDF, images, code, documents)
-- AI evaluation engine (5-dimension weighted scoring, AI level matrix)
-- Salary calculation engine (multipliers, certification bonuses)
-- Approval workflow (status transitions: draft → submitted → manager_review → hr_review → approved/rejected)
-- Batch import (Excel/CSV upload flow)
-- Public API endpoints (key-authenticated, versioned at `/api/v1/public/`)
-- Dashboard service layer (DashboardService with aggregation methods)
+### Validated
 
-### Incomplete / Unreliable (What This Plan Addresses)
-1. **AI Evaluation Pipeline** — ✅ Validated in Phase 02: exponential-backoff retry, Redis rate limiter (in-memory fallback), real image OCR via DeepSeek Vision, scale normalization fix, SHA-256 prompt hash on each dimension score, used_fallback flag + yellow banner, 5-dimension detail panel, prompt injection safety patterns
-2. **Approval Workflow** — Status transitions, audit trail, and reviewer UI need completion
-3. **Dashboard & Analytics** — Service layer exists but frontend visualizations and data aggregation have gaps
-4. **Batch Import** — Upload exists but validation error feedback, partial success handling, and idempotency need work
-5. **Security** — ✅ Validated in Phase 01: JWT startup guard, login rate limiting, AES-256-GCM national ID encryption, role-aware salary filtering, path traversal guard, password complexity, Alembic-only migrations, .env git hygiene, certification import idempotency
-6. **External API** — Public API endpoints exist but integration with real external systems hasn't been validated
+- ✓ JWT security hardening, AES-256-GCM national ID encryption, Alembic-only migrations — v1.0
+- ✓ AI evaluation pipeline: 5-dimension weighted scoring, Redis rate limiter, explainable scores — v1.0
+- ✓ Approval workflow: status transitions, audit trail, reviewer UI — v1.0
+- ✓ Audit log wired into all service mutations — v1.0
+- ✓ File deduplication and multi-author contribution support — v1.0
+- ✓ Batch import with idempotency and per-row error reporting — v1.0
+- ✓ Dashboard with SQL aggregation and Redis caching — v1.0
+- ✓ Employee self-service UI (submission status, evaluation results) — v1.0
+- ✓ Feishu attendance data sync for salary review — v1.0
+- ✓ External API hardening with key auth and stable schemas — v1.0
+- ✓ Account-employee binding: admin bind/unbind + employee self-bind + conflict detection — v1.1
+- ✓ Salary eligibility engine: 4 rules (tenure/interval/performance/leave), three-state results, configurable thresholds — v1.1
+- ✓ Eligibility visibility: HR/manager-only, batch query, Excel export, exception override workflow — v1.1
+- ✓ Multimodal vision evaluation: PPT image extraction + standalone image scoring + structured output — v1.1
+- ✓ File sharing workflow: duplicate warning + sharing request + approve/reject + contribution ratio + 72h timeout — v1.1
+- ✓ Salary display simplification: summary panel, expandable detail, eligibility badge with rule drill-down — v1.1
+
+### Active (Next Milestone)
+
+- [ ] Menu & navigation restructuring: grouped sidebar, collapsible, role-filtered (NAV-01/02/03 — deferred from v1.1)
+- [ ] Performance full cycle: currently only grade import is supported; full review workflow not built
+- [ ] Real-time notifications: currently polling on page load; WebSocket push for approval events
+- [ ] Production deployment hardening: PostgreSQL migration, Redis cluster, MinIO/S3 config
+- [ ] E2E integration test suite: key user journeys automated
+
+### Out of Scope
+
+- Mobile app — web-first approach, responsive PWA covers mobile needs
+- SSO/LDAP authentication — standard JWT is sufficient for current scale
+- Draggable menu reordering — not a user priority
+- Dynamic eligibility rule UI — 4 rules with configurable thresholds is sufficient; full config UI is over-engineering
+- Full performance management module — only grade import is needed for eligibility check
+- Auto-approve sharing requests — manual approval preserves intent
+- Employee-visible eligibility status — HR/manager-only is a deliberate access control decision
 
 ---
 
@@ -102,12 +115,13 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 
 ## Tech Stack
 
-- **Frontend:** React 18 + TypeScript, React Router v6, Tailwind CSS, Recharts
-- **Backend:** Python 3.11+, FastAPI, SQLAlchemy, SQLite (dev) / PostgreSQL (prod)
-- **AI:** DeepSeek API (LLM for evaluation and structured output)
-- **Auth:** JWT (python-jose), bcrypt
-- **File parsing:** python-pptx, Pillow, python-docx, PyPDF2
-- **Dev tools:** Vite, ESLint, pytest, Alembic (migration setup needed)
+- **Frontend:** React 18 + TypeScript, React Router v7, Tailwind CSS, Recharts
+- **Backend:** Python 3.11+, FastAPI 0.115, SQLAlchemy 2.0, SQLite (dev) / PostgreSQL (prod)
+- **AI:** DeepSeek API (LLM for text evaluation + vision model for image evaluation)
+- **Auth:** JWT (python-jose), bcrypt, token_version for forced invalidation on bind/unbind
+- **File parsing:** python-pptx (with image extraction), Pillow (with compression), pypdf, python-docx
+- **Storage:** Local filesystem (dev), MinIO/S3 (prod path wired but not activated)
+- **Dev tools:** Vite 6, pytest, Alembic (sole migration path)
 
 ---
 
@@ -116,9 +130,11 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → Engine layer → SQLAlchemy models.
 
 - Strict dependency direction: `api/ → services/ → engines/ → models/`
-- All AI evaluation is pure computation in engine layer (no I/O, testable)
+- All AI evaluation and eligibility checking is pure computation in engine layer (no I/O, fully testable)
 - Role-based access enforced both frontend (`ProtectedRoute`) and backend (`require_roles()`)
+- `AccessScopeService` gates all resource endpoints (admins see all; HRBP/managers see department; employees see self)
 - Public API surface at `/api/v1/public/` for external HR system integration
+- Vision evaluation wired after text parsing; single file failure does not block others
 
 ---
 
@@ -131,19 +147,41 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 5. Batch import must handle partial success gracefully (report failures, commit successes)
 6. Public API must be versioned and return stable schemas
 7. Dashboard data must be consistent with underlying evaluation data
-8. National ID numbers are high-sensitivity PII under China's PIPL — require encryption
+8. National ID numbers are high-sensitivity PII under China's PIPL — require AES-256-GCM encryption
 
 ---
 
-## Success Definition for v1 Complete
+## Key Decisions
 
-- HR can run a full salary review cycle: create cycle → employees submit evidence → AI evaluates → managers approve → final salaries exported
-- Evaluations are explainable and auditable
-- Dashboard shows accurate talent distribution and salary adjustment statistics
-- Batch import works reliably with clear error reporting
-- No HIGH security vulnerabilities in production path
-- External HR system can pull approved salary recommendations via public API
+| Decision | Outcome | Milestone |
+|----------|---------|-----------|
+| AES-256-GCM for national ID PII encryption | ✓ Good — compliant, no performance impact | v1.0 |
+| Alembic as sole migration path; init_database() calls create_all only as fallback | ✓ Good — consistent schema evolution | v1.0 |
+| Redis rate limiter with in-memory fallback for LLM calls | ✓ Good — no hard Redis dependency in dev | v1.0 |
+| batch_alter_table for SQLite-compatible Alembic migrations | ✓ Good — dev/prod parity on schema changes | v1.0 |
+| token_version column for JWT invalidation on bind/unbind | ✓ Good — simpler than token blacklist, no Redis needed | v1.1 |
+| Vision evaluation wired after text parsing; independent failure | ✓ Good — text evidence not blocked by vision failures | v1.1 |
+| Hash-only dedup with oldest-first ordering for sharing requests | ✓ Good — deterministic, no race conditions | v1.1 |
+| Atomic upload+SharingRequest creation in single transaction | ✓ Good — eliminates orphan sharing requests | v1.1 |
+| filter-before-paginate for batch eligibility query (SQLite limitation) | ⚠️ Revisit — will need server-side pagination for large datasets | v1.1 |
+| Role-step binding for override approval (HRBP then admin) | ✓ Good — matches existing approval pattern | v1.1 |
+| NAV restructuring deferred (Phase 11 implemented but not fully verified) | — Pending — carry to v1.2 | v1.1 |
 
-## Evolution
+---
 
-This document evolves at phase transitions and milestone boundaries.
+## Context
+
+**v1.0 shipped 2026-03-30:** 10 phases, 35 plans. Established secure, auditable AI evaluation pipeline from evidence upload to approved salary recommendation. Full RBAC, Feishu sync, external API.
+
+**v1.1 shipped 2026-04-07:** 7 phases, 13 plans, 343 commits. Added eligibility engine with 4 business rules, file sharing workflow, multimodal vision evaluation, account binding with JWT invalidation, and simplified salary display with expandable detail panels.
+
+**Current codebase state:** ~30,800 Python LOC + ~20,000 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis declared but not fully activated for async tasks.
+
+**Known issues / tech debt:**
+- filter-before-paginate for eligibility batch query won't scale beyond ~10k employees — needs server-side cursor pagination
+- Phase 11 nav restructuring code is in the repo but planning artifacts are incomplete (no SUMMARY.md); functionality requires verification
+- Celery task queue is wired but async evaluation jobs are not fully activated in production path
+
+---
+
+*Last updated: 2026-04-07 after v1.1 milestone*
