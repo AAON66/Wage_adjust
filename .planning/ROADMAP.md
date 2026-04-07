@@ -129,9 +129,10 @@ Plans:
   1. 调薪建议页面默认仅展示关键摘要（考勤概况 + 调薪资格状态 + AI 评分），不显示全部详情
   2. 用户点击展开按钮后可查看维度明细、评分解释、调薪计算过程等详细数据
   3. 调薪资格以徽章形式展示（合格/不合格/数据缺失），点击可展开查看 4 条规则的逐条判定结果
-**Plans**: 1 plan
+**Plans**: 2 plans
 Plans:
-- [ ] 11-01-PLAN.md — 数据结构分组 + 侧边栏折叠渲染 + WorkspacePage 兼容
+- [ ] 17-01-PLAN.md — SalarySummaryPanel + SalaryDetailPanel extraction + expand/collapse wiring
+- [ ] 17-02-PLAN.md — EligibilityBadge component + service function + SalarySummaryPanel integration
 **UI hint**: yes
 
 ## Progress
@@ -157,4 +158,4 @@ Phases execute in numeric order: 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17
 | 14. Eligibility Visibility | v1.1 | 2/2 | Complete    | 2026-04-04 |
 | 15. Vision Evaluation | v1.1 | 2/2 | Complete    | 2026-04-04 |
 | 16. File Sharing | v1.1 | 2/2 | Complete    | 2026-04-06 |
-| 17. Display Simplification | v1.1 | 0/TBD | Not started | - |
+| 17. Display Simplification | v1.1 | 0/2 | Not started | - |
