@@ -40,7 +40,7 @@ Declared values (must be multiples of 4):
 | xl | 24px | Card padding (matches existing `surface px-6 py-6`) |
 | 2xl | 32px | Page bottom padding |
 
-Exceptions: none. All values align with existing project spacing from `index.css`.
+Exceptions: `lg` (20px) is not in the standard 8-point set. Retained for `app-main` padding compatibility -- the existing `.app-main` container uses 20px padding throughout the application and this phase must not alter that inherited value.
 
 Source: Existing `app-main` (20px/24px padding), `metric-tile` (16px/18px padding), `surface` card patterns.
 
@@ -51,9 +51,11 @@ Source: Existing `app-main` (20px/24px padding), `metric-tile` (16px/18px paddin
 | Role | Size | Weight | Line Height | CSS Class / Usage |
 |------|------|--------|-------------|-------------------|
 | Body | 13.5px | 400 | 1.5 | Default body text, table cells, descriptions |
-| Label | 12px | 500 | 1.5 | `metric-label`, status labels, secondary info |
+| Label | 12px | 400 | 1.5 | `metric-label`, status labels, secondary info (differentiated by size, not weight) |
 | Section Title | 15px | 600 | 1.4 | `section-title`, card headings |
 | Display Number | 26px | 600 | 1.1 | `metric-value`, featured salary percentage |
+
+Weights: 2 (400 regular, 600 semibold). Label uses size differentiation (12px vs 13.5px body) instead of a third weight.
 
 Source: Existing `index.css` component classes (`metric-label`, `metric-value`, `section-title`, body defaults).
 
