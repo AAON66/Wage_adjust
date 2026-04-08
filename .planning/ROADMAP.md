@@ -65,7 +65,11 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
   3. numpy==2.0.2 和 Pillow==10.4.0 锁定后，pandas 批量导入和图片压缩/解析功能正常工作
   4. SQLite 连接启用 `PRAGMA foreign_keys=ON`，cascade delete 操作实际触发级联删除
   5. 现有 pytest 测试套件在 Python 3.9 下全部通过
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 18-01-PLAN.md — Model 类型注解降级 + SQLite FK 启用 + 依赖版本锁定
+- [ ] 18-02-PLAN.md — Schema 类型注解降级（PEP 604 + PEP 585）
+- [ ] 18-03-PLAN.md — 全量集成验证（启动测试 + pytest + 功能验证）
 
 ### Phase 19: Celery+Redis 异步基础设施
 **Goal**: Celery worker 可独立启动并成功执行异步任务
@@ -160,7 +164,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 15. Vision Evaluation | v1.1 | 2/2 | Complete | 2026-04-04 |
 | 16. File Sharing | v1.1 | 2/2 | Complete | 2026-04-06 |
 | 17. Display Simplification | v1.1 | 2/2 | Complete | 2026-04-07 |
-| 18. Python 3.9 兼容 | v1.2 | 0/0 | Not started | - |
+| 18. Python 3.9 兼容 | v1.2 | 0/3 | Planning | - |
 | 19. Celery+Redis 基础设施 | v1.2 | 0/0 | Not started | - |
 | 20. 员工所属公司 | v1.2 | 0/0 | Not started | - |
 | 21. 共享拒绝清理 | v1.2 | 0/0 | Not started | - |
