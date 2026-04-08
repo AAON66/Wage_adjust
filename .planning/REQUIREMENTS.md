@@ -66,30 +66,31 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | - | Pending |
-| DEPLOY-02 | - | Pending |
-| DEPLOY-03 | - | Pending |
-| DEPLOY-04 | - | Pending |
-| DEPLOY-05 | - | Pending |
-| ASYNC-01 | - | Pending |
-| ASYNC-02 | - | Pending |
-| ASYNC-03 | - | Pending |
-| ASYNC-04 | - | Pending |
-| EMP-01 | - | Pending |
-| EMP-02 | - | Pending |
-| SHARE-06 | - | Pending |
-| SHARE-07 | - | Pending |
-| SHARE-08 | - | Pending |
-| ELIGIMP-01 | - | Pending |
-| ELIGIMP-02 | - | Pending |
-| ELIGIMP-03 | - | Pending |
-| ELIGIMP-04 | - | Pending |
-| FEISHU-01 | - | Pending |
+| DEPLOY-01 | Phase 18 | Pending |
+| DEPLOY-02 | Phase 18 | Pending |
+| DEPLOY-03 | Phase 24 | Pending |
+| DEPLOY-04 | Phase 24 | Pending |
+| DEPLOY-05 | Phase 18 | Pending |
+| ASYNC-01 | Phase 19 | Pending |
+| ASYNC-02 | Phase 22 | Pending |
+| ASYNC-03 | Phase 22 | Pending |
+| ASYNC-04 | Phase 19 | Pending |
+| EMP-01 | Phase 20 | Pending |
+| EMP-02 | Phase 20 | Pending |
+| SHARE-06 | Phase 21 | Pending |
+| SHARE-07 | Phase 21 | Pending |
+| SHARE-08 | Phase 21 | Pending |
+| ELIGIMP-01 | Phase 23 | Pending |
+| ELIGIMP-02 | Phase 23 | Pending |
+| ELIGIMP-03 | Phase 23 | Pending |
+| ELIGIMP-04 | Phase 23 | Pending |
+| FEISHU-01 | Phase 23 | Pending |
 
 **Coverage:**
 - v1.2 requirements: 19 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 19
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-08*
+*Traceability updated: 2026-04-07 (roadmap created)*
