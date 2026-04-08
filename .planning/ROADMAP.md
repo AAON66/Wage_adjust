@@ -45,7 +45,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 
 **Milestone Goal:** 使系统兼容 Python 3.9 并优化部署，启用 Celery+Redis 异步任务架构，完善调薪资格数据导入管理，修复文件共享拒绝后的显示问题，增加员工所属公司字段。
 
-- [ ] **Phase 18: Python 3.9 兼容与依赖修复** - 全量类型注解降级 + 依赖版本锁定 + SQLite FK 修复
+- [x] **Phase 18: Python 3.9 兼容与依赖修复** - 全量类型注解降级 + 依赖版本锁定 + SQLite FK 修复 (completed 2026-04-08)
 - [ ] **Phase 19: Celery+Redis 异步基础设施** - 任务队列激活、worker 启动验证、健康检查端点
 - [ ] **Phase 20: 员工所属公司字段** - Employee 模型扩展 + 档案详情展示
 - [ ] **Phase 21: 文件共享拒绝清理与状态标签** - 拒绝/超时自动删除副本 + 待同意标签
@@ -65,11 +65,11 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
   3. numpy==2.0.2 和 Pillow==10.4.0 锁定后，pandas 批量导入和图片压缩/解析功能正常工作
   4. SQLite 连接启用 `PRAGMA foreign_keys=ON`，cascade delete 操作实际触发级联删除
   5. 现有 pytest 测试套件在 Python 3.9 下全部通过
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 18-01-PLAN.md — Model 类型注解降级 + SQLite FK 启用 + 依赖版本锁定
-- [ ] 18-02-PLAN.md — Schema 类型注解降级（PEP 604 + PEP 585）
-- [ ] 18-03-PLAN.md — 全量集成验证（启动测试 + pytest + 功能验证）
+- [x] 18-01-PLAN.md — Model 类型注解降级 + SQLite FK 启用 + 依赖版本锁定
+- [x] 18-02-PLAN.md — Schema 类型注解降级（PEP 604 + PEP 585）
+- [x] 18-03-PLAN.md — 全量集成验证（启动测试 + pytest + 功能验证）
 
 ### Phase 19: Celery+Redis 异步基础设施
 **Goal**: Celery worker 可独立启动并成功执行异步任务
@@ -164,7 +164,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 15. Vision Evaluation | v1.1 | 2/2 | Complete | 2026-04-04 |
 | 16. File Sharing | v1.1 | 2/2 | Complete | 2026-04-06 |
 | 17. Display Simplification | v1.1 | 2/2 | Complete | 2026-04-07 |
-| 18. Python 3.9 兼容 | v1.2 | 0/3 | Planning | - |
+| 18. Python 3.9 兼容 | v1.2 | 3/3 | Complete    | 2026-04-08 |
 | 19. Celery+Redis 基础设施 | v1.2 | 0/0 | Not started | - |
 | 20. 员工所属公司 | v1.2 | 0/0 | Not started | - |
 | 21. 共享拒绝清理 | v1.2 | 0/0 | Not started | - |
