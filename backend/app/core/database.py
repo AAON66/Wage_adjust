@@ -3,7 +3,7 @@
 import logging
 from collections.abc import Generator
 
-from sqlalchemy import MetaData, create_engine
+from sqlalchemy import MetaData, create_engine, event
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
@@ -41,10 +41,20 @@ def _engine_kwargs(settings: Settings) -> dict[str, object]:
     return kwargs
 
 
+def _set_sqlite_pragma(dbapi_conn, connection_record):
+    """Enable foreign key enforcement for SQLite connections."""
+    cursor = dbapi_conn.cursor()
+    cursor.execute('PRAGMA foreign_keys=ON')
+    cursor.close()
+
+
 def create_db_engine(settings: Settings | None = None) -> Engine:
     """Build a SQLAlchemy engine from application settings."""
     resolved_settings = settings or get_settings()
-    return create_engine(resolved_settings.database_url, **_engine_kwargs(resolved_settings))
+    new_engine = create_engine(resolved_settings.database_url, **_engine_kwargs(resolved_settings))
+    if resolved_settings.database_url.startswith('sqlite'):
+        event.listen(new_engine, 'connect', _set_sqlite_pragma)
+    return new_engine
 
 
 def create_session_factory(settings: Settings | None = None) -> sessionmaker[Session]:
