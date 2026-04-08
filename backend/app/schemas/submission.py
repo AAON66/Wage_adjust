@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -16,12 +17,12 @@ class SubmissionRead(BaseModel):
     id: str
     employee_id: str
     cycle_id: str
-    self_summary: str | None = None
-    manager_summary: str | None = None
+    self_summary: Optional[str] = None
+    manager_summary: Optional[str] = None
     status: str
-    submitted_at: datetime | None = None
+    submitted_at: Optional[datetime] = None
     created_at: datetime
-    evaluation_id: str | None = None
+    evaluation_id: Optional[str] = None
 
 
 class SubmissionListResponse(BaseModel):

@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import re
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -28,11 +29,11 @@ class UserRead(BaseModel):
     id: str
     email: EmailStr
     role: str
-    id_card_no: str | None = None
+    id_card_no: Optional[str] = None
     must_change_password: bool = False
-    employee_id: str | None = None
-    employee_name: str | None = None
-    employee_no: str | None = None
+    employee_id: Optional[str] = None
+    employee_name: Optional[str] = None
+    employee_no: Optional[str] = None
     departments: list[DepartmentRead] = []
     created_at: datetime
 
@@ -41,7 +42,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     role: str = Field(default='employee', min_length=2, max_length=50)
-    id_card_no: str | None = Field(default=None, max_length=32)
+    id_card_no: Optional[str] = Field(default=None, max_length=32)
 
     @field_validator('password')
     @classmethod
@@ -50,7 +51,7 @@ class UserCreate(BaseModel):
 
 
 class UserEmployeeBindingUpdate(BaseModel):
-    employee_id: str | None = None
+    employee_id: Optional[str] = None
 
 
 class UserLogin(BaseModel):

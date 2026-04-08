@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -35,11 +36,11 @@ class CycleCreate(CycleBase):
 
 
 class CycleUpdate(BaseModel):
-    name: str | None = Field(default=None, min_length=1, max_length=255)
-    review_period: str | None = Field(default=None, min_length=1, max_length=128)
-    budget_amount: Decimal | None = Field(default=None, ge=0)
-    status: str | None = Field(default=None, min_length=1, max_length=32)
-    department_budgets: list[CycleDepartmentBudgetInput] | None = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    review_period: Optional[str] = Field(default=None, min_length=1, max_length=128)
+    budget_amount: Optional[Decimal] = Field(default=None, ge=0)
+    status: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    department_budgets: Optional[list[CycleDepartmentBudgetInput]] = None
 
 
 class CycleRead(CycleBase):

@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -12,7 +13,7 @@ class OverviewMetricRead(BaseModel):
 
 
 class CycleSummaryRead(BaseModel):
-    cycle_id: str | None = None
+    cycle_id: Optional[str] = None
     cycle_name: str
     review_period: str
     status: str
@@ -62,8 +63,8 @@ class TalentSpotlightRead(BaseModel):
     department: str
     ai_level: str
     overall_score: float
-    recommendation_status: str | None = None
-    final_adjustment_ratio: float | None = None
+    recommendation_status: Optional[str] = None
+    final_adjustment_ratio: Optional[float] = None
 
 
 class ActionItemRead(BaseModel):
@@ -94,7 +95,7 @@ class DepartmentDrilldownResponse(BaseModel):
 
 
 class DashboardSnapshotResponse(BaseModel):
-    cycle_summary: CycleSummaryRead | None = None
+    cycle_summary: Optional[CycleSummaryRead] = None
     overview: DashboardOverviewResponse
     ai_level_distribution: DistributionResponse
     roi_distribution: DistributionResponse

@@ -1,7 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
-from typing import Generic, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -44,7 +44,7 @@ class PublicLatestEvaluationResponse(BaseModel):
     explanation: str
     evaluated_at: datetime
     dimension_scores: list[PublicDimensionScoreRead]
-    salary_recommendation: PublicSalaryRecommendationRead | None = None
+    salary_recommendation: Optional[PublicSalaryRecommendationRead] = None
 
 
 class PublicSalaryResultItem(BaseModel):
@@ -76,11 +76,11 @@ class PublicSalaryResultItem(BaseModel):
     evaluation_id: str
     ai_level: str
     evaluation_status: str
-    recommendation_id: str | None = None
-    recommendation_status: str | None = None
-    current_salary: str | None = None
-    recommended_salary: str | None = None
-    final_adjustment_ratio: float | None = None
+    recommendation_id: Optional[str] = None
+    recommendation_status: Optional[str] = None
+    current_salary: Optional[str] = None
+    recommended_salary: Optional[str] = None
+    final_adjustment_ratio: Optional[float] = None
 
 
 class PublicSalaryResultsResponse(BaseModel):
@@ -100,7 +100,7 @@ class PublicApprovalStatusItem(BaseModel):
     approved_steps: int
     pending_steps: int
     rejected_steps: int
-    latest_decision_at: datetime | None = None
+    latest_decision_at: Optional[datetime] = None
 
 
 class PublicApprovalStatusResponse(BaseModel):
@@ -122,9 +122,9 @@ class PublicDashboardSummaryResponse(BaseModel):
 class CursorPaginatedResponse(BaseModel, Generic[T]):
     """游标分页通用 wrapper（per D-05, D-06）"""
     items: list[T]
-    next_cursor: str | None = None
+    next_cursor: Optional[str] = None
     has_more: bool = False
-    total: int | None = None
+    total: Optional[int] = None
 
 
 class PaginatedSalaryResultsResponse(BaseModel):
@@ -145,6 +145,6 @@ class PaginatedSalaryResultsResponse(BaseModel):
     cycle_name: str
     cycle_status: str
     items: list[PublicSalaryResultItem]
-    next_cursor: str | None = Field(None, description='Opaque cursor for next page')
+    next_cursor: Optional[str] = Field(None, description='Opaque cursor for next page')
     has_more: bool = Field(False, description='Whether more pages exist')
-    total: int | None = Field(None, description='Item count in this page (backward compat)')
+    total: Optional[int] = Field(None, description='Item count in this page (backward compat)')

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -61,8 +61,8 @@ class OverrideRequestCreate(BaseModel):
     employee_id: str
     override_rules: list[str]
     reason: str
-    year: int | None = None
-    reference_date: date | None = None
+    year: Optional[int] = None
+    reference_date: Optional[date] = None
 
 
 class OverrideRequestRead(BaseModel):
@@ -72,23 +72,23 @@ class OverrideRequestRead(BaseModel):
 
     id: str
     employee_id: str
-    employee_no: str | None = None
-    employee_name: str | None = None
+    employee_no: Optional[str] = None
+    employee_name: Optional[str] = None
     requester_id: str
-    requester_name: str | None = None
+    requester_name: Optional[str] = None
     override_rules: list[str]
     reason: str
     status: str
     year: int
-    reference_date: date | None
-    hrbp_approver_id: str | None
-    hrbp_decision: str | None
-    hrbp_comment: str | None
-    hrbp_decided_at: datetime | None
-    admin_approver_id: str | None
-    admin_decision: str | None
-    admin_comment: str | None
-    admin_decided_at: datetime | None
+    reference_date: Optional[date]
+    hrbp_approver_id: Optional[str]
+    hrbp_decision: Optional[str]
+    hrbp_comment: Optional[str]
+    hrbp_decided_at: Optional[datetime]
+    admin_approver_id: Optional[str]
+    admin_decision: Optional[str]
+    admin_comment: Optional[str]
+    admin_decided_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 
@@ -97,7 +97,7 @@ class OverrideDecisionPayload(BaseModel):
     """Request body for deciding on an override."""
 
     decision: Literal['approve', 'reject']
-    comment: str | None = None
+    comment: Optional[str] = None
 
 
 class OverrideListResponse(BaseModel):
@@ -132,7 +132,7 @@ class SalaryAdjustmentRecordCreate(BaseModel):
     employee_no: str
     adjustment_date: date
     adjustment_type: str
-    amount: Decimal | None = None
+    amount: Optional[Decimal] = None
 
 
 class SalaryAdjustmentRecordRead(BaseModel):
@@ -143,12 +143,12 @@ class SalaryAdjustmentRecordRead(BaseModel):
     employee_no: str
     adjustment_date: date
     adjustment_type: str
-    amount: Decimal | None
+    amount: Optional[Decimal]
     source: str
     created_at: datetime
     updated_at: datetime
 
 
 class EligibilityCheckRequest(BaseModel):
-    reference_date: date | None = None
-    year: int | None = None
+    reference_date: Optional[date] = None
+    year: Optional[int] = None
