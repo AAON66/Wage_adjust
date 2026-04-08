@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,7 +28,7 @@ class EligibilityResultSchema(BaseModel):
     """
 
     overall_status: Literal['eligible', 'ineligible', 'pending']
-    rules: list[RuleResultSchema]
+    rules: List[RuleResultSchema]
 
 
 class EligibilityBatchItemSchema(BaseModel):
@@ -43,13 +43,13 @@ class EligibilityBatchItemSchema(BaseModel):
     job_family: str
     job_level: str
     overall_status: str
-    rules: list[RuleResultSchema]
+    rules: List[RuleResultSchema]
 
 
 class EligibilityBatchResponse(BaseModel):
     """Paginated batch eligibility response."""
 
-    items: list[EligibilityBatchItemSchema]
+    items: List[EligibilityBatchItemSchema]
     total: int
     page: int
     page_size: int
@@ -59,10 +59,10 @@ class OverrideRequestCreate(BaseModel):
     """Request body for creating an eligibility override."""
 
     employee_id: str
-    override_rules: list[str]
+    override_rules: List[str]
     reason: str
-    year: int | None = None
-    reference_date: date | None = None
+    year: Optional[int] = None
+    reference_date: Optional[date] = None
 
 
 class OverrideRequestRead(BaseModel):
@@ -72,23 +72,23 @@ class OverrideRequestRead(BaseModel):
 
     id: str
     employee_id: str
-    employee_no: str | None = None
-    employee_name: str | None = None
+    employee_no: Optional[str] = None
+    employee_name: Optional[str] = None
     requester_id: str
-    requester_name: str | None = None
-    override_rules: list[str]
+    requester_name: Optional[str] = None
+    override_rules: List[str]
     reason: str
     status: str
     year: int
-    reference_date: date | None
-    hrbp_approver_id: str | None
-    hrbp_decision: str | None
-    hrbp_comment: str | None
-    hrbp_decided_at: datetime | None
-    admin_approver_id: str | None
-    admin_decision: str | None
-    admin_comment: str | None
-    admin_decided_at: datetime | None
+    reference_date: Optional[date]
+    hrbp_approver_id: Optional[str]
+    hrbp_decision: Optional[str]
+    hrbp_comment: Optional[str]
+    hrbp_decided_at: Optional[datetime]
+    admin_approver_id: Optional[str]
+    admin_decision: Optional[str]
+    admin_comment: Optional[str]
+    admin_decided_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 
@@ -97,13 +97,13 @@ class OverrideDecisionPayload(BaseModel):
     """Request body for deciding on an override."""
 
     decision: Literal['approve', 'reject']
-    comment: str | None = None
+    comment: Optional[str] = None
 
 
 class OverrideListResponse(BaseModel):
     """Paginated list of overrides."""
 
-    items: list[OverrideRequestRead]
+    items: List[OverrideRequestRead]
     total: int
     page: int
     page_size: int
@@ -132,7 +132,7 @@ class SalaryAdjustmentRecordCreate(BaseModel):
     employee_no: str
     adjustment_date: date
     adjustment_type: str
-    amount: Decimal | None = None
+    amount: Optional[Decimal] = None
 
 
 class SalaryAdjustmentRecordRead(BaseModel):
@@ -143,12 +143,12 @@ class SalaryAdjustmentRecordRead(BaseModel):
     employee_no: str
     adjustment_date: date
     adjustment_type: str
-    amount: Decimal | None
+    amount: Optional[Decimal]
     source: str
     created_at: datetime
     updated_at: datetime
 
 
 class EligibilityCheckRequest(BaseModel):
-    reference_date: date | None = None
-    year: int | None = None
+    reference_date: Optional[date] = None
+    year: Optional[int] = None

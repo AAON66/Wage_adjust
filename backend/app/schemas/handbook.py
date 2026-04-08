@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -14,17 +15,17 @@ class EmployeeHandbookRead(BaseModel):
     file_type: str
     storage_key: str
     parse_status: str
-    summary: str | None = None
-    key_points_json: list[str]
-    tags_json: list[str]
-    uploaded_by_user_id: str | None = None
-    uploaded_by_email: str | None = None
+    summary: Optional[str] = None
+    key_points_json: List[str]
+    tags_json: List[str]
+    uploaded_by_user_id: Optional[str] = None
+    uploaded_by_email: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
 
 class EmployeeHandbookListResponse(BaseModel):
-    items: list[EmployeeHandbookRead]
+    items: List[EmployeeHandbookRead]
     total: int
 
 

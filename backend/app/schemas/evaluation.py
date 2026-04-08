@@ -1,7 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,7 +19,7 @@ class DimensionScoreRead(BaseModel):
     ai_rationale: str
     rationale: str
     created_at: datetime
-    prompt_hash: str | None = None
+    prompt_hash: Optional[str] = None
 
 
 class EvaluationRead(BaseModel):
@@ -29,22 +29,22 @@ class EvaluationRead(BaseModel):
     submission_id: str
     overall_score: float
     ai_overall_score: float
-    manager_score: float | None = None
-    score_gap: float | None = None
+    manager_score: Optional[float] = None
+    score_gap: Optional[float] = None
     ai_level: str
     confidence_score: float
     explanation: str
-    manager_comment: str | None = None
-    hr_comment: str | None = None
-    hr_decision: str | None = None
+    manager_comment: Optional[str] = None
+    hr_comment: Optional[str] = None
+    hr_decision: Optional[str] = None
     status: str
     created_at: datetime
     updated_at: datetime
     needs_manual_review: bool = False
     integrity_flagged: bool = False
     integrity_issue_count: int = 0
-    integrity_examples: list[str] = Field(default_factory=list)
-    dimension_scores: list[DimensionScoreRead] = Field(default_factory=list)
+    integrity_examples: List[str] = Field(default_factory=list)
+    dimension_scores: List[DimensionScoreRead] = Field(default_factory=list)
     used_fallback: bool = False
 
 
@@ -53,10 +53,10 @@ class EvaluationGenerateRequest(BaseModel):
 
 
 class EvaluationManualReviewRequest(BaseModel):
-    ai_level: str | None = None
-    overall_score: float | None = Field(default=None, ge=0, le=100)
-    explanation: str | None = None
-    dimension_scores: list['DimensionScoreManualUpdate'] = Field(default_factory=list)
+    ai_level: Optional[str] = None
+    overall_score: Optional[float] = Field(default=None, ge=0, le=100)
+    explanation: Optional[str] = None
+    dimension_scores: List['DimensionScoreManualUpdate'] = Field(default_factory=list)
 
 
 class DimensionScoreManualUpdate(BaseModel):
@@ -67,8 +67,8 @@ class DimensionScoreManualUpdate(BaseModel):
 
 class EvaluationHrReviewRequest(BaseModel):
     decision: Literal['approved', 'returned']
-    comment: str | None = None
-    final_score: float | None = Field(default=None, ge=0, le=100)
+    comment: Optional[str] = None
+    final_score: Optional[float] = Field(default=None, ge=0, le=100)
 
 
 class EvaluationConfirmResponse(BaseModel):

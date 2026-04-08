@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class WebhookEndpointCreate(BaseModel):
     url: str = Field(..., description='Webhook 回调 URL')
-    description: str | None = Field(None, max_length=256)
-    events: list[str] = Field(default_factory=lambda: ['recommendation.approved'], description='订阅事件类型')
+    description: Optional[str] = Field(None, max_length=256)
+    events: List[str] = Field(default_factory=lambda: ['recommendation.approved'], description='订阅事件类型')
 
 
 class WebhookEndpointRead(BaseModel):
@@ -17,8 +18,8 @@ class WebhookEndpointRead(BaseModel):
     id: str
     url: str
     is_active: bool
-    description: str | None
-    events: list[str]
+    description: Optional[str]
+    events: List[str]
     created_by: str
     created_at: datetime
     updated_at: datetime
@@ -31,9 +32,9 @@ class WebhookDeliveryLogRead(BaseModel):
     webhook_id: str
     event_type: str
     payload: dict
-    response_status: int | None
-    response_body: str | None
+    response_status: Optional[int]
+    response_body: Optional[str]
     attempt: int
     success: bool
-    error_message: str | None
+    error_message: Optional[str]
     created_at: datetime

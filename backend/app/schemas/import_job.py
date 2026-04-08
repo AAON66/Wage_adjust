@@ -1,6 +1,7 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
+from typing import List
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -20,7 +21,7 @@ class ImportJobRead(BaseModel):
 
 
 class ImportJobListResponse(BaseModel):
-    items: list[ImportJobRead]
+    items: List[ImportJobRead]
     total: int
 
 
@@ -35,8 +36,8 @@ class ImportJobDeleteResponse(BaseModel):
 
 
 class BulkImportJobDeleteRequest(BaseModel):
-    job_ids: list[str] = Field(min_length=1, max_length=100)
+    job_ids: List[str] = Field(min_length=1, max_length=100)
 
 
 class BulkImportJobDeleteResponse(BaseModel):
-    deleted_job_ids: list[str]
+    deleted_job_ids: List[str]

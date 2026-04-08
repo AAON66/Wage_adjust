@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,8 +29,8 @@ class SharingRequestRead(BaseModel):
     original_submission_id: str
     status: str
     proposed_pct: float
-    final_pct: float | None = None
-    resolved_at: datetime | None = None
+    final_pct: Optional[float] = None
+    resolved_at: Optional[datetime] = None
     created_at: datetime
     # Denormalized display fields (populated by API layer)
     requester_name: str = ''
@@ -39,7 +40,7 @@ class SharingRequestRead(BaseModel):
 
 
 class SharingRequestListResponse(BaseModel):
-    items: list[SharingRequestRead]
+    items: List[SharingRequestRead]
     total: int
 
 

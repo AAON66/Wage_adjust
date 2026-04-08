@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -13,12 +14,12 @@ class AttendanceRecordRead(BaseModel):
     employee_id: str
     employee_no: str
     period: str
-    attendance_rate: float | None
-    absence_days: float | None
-    overtime_hours: float | None
-    late_count: int | None
-    early_leave_count: int | None
-    leave_days: float | None
+    attendance_rate: Optional[float]
+    absence_days: Optional[float]
+    overtime_hours: Optional[float]
+    late_count: Optional[int]
+    early_leave_count: Optional[int]
+    leave_days: Optional[float]
     data_as_of: datetime
     synced_at: datetime
 
@@ -28,10 +29,10 @@ class AttendanceSummaryRead(BaseModel):
     employee_id: str
     employee_no: str
     period: str
-    attendance_rate: float | None
-    absence_days: float | None
-    overtime_hours: float | None
-    late_count: int | None
-    early_leave_count: int | None
-    leave_days: float | None
+    attendance_rate: Optional[float]
+    absence_days: Optional[float]
+    overtime_hours: Optional[float]
+    late_count: Optional[int]
+    early_leave_count: Optional[int]
+    leave_days: Optional[float]
     data_as_of: datetime

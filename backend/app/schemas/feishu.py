@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -17,7 +18,7 @@ class FeishuConfigCreate(BaseModel):
     app_secret: str
     bitable_app_token: str
     bitable_table_id: str
-    field_mapping: list[FieldMappingItem]
+    field_mapping: List[FieldMappingItem]
     sync_hour: int = 6
     sync_minute: int = 0
     sync_timezone: str = 'Asia/Shanghai'
@@ -25,14 +26,14 @@ class FeishuConfigCreate(BaseModel):
 
 class FeishuConfigUpdate(BaseModel):
     """更新飞书配置请求。app_secret 为 None 或空字符串表示保留原值。"""
-    app_id: str | None = None
-    app_secret: str | None = None
-    bitable_app_token: str | None = None
-    bitable_table_id: str | None = None
-    field_mapping: list[FieldMappingItem] | None = None
-    sync_hour: int | None = None
-    sync_minute: int | None = None
-    sync_timezone: str | None = None
+    app_id: Optional[str] = None
+    app_secret: Optional[str] = None
+    bitable_app_token: Optional[str] = None
+    bitable_table_id: Optional[str] = None
+    field_mapping: Optional[List[FieldMappingItem]] = None
+    sync_hour: Optional[int] = None
+    sync_minute: Optional[int] = None
+    sync_timezone: Optional[str] = None
 
 
 class FeishuConfigRead(BaseModel):
@@ -44,7 +45,7 @@ class FeishuConfigRead(BaseModel):
     app_secret_masked: str
     bitable_app_token: str
     bitable_table_id: str
-    field_mapping: list[FieldMappingItem]
+    field_mapping: List[FieldMappingItem]
     sync_hour: int
     sync_minute: int
     sync_timezone: str
@@ -76,11 +77,11 @@ class SyncLogRead(BaseModel):
     skipped_count: int
     unmatched_count: int
     failed_count: int
-    error_message: str | None
-    unmatched_employee_nos: list[str] | None
+    error_message: Optional[str]
+    unmatched_employee_nos: Optional[List[str]]
     started_at: datetime
-    finished_at: datetime | None
-    triggered_by: str | None
+    finished_at: Optional[datetime]
+    triggered_by: Optional[str]
 
 
 class FeishuConfigExistsResponse(BaseModel):

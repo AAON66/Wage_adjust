@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,23 +20,23 @@ class ProjectContributorSummary(BaseModel):
 class ApprovalStepCreate(BaseModel):
     step_name: str = Field(min_length=1, max_length=64)
     approver_id: str
-    comment: str | None = Field(default=None, max_length=2000)
+    comment: Optional[str] = Field(default=None, max_length=2000)
 
 
 class ApprovalSubmitRequest(BaseModel):
     recommendation_id: str
-    steps: list[ApprovalStepCreate] = Field(min_length=1)
+    steps: List[ApprovalStepCreate] = Field(min_length=1)
 
 
 class ApprovalRouteUpdateRequest(BaseModel):
-    steps: list[ApprovalStepCreate] = Field(min_length=1)
+    steps: List[ApprovalStepCreate] = Field(min_length=1)
 
 
 class ApprovalDecisionRequest(BaseModel):
     decision: str = Field(min_length=1, max_length=32)
-    comment: str | None = Field(default=None, max_length=2000)
-    defer_until: datetime | None = None
-    defer_target_score: float | None = Field(default=None, ge=0, le=100)
+    comment: Optional[str] = Field(default=None, max_length=2000)
+    defer_until: Optional[datetime] = None
+    defer_target_score: Optional[float] = Field(default=None, ge=0, le=100)
 
 
 class ApprovalRecordRead(BaseModel):
@@ -61,18 +62,18 @@ class ApprovalRecordRead(BaseModel):
     step_order: int
     is_current_step: bool = False
     decision: str
-    comment: str | None = None
-    decided_at: datetime | None = None
+    comment: Optional[str] = None
+    decided_at: Optional[datetime] = None
     created_at: datetime
-    defer_until: datetime | None = None
-    defer_target_score: float | None = None
-    defer_reason: str | None = None
-    dimension_scores: list[DimensionScoreRead] = []
-    project_contributors: list[ProjectContributorSummary] = []
+    defer_until: Optional[datetime] = None
+    defer_target_score: Optional[float] = None
+    defer_reason: Optional[str] = None
+    dimension_scores: List[DimensionScoreRead] = []
+    project_contributors: List[ProjectContributorSummary] = []
 
 
 class ApprovalListResponse(BaseModel):
-    items: list[ApprovalRecordRead]
+    items: List[ApprovalRecordRead]
     total: int
 
 
@@ -89,17 +90,17 @@ class ApprovalCandidateRead(BaseModel):
     recommended_salary: Decimal
     final_adjustment_ratio: float
     recommendation_status: str
-    route_preview: list[str] = []
-    route_error: str | None = None
+    route_preview: List[str] = []
+    route_error: Optional[str] = None
     can_edit_route: bool = False
-    route_edit_error: str | None = None
-    defer_until: datetime | None = None
-    defer_target_score: float | None = None
-    defer_reason: str | None = None
+    route_edit_error: Optional[str] = None
+    defer_until: Optional[datetime] = None
+    defer_target_score: Optional[float] = None
+    defer_reason: Optional[str] = None
 
 
 class ApprovalCandidateListResponse(BaseModel):
-    items: list[ApprovalCandidateRead]
+    items: List[ApprovalCandidateRead]
     total: int
 
 
@@ -108,9 +109,9 @@ class ApprovalStatusResponse(BaseModel):
     recommendation_id: str
     decision: str
     recommendation_status: str
-    defer_until: datetime | None = None
-    defer_target_score: float | None = None
-    defer_reason: str | None = None
+    defer_until: Optional[datetime] = None
+    defer_target_score: Optional[float] = None
+    defer_reason: Optional[str] = None
 
 
 class CalibrationQueueItem(BaseModel):
@@ -130,6 +131,6 @@ class CalibrationQueueItem(BaseModel):
 
 
 class CalibrationQueueResponse(BaseModel):
-    items: list[CalibrationQueueItem]
+    items: List[CalibrationQueueItem]
     total: int
 

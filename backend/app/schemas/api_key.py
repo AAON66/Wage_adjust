@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -8,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class ApiKeyCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=128, description='Key 名称')
     rate_limit: int = Field(1000, ge=1, le=100000, description='每小时请求上限')
-    expires_at: datetime | None = Field(None, description='可选过期时间')
+    expires_at: Optional[datetime] = Field(None, description='可选过期时间')
 
 
 class ApiKeyRead(BaseModel):
@@ -19,9 +20,9 @@ class ApiKeyRead(BaseModel):
     key_prefix: str
     is_active: bool
     rate_limit: int
-    expires_at: datetime | None
-    last_used_at: datetime | None
-    last_used_ip: str | None
+    expires_at: Optional[datetime]
+    last_used_at: Optional[datetime]
+    last_used_ip: Optional[str]
     created_at: datetime
     updated_at: datetime
     created_by: str

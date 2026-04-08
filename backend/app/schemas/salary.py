@@ -1,7 +1,8 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -19,7 +20,7 @@ class SalaryRecommendationRead(BaseModel):
     final_adjustment_ratio: float
     status: str
     created_at: datetime
-    explanation: str | None = None
+    explanation: Optional[str] = None
 
 
 class SalaryRecommendationAdminRead(BaseModel):
@@ -37,7 +38,7 @@ class SalaryRecommendationAdminRead(BaseModel):
     final_adjustment_ratio: float
     status: str
     created_at: datetime
-    explanation: str | None = None
+    explanation: Optional[str] = None
 
 
 class SalaryRecommendationEmployeeRead(BaseModel):
@@ -53,7 +54,7 @@ class SalaryRecommendationEmployeeRead(BaseModel):
     final_adjustment_ratio: float
     status: str
     created_at: datetime
-    explanation: str | None = None
+    explanation: Optional[str] = None
 
 
 class SalaryHistoryItemRead(BaseModel):
@@ -75,7 +76,7 @@ class SalaryHistoryItemRead(BaseModel):
 
 
 class SalaryHistoryResponse(BaseModel):
-    items: list[SalaryHistoryItemRead]
+    items: List[SalaryHistoryItemRead]
     total: int
 
 
@@ -85,14 +86,14 @@ class SalaryRecommendRequest(BaseModel):
 
 class SalaryRecommendationUpdateRequest(BaseModel):
     final_adjustment_ratio: float = Field(ge=0, le=1)
-    status: str | None = None
+    status: Optional[str] = None
 
 
 class SalarySimulationRequest(BaseModel):
     cycle_id: str
-    department: str | None = None
-    job_family: str | None = None
-    budget_amount: Decimal | None = None
+    department: Optional[str] = None
+    job_family: Optional[str] = None
+    budget_amount: Optional[Decimal] = None
 
 
 class SalarySimulationItem(BaseModel):
@@ -112,7 +113,7 @@ class SalarySimulationResponse(BaseModel):
     budget_amount: Decimal
     total_recommended_amount: Decimal
     over_budget: bool
-    items: list[SalarySimulationItem]
+    items: List[SalarySimulationItem]
 
 
 class SalaryLockResponse(BaseModel):
