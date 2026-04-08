@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Boolean, ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,7 +15,7 @@ class WebhookEndpoint(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base)
     url: Mapped[str] = mapped_column(Text, nullable=False)
     secret: Mapped[str] = mapped_column(String(128), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    description: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey('users.id'), nullable=False)
     events: Mapped[dict] = mapped_column(JSON, nullable=False, default=list)
 

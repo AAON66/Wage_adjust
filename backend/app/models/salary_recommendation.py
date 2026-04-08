@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 from decimal import Decimal
 
@@ -21,10 +23,10 @@ class SalaryRecommendation(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     certification_bonus: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     final_adjustment_ratio: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="draft", index=True)
-    explanation: Mapped[str | None] = mapped_column(Text, nullable=True)
-    defer_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    defer_target_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    defer_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    defer_until: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    defer_target_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    defer_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     evaluation = relationship("AIEvaluation", back_populates="salary_recommendation")
     approval_records = relationship("ApprovalRecord", back_populates="recommendation")

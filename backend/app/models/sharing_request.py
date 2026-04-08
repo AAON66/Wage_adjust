@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, String, UniqueConstraint
@@ -31,5 +33,5 @@ class SharingRequest(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     )
     status: Mapped[str] = mapped_column(String(32), nullable=False, default='pending')
     proposed_pct: Mapped[float] = mapped_column(Float, nullable=False, default=50.0)
-    final_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
-    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    final_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)

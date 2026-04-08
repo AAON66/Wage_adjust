@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint
@@ -15,10 +17,10 @@ class EmployeeSubmission(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
 
     employee_id: Mapped[str] = mapped_column(ForeignKey("employees.id"), nullable=False, index=True)
     cycle_id: Mapped[str] = mapped_column(ForeignKey("evaluation_cycles.id"), nullable=False, index=True)
-    self_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    manager_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    self_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    manager_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="collecting", index=True)
-    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    submitted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     employee = relationship("Employee", back_populates="submissions")
     cycle = relationship("EvaluationCycle", back_populates="submissions")

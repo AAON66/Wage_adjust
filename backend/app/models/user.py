@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,10 +16,10 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    id_card_no: Mapped[str | None] = mapped_column(EncryptedString(256), nullable=True, unique=True, index=True)
+    id_card_no: Mapped[Optional[str]] = mapped_column(EncryptedString(256), nullable=True, unique=True, index=True)
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default='0')
     token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default='0')
-    employee_id: Mapped[str | None] = mapped_column(ForeignKey('employees.id'), nullable=True, unique=True, index=True)
+    employee_id: Mapped[Optional[str]] = mapped_column(ForeignKey('employees.id'), nullable=True, unique=True, index=True)
 
     employee = relationship('Employee', back_populates='bound_user', foreign_keys=[employee_id])
     approval_records = relationship('ApprovalRecord', back_populates='approver')

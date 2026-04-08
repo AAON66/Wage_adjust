@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from typing import List, Optional
+
 from sqlalchemy import ForeignKey, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -15,10 +17,10 @@ class EmployeeHandbook(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base
     file_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     storage_key: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
     parse_status: Mapped[str] = mapped_column(String(32), nullable=False, default='pending', index=True)
-    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
-    key_points_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
-    tags_json: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
-    uploaded_by_user_id: Mapped[str | None] = mapped_column(ForeignKey('users.id'), nullable=True, index=True)
+    summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    key_points_json: Mapped[List[str]] = mapped_column(JSON, nullable=False, default=list)
+    tags_json: Mapped[List[str]] = mapped_column(JSON, nullable=False, default=list)
+    uploaded_by_user_id: Mapped[Optional[str]] = mapped_column(ForeignKey('users.id'), nullable=True, index=True)
 
     uploaded_by = relationship('User', back_populates='uploaded_handbooks')
 

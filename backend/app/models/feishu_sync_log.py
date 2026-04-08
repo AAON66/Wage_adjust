@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, Integer, String, Text
@@ -22,8 +24,8 @@ class FeishuSyncLog(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     skipped_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     unmatched_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
-    unmatched_employee_nos: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    unmatched_employee_nos: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    triggered_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    finished_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    triggered_by: Mapped[Optional[str]] = mapped_column(String(36), nullable=True)

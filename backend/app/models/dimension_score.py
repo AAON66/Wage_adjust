@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Float, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +22,6 @@ class DimensionScore(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     weighted_score: Mapped[float] = mapped_column(Float, nullable=False)
     ai_rationale: Mapped[str] = mapped_column(Text, nullable=False, default='')
     rationale: Mapped[str] = mapped_column(Text, nullable=False)
-    prompt_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    prompt_hash: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     evaluation = relationship("AIEvaluation", back_populates="dimension_scores")

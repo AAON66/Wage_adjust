@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
@@ -24,8 +26,8 @@ class ApprovalRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     step_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1, index=True)
     generation: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     decision: Mapped[str] = mapped_column(String(32), nullable=False, default="pending", index=True)
-    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    decided_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     recommendation = relationship("SalaryRecommendation", back_populates="approval_records")
     approver = relationship("User", back_populates="approval_records")

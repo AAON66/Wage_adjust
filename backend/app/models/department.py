@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Column, ForeignKey, String, Table, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -18,7 +20,7 @@ class Department(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     __tablename__ = 'departments'
 
     name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default='active', index=True)
 
     users = relationship('User', secondary=user_department_links, back_populates='departments')

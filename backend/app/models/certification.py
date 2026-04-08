@@ -1,5 +1,7 @@
 ﻿from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 
 from sqlalchemy import DateTime, Float, ForeignKey, String, UniqueConstraint
@@ -20,6 +22,6 @@ class Certification(UUIDPrimaryKeyMixin, Base):
     certification_stage: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     bonus_rate: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
     employee = relationship("Employee", back_populates="certifications")

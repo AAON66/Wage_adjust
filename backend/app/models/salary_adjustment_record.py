@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from datetime import date
 from decimal import Decimal
 
@@ -26,7 +28,7 @@ class SalaryAdjustmentRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin
     adjustment_type: Mapped[str] = mapped_column(
         String(32), nullable=False, comment='probation/annual/special',
     )
-    amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    amount: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
     source: Mapped[str] = mapped_column(
         String(32), nullable=False, default='manual',
     )

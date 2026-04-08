@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from datetime import date, datetime
 
 from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
@@ -37,24 +39,24 @@ class EligibilityOverride(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, B
         String(32), nullable=False, default='pending_hrbp',
     )
     year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
-    reference_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    reference_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
     # HRBP step
-    hrbp_approver_id: Mapped[str | None] = mapped_column(
+    hrbp_approver_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey('users.id'), nullable=True,
     )
-    hrbp_decision: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    hrbp_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    hrbp_decided_at: Mapped[datetime | None] = mapped_column(
+    hrbp_decision: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    hrbp_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    hrbp_decided_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True,
     )
 
     # Admin step
-    admin_approver_id: Mapped[str | None] = mapped_column(
+    admin_approver_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey('users.id'), nullable=True,
     )
-    admin_decision: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    admin_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
-    admin_decided_at: Mapped[datetime | None] = mapped_column(
+    admin_decision: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    admin_comment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    admin_decided_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True,
     )

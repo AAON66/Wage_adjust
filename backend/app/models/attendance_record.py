@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from datetime import datetime
 
 from sqlalchemy import BigInteger, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint
@@ -23,14 +25,14 @@ class AttendanceRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base
     )
     employee_no: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     period: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    attendance_rate: Mapped[float | None] = mapped_column(Float, nullable=True)
-    absence_days: Mapped[float | None] = mapped_column(Float, nullable=True)
-    overtime_hours: Mapped[float | None] = mapped_column(Float, nullable=True)
-    late_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    early_leave_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    leave_days: Mapped[float | None] = mapped_column(Float, nullable=True)
-    non_statutory_leave_days: Mapped[float | None] = mapped_column(Float, nullable=True)
-    feishu_record_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    source_modified_at: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    attendance_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    absence_days: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    overtime_hours: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    late_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    early_leave_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    leave_days: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    non_statutory_leave_days: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    feishu_record_id: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    source_modified_at: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     data_as_of: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     synced_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
