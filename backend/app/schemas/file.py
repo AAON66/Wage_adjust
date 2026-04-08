@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -40,12 +40,12 @@ class UploadedFileRead(BaseModel):
     parse_status: str
     content_hash: str = ''
     owner_contribution_pct: float = 100.0
-    contributors: list[ContributorRead] = []
+    contributors: List[ContributorRead] = []
     created_at: datetime
 
 
 class UploadedFileListResponse(BaseModel):
-    items: list[UploadedFileRead]
+    items: List[UploadedFileRead]
     total: int
 
 
@@ -66,12 +66,12 @@ class EvidenceRead(BaseModel):
     title: str
     content: str
     confidence_score: float
-    metadata_json: dict[str, Any]
+    metadata_json: Dict[str, Any]
     created_at: datetime
 
 
 class EvidenceListResponse(BaseModel):
-    items: list[EvidenceRead]
+    items: List[EvidenceRead]
     total: int
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -18,7 +18,7 @@ class FeishuConfigCreate(BaseModel):
     app_secret: str
     bitable_app_token: str
     bitable_table_id: str
-    field_mapping: list[FieldMappingItem]
+    field_mapping: List[FieldMappingItem]
     sync_hour: int = 6
     sync_minute: int = 0
     sync_timezone: str = 'Asia/Shanghai'
@@ -30,7 +30,7 @@ class FeishuConfigUpdate(BaseModel):
     app_secret: Optional[str] = None
     bitable_app_token: Optional[str] = None
     bitable_table_id: Optional[str] = None
-    field_mapping: Optional[list[FieldMappingItem]] = None
+    field_mapping: Optional[List[FieldMappingItem]] = None
     sync_hour: Optional[int] = None
     sync_minute: Optional[int] = None
     sync_timezone: Optional[str] = None
@@ -45,7 +45,7 @@ class FeishuConfigRead(BaseModel):
     app_secret_masked: str
     bitable_app_token: str
     bitable_table_id: str
-    field_mapping: list[FieldMappingItem]
+    field_mapping: List[FieldMappingItem]
     sync_hour: int
     sync_minute: int
     sync_timezone: str
@@ -78,7 +78,7 @@ class SyncLogRead(BaseModel):
     unmatched_count: int
     failed_count: int
     error_message: Optional[str]
-    unmatched_employee_nos: Optional[list[str]]
+    unmatched_employee_nos: Optional[List[str]]
     started_at: datetime
     finished_at: Optional[datetime]
     triggered_by: Optional[str]

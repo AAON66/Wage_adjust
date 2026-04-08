@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -43,8 +43,8 @@ class EvaluationRead(BaseModel):
     needs_manual_review: bool = False
     integrity_flagged: bool = False
     integrity_issue_count: int = 0
-    integrity_examples: list[str] = Field(default_factory=list)
-    dimension_scores: list[DimensionScoreRead] = Field(default_factory=list)
+    integrity_examples: List[str] = Field(default_factory=list)
+    dimension_scores: List[DimensionScoreRead] = Field(default_factory=list)
     used_fallback: bool = False
 
 
@@ -56,7 +56,7 @@ class EvaluationManualReviewRequest(BaseModel):
     ai_level: Optional[str] = None
     overall_score: Optional[float] = Field(default=None, ge=0, le=100)
     explanation: Optional[str] = None
-    dimension_scores: list['DimensionScoreManualUpdate'] = Field(default_factory=list)
+    dimension_scores: List['DimensionScoreManualUpdate'] = Field(default_factory=list)
 
 
 class DimensionScoreManualUpdate(BaseModel):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
@@ -34,7 +34,7 @@ class UserRead(BaseModel):
     employee_id: Optional[str] = None
     employee_name: Optional[str] = None
     employee_no: Optional[str] = None
-    departments: list[DepartmentRead] = []
+    departments: List[DepartmentRead] = []
     created_at: datetime
 
 
@@ -94,15 +94,15 @@ class AuthResponse(BaseModel):
 
 
 class UserAdminCreate(UserCreate):
-    department_ids: list[str] = Field(default_factory=list, max_length=50)
+    department_ids: List[str] = Field(default_factory=list, max_length=50)
 
 
 class UserDepartmentBindingUpdate(BaseModel):
-    department_ids: list[str] = Field(default_factory=list, max_length=50)
+    department_ids: List[str] = Field(default_factory=list, max_length=50)
 
 
 class UserListResponse(BaseModel):
-    items: list[UserRead]
+    items: List[UserRead]
     total: int
     page: int
     page_size: int
@@ -114,22 +114,22 @@ class BulkUserFailure(BaseModel):
 
 
 class BulkUserCreateRequest(BaseModel):
-    items: list[UserAdminCreate] = Field(min_length=1, max_length=100)
+    items: List[UserAdminCreate] = Field(min_length=1, max_length=100)
 
 
 class BulkUserCreateResponse(BaseModel):
-    created: list[UserRead]
-    failed: list[BulkUserFailure]
+    created: List[UserRead]
+    failed: List[BulkUserFailure]
     total_requested: int
 
 
 class BulkUserDeleteRequest(BaseModel):
-    user_ids: list[str] = Field(min_length=1, max_length=100)
+    user_ids: List[str] = Field(min_length=1, max_length=100)
 
 
 class BulkUserDeleteResponse(BaseModel):
-    deleted_user_ids: list[str]
-    failed: list[BulkUserFailure]
+    deleted_user_ids: List[str]
+    failed: List[BulkUserFailure]
     total_requested: int
 
 

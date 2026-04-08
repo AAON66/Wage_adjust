@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -21,7 +21,7 @@ class AuditLogRead(BaseModel):
 
 
 class AuditLogListResponse(BaseModel):
-    items: list[AuditLogRead]
+    items: List[AuditLogRead]
     total: int
     limit: int
     offset: int

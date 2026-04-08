@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Generic, Optional, TypeVar
+from typing import Dict, Generic, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -43,7 +43,7 @@ class PublicLatestEvaluationResponse(BaseModel):
     confidence_score: float
     explanation: str
     evaluated_at: datetime
-    dimension_scores: list[PublicDimensionScoreRead]
+    dimension_scores: List[PublicDimensionScoreRead]
     salary_recommendation: Optional[PublicSalaryRecommendationRead] = None
 
 
@@ -87,7 +87,7 @@ class PublicSalaryResultsResponse(BaseModel):
     cycle_id: str
     cycle_name: str
     cycle_status: str
-    items: list[PublicSalaryResultItem]
+    items: List[PublicSalaryResultItem]
     total: int
 
 
@@ -107,21 +107,21 @@ class PublicApprovalStatusResponse(BaseModel):
     cycle_id: str
     cycle_name: str
     cycle_status: str
-    items: list[PublicApprovalStatusItem]
+    items: List[PublicApprovalStatusItem]
     total: int
 
 
 class PublicDashboardSummaryResponse(BaseModel):
     generated_at: datetime
-    overview: list[dict[str, str]]
-    ai_level_distribution: list[dict[str, int | str]]
-    roi_distribution: list[dict[str, int | str]]
-    heatmap: list[dict[str, int | str]]
+    overview: List[Dict[str, str]]
+    ai_level_distribution: List[Dict[str, Union[int, str]]]
+    roi_distribution: List[Dict[str, Union[int, str]]]
+    heatmap: List[Dict[str, Union[int, str]]]
 
 
 class CursorPaginatedResponse(BaseModel, Generic[T]):
     """游标分页通用 wrapper（per D-05, D-06）"""
-    items: list[T]
+    items: List[T]
     next_cursor: Optional[str] = None
     has_more: bool = False
     total: Optional[int] = None
@@ -144,7 +144,7 @@ class PaginatedSalaryResultsResponse(BaseModel):
     cycle_id: str
     cycle_name: str
     cycle_status: str
-    items: list[PublicSalaryResultItem]
+    items: List[PublicSalaryResultItem]
     next_cursor: Optional[str] = Field(None, description='Opaque cursor for next page')
     has_more: bool = Field(False, description='Whether more pages exist')
     total: Optional[int] = Field(None, description='Item count in this page (backward compat)')

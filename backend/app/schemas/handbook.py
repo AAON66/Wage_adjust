@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -16,8 +16,8 @@ class EmployeeHandbookRead(BaseModel):
     storage_key: str
     parse_status: str
     summary: Optional[str] = None
-    key_points_json: list[str]
-    tags_json: list[str]
+    key_points_json: List[str]
+    tags_json: List[str]
     uploaded_by_user_id: Optional[str] = None
     uploaded_by_email: Optional[str] = None
     created_at: datetime
@@ -25,7 +25,7 @@ class EmployeeHandbookRead(BaseModel):
 
 
 class EmployeeHandbookListResponse(BaseModel):
-    items: list[EmployeeHandbookRead]
+    items: List[EmployeeHandbookRead]
     total: int
 
 

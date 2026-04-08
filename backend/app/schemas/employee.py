@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -45,7 +45,7 @@ class EmployeeRead(EmployeeBase):
 
 
 class EmployeeListResponse(BaseModel):
-    items: list[EmployeeRead]
+    items: List[EmployeeRead]
     total: int
     page: int
     page_size: int

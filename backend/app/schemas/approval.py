@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,11 +25,11 @@ class ApprovalStepCreate(BaseModel):
 
 class ApprovalSubmitRequest(BaseModel):
     recommendation_id: str
-    steps: list[ApprovalStepCreate] = Field(min_length=1)
+    steps: List[ApprovalStepCreate] = Field(min_length=1)
 
 
 class ApprovalRouteUpdateRequest(BaseModel):
-    steps: list[ApprovalStepCreate] = Field(min_length=1)
+    steps: List[ApprovalStepCreate] = Field(min_length=1)
 
 
 class ApprovalDecisionRequest(BaseModel):
@@ -68,12 +68,12 @@ class ApprovalRecordRead(BaseModel):
     defer_until: Optional[datetime] = None
     defer_target_score: Optional[float] = None
     defer_reason: Optional[str] = None
-    dimension_scores: list[DimensionScoreRead] = []
-    project_contributors: list[ProjectContributorSummary] = []
+    dimension_scores: List[DimensionScoreRead] = []
+    project_contributors: List[ProjectContributorSummary] = []
 
 
 class ApprovalListResponse(BaseModel):
-    items: list[ApprovalRecordRead]
+    items: List[ApprovalRecordRead]
     total: int
 
 
@@ -90,7 +90,7 @@ class ApprovalCandidateRead(BaseModel):
     recommended_salary: Decimal
     final_adjustment_ratio: float
     recommendation_status: str
-    route_preview: list[str] = []
+    route_preview: List[str] = []
     route_error: Optional[str] = None
     can_edit_route: bool = False
     route_edit_error: Optional[str] = None
@@ -100,7 +100,7 @@ class ApprovalCandidateRead(BaseModel):
 
 
 class ApprovalCandidateListResponse(BaseModel):
-    items: list[ApprovalCandidateRead]
+    items: List[ApprovalCandidateRead]
     total: int
 
 
@@ -131,6 +131,6 @@ class CalibrationQueueItem(BaseModel):
 
 
 class CalibrationQueueResponse(BaseModel):
-    items: list[CalibrationQueueItem]
+    items: List[CalibrationQueueItem]
     total: int
 

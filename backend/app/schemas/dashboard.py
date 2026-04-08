@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -21,7 +21,7 @@ class CycleSummaryRead(BaseModel):
 
 
 class DashboardOverviewResponse(BaseModel):
-    items: list[OverviewMetricRead]
+    items: List[OverviewMetricRead]
 
 
 class DistributionItemRead(BaseModel):
@@ -31,7 +31,7 @@ class DistributionItemRead(BaseModel):
 
 
 class DistributionResponse(BaseModel):
-    items: list[DistributionItemRead]
+    items: List[DistributionItemRead]
     total: int
 
 
@@ -42,7 +42,7 @@ class HeatmapCellRead(BaseModel):
 
 
 class HeatmapResponse(BaseModel):
-    items: list[HeatmapCellRead]
+    items: List[HeatmapCellRead]
     total: int
 
 
@@ -79,17 +79,17 @@ class KpiSummaryResponse(BaseModel):
     total_employees: int
     evaluated_employees: int
     avg_adjustment_ratio: float
-    level_summary: list[DistributionItemRead]
+    level_summary: List[DistributionItemRead]
 
 
 class ApprovalPipelineResponse(BaseModel):
-    items: list[DistributionItemRead]
+    items: List[DistributionItemRead]
     total: int
 
 
 class DepartmentDrilldownResponse(BaseModel):
     department: str
-    level_distribution: list[DistributionItemRead]
+    level_distribution: List[DistributionItemRead]
     avg_adjustment_ratio: float
     employee_count: int
 
@@ -100,6 +100,6 @@ class DashboardSnapshotResponse(BaseModel):
     ai_level_distribution: DistributionResponse
     roi_distribution: DistributionResponse
     heatmap: HeatmapResponse
-    department_insights: list[DepartmentInsightRead]
-    top_talents: list[TalentSpotlightRead]
-    action_items: list[ActionItemRead]
+    department_insights: List[DepartmentInsightRead]
+    top_talents: List[TalentSpotlightRead]
+    action_items: List[ActionItemRead]

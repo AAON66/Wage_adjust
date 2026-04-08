@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -26,5 +26,5 @@ class SubmissionRead(BaseModel):
 
 
 class SubmissionListResponse(BaseModel):
-    items: list[SubmissionRead]
+    items: List[SubmissionRead]
     total: int

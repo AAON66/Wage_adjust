@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -40,7 +40,7 @@ class SharingRequestRead(BaseModel):
 
 
 class SharingRequestListResponse(BaseModel):
-    items: list[SharingRequestRead]
+    items: List[SharingRequestRead]
     total: int
 
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -28,7 +28,7 @@ class EligibilityResultSchema(BaseModel):
     """
 
     overall_status: Literal['eligible', 'ineligible', 'pending']
-    rules: list[RuleResultSchema]
+    rules: List[RuleResultSchema]
 
 
 class EligibilityBatchItemSchema(BaseModel):
@@ -43,13 +43,13 @@ class EligibilityBatchItemSchema(BaseModel):
     job_family: str
     job_level: str
     overall_status: str
-    rules: list[RuleResultSchema]
+    rules: List[RuleResultSchema]
 
 
 class EligibilityBatchResponse(BaseModel):
     """Paginated batch eligibility response."""
 
-    items: list[EligibilityBatchItemSchema]
+    items: List[EligibilityBatchItemSchema]
     total: int
     page: int
     page_size: int
@@ -59,7 +59,7 @@ class OverrideRequestCreate(BaseModel):
     """Request body for creating an eligibility override."""
 
     employee_id: str
-    override_rules: list[str]
+    override_rules: List[str]
     reason: str
     year: Optional[int] = None
     reference_date: Optional[date] = None
@@ -76,7 +76,7 @@ class OverrideRequestRead(BaseModel):
     employee_name: Optional[str] = None
     requester_id: str
     requester_name: Optional[str] = None
-    override_rules: list[str]
+    override_rules: List[str]
     reason: str
     status: str
     year: int
@@ -103,7 +103,7 @@ class OverrideDecisionPayload(BaseModel):
 class OverrideListResponse(BaseModel):
     """Paginated list of overrides."""
 
-    items: list[OverrideRequestRead]
+    items: List[OverrideRequestRead]
     total: int
     page: int
     page_size: int

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -76,7 +76,7 @@ class SalaryHistoryItemRead(BaseModel):
 
 
 class SalaryHistoryResponse(BaseModel):
-    items: list[SalaryHistoryItemRead]
+    items: List[SalaryHistoryItemRead]
     total: int
 
 
@@ -113,7 +113,7 @@ class SalarySimulationResponse(BaseModel):
     budget_amount: Decimal
     total_recommended_amount: Decimal
     over_budget: bool
-    items: list[SalarySimulationItem]
+    items: List[SalarySimulationItem]
 
 
 class SalaryLockResponse(BaseModel):
