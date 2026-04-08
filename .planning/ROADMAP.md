@@ -76,11 +76,14 @@ Plans:
 **Depends on**: Phase 18
 **Requirements**: ASYNC-01, ASYNC-04
 **Success Criteria** (what must be TRUE):
-  1. `celery -A backend.app.tasks worker` 命令可正常启动 worker 进程，无导入错误
+  1. `celery -A backend.app.celery_app worker` 命令可正常启动 worker 进程，无导入错误
   2. 提交一个测试 task 后，worker 日志显示任务被接收并执行完成
   3. `/api/v1/health/celery` 健康检查端点返回 worker 在线状态
   4. docker-compose.yml 中包含 celery-worker 服务定义，启动后 worker 自动连接 Redis
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 19-01-PLAN.md — Celery app 实例 + tasks 目录 + 测试 task + celery 升级
+- [ ] 19-02-PLAN.md — 健康检查端点 + docker-compose 服务编排
 
 ### Phase 20: 员工所属公司字段
 **Goal**: HR 可为员工设置所属公司，并在档案详情中查看
@@ -165,7 +168,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 16. File Sharing | v1.1 | 2/2 | Complete | 2026-04-06 |
 | 17. Display Simplification | v1.1 | 2/2 | Complete | 2026-04-07 |
 | 18. Python 3.9 兼容 | v1.2 | 3/3 | Complete    | 2026-04-08 |
-| 19. Celery+Redis 基础设施 | v1.2 | 0/0 | Not started | - |
+| 19. Celery+Redis 基础设施 | v1.2 | 0/2 | Planning | - |
 | 20. 员工所属公司 | v1.2 | 0/0 | Not started | - |
 | 21. 共享拒绝清理 | v1.2 | 0/0 | Not started | - |
 | 22. 异步迁移 | v1.2 | 0/0 | Not started | - |
