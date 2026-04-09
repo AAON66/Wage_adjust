@@ -40,6 +40,7 @@ class EmployeeService:
         employee_data['employee_no'] = self._ensure_employee_no_available(payload.employee_no)
         employee_data['department'] = self._resolve_department_name(payload.department)
         employee_data['sub_department'] = payload.sub_department.strip() if payload.sub_department else None
+        employee_data['company'] = payload.company.strip() if payload.company else None
         employee_data['id_card_no'] = identity_service.ensure_employee_id_card_available(payload.id_card_no)
         employee = Employee(**employee_data)
         self.db.add(employee)
@@ -63,6 +64,8 @@ class EmployeeService:
             update_data['department'] = self._resolve_department_name(update_data['department'])
         if 'sub_department' in update_data:
             update_data['sub_department'] = update_data['sub_department'].strip() if update_data['sub_department'] else None
+        if 'company' in update_data:
+            update_data['company'] = update_data['company'].strip() if update_data['company'] else None
         if 'id_card_no' in update_data:
             update_data['id_card_no'] = identity_service.ensure_employee_id_card_available(update_data['id_card_no'], employee_id=employee.id)
 
