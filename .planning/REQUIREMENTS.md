@@ -22,8 +22,8 @@
 
 ## 员工档案 (EMP)
 
-- [ ] **EMP-01**: Employee 模型新增 company（所属公司）字段，支持通过批量导入和管理端手动设置
-- [ ] **EMP-02**: 所属公司仅在员工档案详情页展示，不出现在员工列表等其他页面
+- [x] **EMP-01**: Employee 模型新增 company（所属公司）字段，支持通过批量导入和管理端手动设置
+- [x] **EMP-02**: 所属公司仅在员工档案详情页展示，不出现在员工列表等其他页面
 
 ## 文件共享 (SHARE)
 
@@ -75,8 +75,8 @@
 | ASYNC-02 | Phase 22 | Pending |
 | ASYNC-03 | Phase 22 | Pending |
 | ASYNC-04 | Phase 19 | Complete |
-| EMP-01 | Phase 20 | Pending |
-| EMP-02 | Phase 20 | Pending |
+| EMP-01 | Phase 20 | Complete |
+| EMP-02 | Phase 20 | Complete |
 | SHARE-06 | Phase 21 | Pending |
 | SHARE-07 | Phase 21 | Pending |
 | SHARE-08 | Phase 21 | Pending |
@@ -93,4 +93,4 @@
 
 ---
 *Requirements defined: 2026-04-08*
-*Traceability updated: 2026-04-09 (Phase 19 gap closure verified)*
+*Traceability updated: 2026-04-09 (Phase 20 verified)*
