@@ -95,7 +95,10 @@ Plans:
   2. 通过批量导入 Excel（含 company 列）后，员工记录的 company 字段正确写入
   3. 管理端员工编辑表单可手动设置/修改所属公司
   4. 员工档案详情页显示所属公司信息，但员工列表页不显示该字段
-**Plans**: TBD
+**Plans**: 2 planned
+Plans:
+- [ ] 20-01-PLAN.md — Backend company schema + migration + import semantics + regression coverage
+- [ ] 20-02-PLAN.md — Frontend admin/detail rollout + list-page non-display guardrails
 
 ### Phase 21: 文件共享拒绝清理与状态标签
 **Goal**: 共享申请被拒绝或超时后，申请者的副本文件被自动清理，未审批的共享文件显示待同意标签
@@ -170,7 +173,7 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 17. Display Simplification | v1.1 | 2/2 | Complete | 2026-04-07 |
 | 18. Python 3.9 兼容 | v1.2 | 3/3 | Complete    | 2026-04-08 |
 | 19. Celery+Redis 基础设施 | v1.2 | 3/3 | Complete    | 2026-04-09 |
-| 20. 员工所属公司 | v1.2 | 0/0 | Not started | - |
+| 20. 员工所属公司 | v1.2 | 0/2 | Planned | - |
 | 21. 共享拒绝清理 | v1.2 | 0/0 | Not started | - |
 | 22. 异步迁移 | v1.2 | 0/0 | Not started | - |
 | 23. 资格导入管理 | v1.2 | 0/0 | Not started | - |
