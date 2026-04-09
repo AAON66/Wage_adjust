@@ -286,6 +286,148 @@ def test_reject_request():
     db.close()
 
 
+def test_reject_history_survives_requester_file_delete_and_still_lists():
+    """D-03: deleting requester copy must not erase incoming/outgoing history."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    from backend.app.services.file_service import FileService
+    from backend.app.services.sharing_service import SharingService
+
+    sharing_svc = SharingService(db, _settings)
+    sr = sharing_svc.create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+    db.commit()
+    sharing_svc.reject_request(sr.id, rejector_employee_id=original['emp_id'])
+    db.commit()
+
+    FileService(db, _settings).delete_file(requester['file_id'])
+
+    preserved = db.get(SharingRequest, sr.id)
+    assert preserved is not None
+    assert preserved.requester_file_id is None
+
+    outgoing = sharing_svc.list_requests(employee_id=requester['emp_id'], direction='outgoing')
+    incoming = sharing_svc.list_requests(employee_id=original['emp_id'], direction='incoming')
+    assert [item.id for item in outgoing] == [sr.id]
+    assert [item.id for item in incoming] == [sr.id]
+    db.close()
+
+
+def test_create_request_persists_duplicate_guard_snapshot_fields():
+    """D-07: persisted snapshot fields must survive requester file cleanup."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    from backend.app.services.sharing_service import SharingService
+
+    sr = SharingService(db, _settings).create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+
+    assert sr.requester_content_hash == 'shared_hash_001'
+    assert sr.requester_file_name_snapshot == 'project_0.pptx'
+    db.close()
+
+
+def test_reject_duplicate_check_uses_persisted_hash_after_requester_file_delete():
+    """D-07: rejected requests still block retries after requester copy cleanup."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    from backend.app.services.file_service import FileService
+    from backend.app.services.sharing_service import SharingService
+
+    sharing_svc = SharingService(db, _settings)
+    sr = sharing_svc.create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+    db.commit()
+    sharing_svc.reject_request(sr.id, rejector_employee_id=original['emp_id'])
+    db.commit()
+
+    FileService(db, _settings).delete_file(requester['file_id'])
+
+    with pytest.raises(ValueError, match='已存在共享申请'):
+        sharing_svc.check_can_create_request(
+            submission_id=requester['sub_id'],
+            original_submission_id=original['sub_id'],
+            content_hash_hint='shared_hash_001',
+        )
+    db.close()
+
+
+def test_expired_history_survives_requester_file_delete_and_allows_retry():
+    """D-03/D-08: expired rows remain in history and do not block retries."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    from backend.app.services.file_service import FileService
+    from backend.app.services.sharing_service import SharingService
+
+    sharing_svc = SharingService(db, _settings)
+    sr = sharing_svc.create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+    sr.status = 'expired'
+    sr.resolved_at = utc_now()
+    db.commit()
+
+    FileService(db, _settings).delete_file(requester['file_id'])
+
+    preserved = db.get(SharingRequest, sr.id)
+    assert preserved is not None
+    assert preserved.status == 'expired'
+
+    sharing_svc.check_can_create_request(
+        submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+        content_hash_hint='shared_hash_001',
+    )
+    db.close()
+
+
+def test_revoke_rejection_is_blocked_for_rejected_request():
+    """D-07: rejected is terminal and cannot return to pending."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    from backend.app.services.sharing_service import SharingService
+
+    sharing_svc = SharingService(db, _settings)
+    sr = sharing_svc.create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+    db.commit()
+    sharing_svc.reject_request(sr.id, rejector_employee_id=original['emp_id'])
+    db.commit()
+
+    with pytest.raises(ValueError, match='终态|rejected|撤销'):
+        sharing_svc.revoke_rejection(sr.id, revoker_employee_id=original['emp_id'])
+    db.close()
+
+
 def test_list_requests_marks_stale_as_expired():
     """list_requests() marks stale pending requests as expired before returning (D-17)."""
     _settings, sf = _build_db()
@@ -298,6 +440,8 @@ def test_list_requests_marks_stale_as_expired():
         original_file_id=original['file_id'],
         requester_submission_id=requester['sub_id'],
         original_submission_id=original['sub_id'],
+        requester_content_hash='shared_hash_001',
+        requester_file_name_snapshot='project_0.pptx',
         status='pending',
         created_at=utc_now() - timedelta(hours=73),
     )
@@ -328,6 +472,8 @@ def test_get_pending_count_runs_lazy_expiry():
         original_file_id=original['file_id'],
         requester_submission_id=requester['sub_id'],
         original_submission_id=original['sub_id'],
+        requester_content_hash='shared_hash_001',
+        requester_file_name_snapshot='project_0.pptx',
         status='pending',
         created_at=utc_now() - timedelta(hours=73),
     )

@@ -267,6 +267,8 @@ def _seed_pending_request(context: ApiDatabaseContext, seed: dict) -> str:
             original_file_id=seed['file1_id'],
             requester_submission_id=seed['sub2_id'],
             original_submission_id=seed['sub1_id'],
+            requester_content_hash='api_share_hash',
+            requester_file_name_snapshot='dup.pptx',
             status='pending',
             proposed_pct=50.0,
         )
@@ -294,6 +296,32 @@ def test_approve_returns_403_for_non_owner() -> None:
             json={'final_pct': 50},
         )
         assert response.status_code == 403
+
+
+def test_revoke_rejection_endpoint_is_blocked() -> None:
+    client, context = build_client()
+    with client:
+        token = register_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        seed = seed_two_employees_with_files(context)
+        bind_user_to_employee(context, 'admin@example.com', seed['emp1_id'])
+        request_id = _seed_pending_request(context, seed)
+
+        db = context.session_factory()
+        try:
+            sr = db.get(SharingRequest, request_id)
+            assert sr is not None
+            sr.status = 'rejected'
+            db.add(sr)
+            db.commit()
+        finally:
+            db.close()
+
+        response = client.post(
+            f'/api/v1/sharing-requests/{request_id}/revoke-rejection',
+            headers=headers,
+        )
+        assert response.status_code in {400, 404}
 
 
 def test_reject_returns_403_for_non_owner() -> None:
@@ -331,6 +359,53 @@ def test_approve_succeeds_for_owner() -> None:
         body = response.json()
         assert body['status'] == 'approved'
         assert body['final_pct'] == 60.0
+
+
+def test_sharing_history_uses_snapshot_when_requester_file_missing() -> None:
+    client, context = build_client()
+    with client:
+        token = register_admin(client)
+        headers = {'Authorization': f'Bearer {token}'}
+        seed = seed_two_employees_with_files(context)
+        bind_user_to_employee(context, 'admin@example.com', seed['emp1_id'])
+
+        db = context.session_factory()
+        try:
+            file2 = UploadedFile(
+                submission_id=seed['sub2_id'],
+                file_name='dup_snapshot.pptx',
+                file_type='pptx',
+                storage_key=f'uploads/{uuid4().hex}',
+                content_hash='api_share_hash',
+            )
+            db.add(file2)
+            db.commit()
+            db.refresh(file2)
+
+            sr = SharingRequest(
+                requester_file_id=None,
+                original_file_id=seed['file1_id'],
+                requester_submission_id=seed['sub2_id'],
+                original_submission_id=seed['sub1_id'],
+                requester_content_hash='api_share_hash',
+                requester_file_name_snapshot='dup_snapshot.pptx',
+                status='rejected',
+                proposed_pct=50.0,
+            )
+            db.add(sr)
+            db.commit()
+        finally:
+            db.close()
+
+        response = client.get('/api/v1/sharing-requests?direction=incoming', headers=headers)
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body['total'] == 1
+        item = body['items'][0]
+        assert item['requester_file_id'] is None
+        assert item['requester_name'] == 'Requester User'
+        assert item['file_name'] == 'orig.pptx'
+        assert item['status'] == 'rejected'
 
 
 # ---------------------------------------------------------------------------
