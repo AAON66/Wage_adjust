@@ -17,6 +17,7 @@ from backend.app.api.v1.evaluations import router as evaluations_router
 from backend.app.api.v1.feishu import router as feishu_router
 from backend.app.api.v1.files import router as files_router
 from backend.app.api.v1.handbooks import router as handbooks_router
+from backend.app.api.v1.health import router as health_router
 from backend.app.api.v1.imports import router as imports_router
 from backend.app.api.v1.public import router as public_router
 from backend.app.api.v1.salary import router as salary_router
@@ -50,3 +51,4 @@ api_router.include_router(feishu_router)
 api_router.include_router(attendance_router)
 api_router.include_router(api_keys_router)
 api_router.include_router(webhooks_router)
+api_router.include_router(health_router)
