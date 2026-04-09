@@ -8,7 +8,6 @@ interface SharingRequestCardProps {
   onApprove: (id: string, finalPct: number) => Promise<void>;
   onReject: (id: string) => Promise<void>;
   onRevoke?: (id: string) => Promise<void>;
-  onRevokeRejection?: (id: string) => Promise<void>;
 }
 
 type StatusStyle = {
@@ -38,7 +37,7 @@ function formatDate(iso: string | null): string {
   }
 }
 
-export function SharingRequestCard({ request, direction, onApprove, onReject, onRevoke, onRevokeRejection }: SharingRequestCardProps) {
+export function SharingRequestCard({ request, direction, onApprove, onReject, onRevoke }: SharingRequestCardProps) {
   const [showRatioEditor, setShowRatioEditor] = useState(false);
   const [editPct, setEditPct] = useState<number>(request.proposed_pct);
   const [isBusy, setIsBusy] = useState(false);
@@ -99,19 +98,6 @@ export function SharingRequestCard({ request, direction, onApprove, onReject, on
     }
   }
 
-  async function handleRevokeRejectionClick() {
-    if (!onRevokeRejection) return;
-    // eslint-disable-next-line no-alert
-    const ok = window.confirm('确认撤销拒绝？撤销后申请将恢复为待审批状态，您可以重新审批或拒绝。');
-    if (!ok) return;
-    setIsBusy(true);
-    try {
-      await onRevokeRejection(request.id);
-    } finally {
-      setIsBusy(false);
-    }
-  }
-
   const requesterOrOwner = isIncoming ? request.requester_name : request.original_uploader_name;
   const proposedRatio = `${request.proposed_pct}% : ${100 - request.proposed_pct}%`;
   const finalRatio =
@@ -162,20 +148,6 @@ export function SharingRequestCard({ request, direction, onApprove, onReject, on
               </button>
             ) : request.status === 'approved' && request.cycle_archived ? (
               <span style={{ fontSize: 12.5, color: 'var(--color-steel)' }} title="评估周期已下架，无法撤销审批">
-                周期已下架
-              </span>
-            ) : request.status === 'rejected' && onRevokeRejection && !request.cycle_archived ? (
-              <button
-                className="action-secondary"
-                disabled={isBusy}
-                onClick={handleRevokeRejectionClick}
-                style={{ height: 28, fontSize: 12.5, padding: '0 10px' }}
-                type="button"
-              >
-                撤销拒绝
-              </button>
-            ) : request.status === 'rejected' && request.cycle_archived ? (
-              <span style={{ fontSize: 12.5, color: 'var(--color-steel)' }} title="评估周期已下架，无法撤销拒绝">
                 周期已下架
               </span>
             ) : (

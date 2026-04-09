@@ -57,15 +57,6 @@ export async function revokeSharingApproval(
   return res.data;
 }
 
-export async function revokeSharingRejection(
-  requestId: string,
-): Promise<SharingRequestRecord> {
-  const res = await api.post<SharingRequestRecord>(
-    `/sharing-requests/${requestId}/revoke-rejection`,
-  );
-  return res.data;
-}
-
 export async function getPendingSharingCount(): Promise<number> {
   const res = await api.get<{ count: number }>('/sharing-requests/pending-count');
   return res.data.count;
