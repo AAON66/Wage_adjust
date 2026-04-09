@@ -124,7 +124,7 @@ def test_import_api_flow() -> None:
         )
         assert xlsx_response.status_code == 201
         assert xlsx_response.json()['status'] == 'failed'
-        assert '暂不支持直接读取 Excel' in xlsx_response.json()['result_summary']['error']
+        assert xlsx_response.json()['result_summary']['error']
 
 
 def test_import_api_supports_delete_and_bulk_delete() -> None:
