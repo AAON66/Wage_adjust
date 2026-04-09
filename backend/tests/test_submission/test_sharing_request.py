@@ -17,6 +17,7 @@ from backend.app.core.config import Settings
 from backend.app.core.database import create_db_engine, create_session_factory, init_database
 from backend.app.models import load_model_modules
 from backend.app.models.employee import Employee
+from backend.app.models.evidence import EvidenceItem
 from backend.app.models.evaluation_cycle import EvaluationCycle
 from backend.app.models.project_contributor import ProjectContributor
 from backend.app.models.sharing_request import SharingRequest
@@ -31,6 +32,7 @@ def _build_db():
     database_path = (temp_root / f'sharing-{uuid4().hex}.db').as_posix()
     settings = Settings(
         database_url=f'sqlite+pysqlite:///{database_path}',
+        storage_base_dir=(temp_root / f'sharing-uploads-{uuid4().hex}').as_posix(),
         deepseek_api_key='test_key',
     )
     load_model_modules()
@@ -426,6 +428,106 @@ def test_revoke_rejection_is_blocked_for_rejected_request():
     with pytest.raises(ValueError, match='终态|rejected|撤销'):
         sharing_svc.revoke_rejection(sr.id, revoker_employee_id=original['emp_id'])
     db.close()
+
+
+def test_reject_cleanup_removes_requester_copy_evidence_and_storage_but_keeps_original():
+    """D-01/D-02: reject cleanup deletes only the requester copy and its derived data."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    requester_file = db.get(UploadedFile, requester['file_id'])
+    original_file = db.get(UploadedFile, original['file_id'])
+    assert requester_file is not None
+    assert original_file is not None
+
+    requester_file.storage_key = f'{requester["sub_id"]}/reject-copy.txt'
+    original_file.storage_key = f'{original["sub_id"]}/original-copy.txt'
+    requester_path = Path(_settings.storage_base_dir) / requester_file.storage_key
+    original_path = Path(_settings.storage_base_dir) / original_file.storage_key
+    requester_path.parent.mkdir(parents=True, exist_ok=True)
+    original_path.parent.mkdir(parents=True, exist_ok=True)
+    requester_path.write_text('requester copy', encoding='utf-8')
+    original_path.write_text('original copy', encoding='utf-8')
+
+    evidence = EvidenceItem(
+        submission_id=requester['sub_id'],
+        source_type='file',
+        title='Shared copy evidence',
+        content='evidence',
+        confidence_score=0.9,
+        metadata_json={'file_id': requester['file_id']},
+    )
+    db.add(evidence)
+    db.commit()
+
+    from backend.app.services.sharing_service import SharingService
+
+    sharing_svc = SharingService(db, _settings)
+    sr = sharing_svc.create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+    request_id = sr.id
+    db.commit()
+
+    result = sharing_svc.reject_request(request_id, rejector_employee_id=original['emp_id'])
+
+    assert result.status == 'rejected'
+    assert result.requester_file_id is None
+    assert db.get(UploadedFile, requester['file_id']) is None
+    assert db.get(UploadedFile, original['file_id']) is not None
+    assert not requester_path.exists()
+    assert original_path.exists()
+    remaining_evidence = db.query(EvidenceItem).filter(EvidenceItem.submission_id == requester['sub_id']).all()
+    assert remaining_evidence == []
+    preserved = db.get(SharingRequest, request_id)
+    assert preserved is not None
+    assert preserved.requester_file_id is None
+    db.close()
+
+
+def test_reject_cleanup_rolls_back_when_file_delete_fails(monkeypatch: pytest.MonkeyPatch):
+    """T-21-04: reject cleanup must stay atomic if file deletion fails."""
+    _settings, sf = _build_db()
+    _cycle_id, [requester, original] = _seed(sf)
+
+    db = sf()
+    from backend.app.services.file_service import FileService
+    from backend.app.services.sharing_service import SharingService
+
+    sharing_svc = SharingService(db, _settings)
+    sr = sharing_svc.create_request(
+        requester_file_id=requester['file_id'],
+        original_file_id=original['file_id'],
+        requester_submission_id=requester['sub_id'],
+        original_submission_id=original['sub_id'],
+    )
+    request_id = sr.id
+    requester_file_id = requester['file_id']
+    db.commit()
+
+    def _boom(self, file_id: str) -> str:
+        raise RuntimeError('boom')
+
+    monkeypatch.setattr(FileService, 'delete_file_without_commit', _boom)
+
+    with pytest.raises(RuntimeError, match='boom'):
+        sharing_svc.reject_request(request_id, rejector_employee_id=original['emp_id'])
+    db.rollback()
+    db.close()
+
+    verify_db = sf()
+    try:
+        refreshed = verify_db.get(SharingRequest, request_id)
+        assert refreshed is not None
+        assert refreshed.status == 'pending'
+        assert refreshed.requester_file_id == requester_file_id
+        assert verify_db.get(UploadedFile, requester_file_id) is not None
+    finally:
+        verify_db.close()
 
 
 def test_list_requests_marks_stale_as_expired():
