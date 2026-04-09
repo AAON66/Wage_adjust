@@ -15,10 +15,10 @@
 
 ## 异步任务 (ASYNC)
 
-- [ ] **ASYNC-01**: Celery app 配置完成（升级至 5.5.1），worker 可正常启动并执行 task
+- [x] **ASYNC-01**: Celery app 配置完成（升级至 5.5.1），worker 可正常启动并执行 task
 - [ ] **ASYNC-02**: AI 评估调用（LLM 文本评估 + 视觉评估）迁移到 Celery task，API 返回 task_id 供前端轮询结果
 - [ ] **ASYNC-03**: 批量导入（Excel/飞书）通过 Celery task 后台执行，前端可查看导入进度
-- [ ] **ASYNC-04**: Celery worker 健康检查端点可用，docker-compose 中包含 worker 服务
+- [x] **ASYNC-04**: Celery worker 健康检查端点可用，docker-compose 中包含 worker 服务
 
 ## 员工档案 (EMP)
 

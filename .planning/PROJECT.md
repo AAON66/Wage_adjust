@@ -1,7 +1,7 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active — v1.2 in progress (2026-04-07)
+**Status:** Active — v1.2 in progress (2026-04-09)
 
 ## Current Milestone: v1.2 生产就绪与数据管理完善
 
@@ -73,6 +73,7 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ Multimodal vision evaluation: PPT image extraction + standalone image scoring + structured output — v1.1
 - ✓ File sharing workflow: duplicate warning + sharing request + approve/reject + contribution ratio + 72h timeout — v1.1
 - ✓ Salary display simplification: summary panel, expandable detail, eligibility badge with rule drill-down — v1.1
+- ✓ Celery+Redis async foundation: shared worker DB lifecycle, health endpoint, Docker-backed runtime proof, requirements closure — v1.2 Phase 19
 
 ### Active (Next Milestone)
 
@@ -186,12 +187,12 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 
 **v1.1 shipped 2026-04-07:** 7 phases, 13 plans, 343 commits. Added eligibility engine with 4 business rules, file sharing workflow, multimodal vision evaluation, account binding with JWT invalidation, and simplified salary display with expandable detail panels.
 
-**Current codebase state:** ~30,800 Python LOC + ~20,000 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis declared but not fully activated for async tasks.
+**Current codebase state:** ~30,800 Python LOC + ~20,000 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis foundation is now runtime-verified for worker startup and task execution; business async jobs are still pending migration.
 
 **Known issues / tech debt:**
 - filter-before-paginate for eligibility batch query won't scale beyond ~10k employees — needs server-side cursor pagination
 - Phase 11 nav restructuring code is in the repo but planning artifacts are incomplete (no SUMMARY.md); functionality requires verification
-- Celery task queue is wired but async evaluation jobs are not fully activated in production path
+- Celery task queue foundation is verified, but async evaluation/import jobs are not yet migrated to background execution
 
 ---
 
@@ -213,4 +214,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-07 after v1.2 milestone start*
+*Last updated: 2026-04-09 after Phase 19 completion*
