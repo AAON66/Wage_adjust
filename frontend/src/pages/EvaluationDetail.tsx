@@ -2209,8 +2209,9 @@ export function EvaluationDetailPage() {
             </div>
 
             <div className="px-6 py-6 lg:px-7">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">部门</p><p className="mt-2 text-lg font-semibold text-ink">{employee.department}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">所属公司</p><p className="mt-2 text-lg font-semibold text-ink">{employee.company ?? '未设置'}</p></div>
                 <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">岗位族</p><p className="mt-2 text-lg font-semibold text-ink">{employee.job_family}</p></div>
                 <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">岗位级别</p><p className="mt-2 text-lg font-semibold text-ink">{employee.job_level}</p></div>
                 <label className="surface-subtle px-4 py-4">
@@ -2228,7 +2229,13 @@ export function EvaluationDetailPage() {
                     <div>
                       <p className="text-sm font-semibold text-ink">模块切换</p>
                     </div>
-                  <div className="cursor-help text-xs text-steel" style={{ border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 12px' }} title={activeModuleMeta.helper}>模块说明</div>
+                  <div className="relative" style={{ display: 'inline-block' }}>
+                    <div className="text-steel" style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, cursor: 'help' }}>?</div>
+                    <div className="absolute right-0 top-full mt-1 z-10 hidden text-xs text-steel" style={{ background: 'var(--color-ink)', color: '#fff', borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                      {activeModuleMeta.helper}
+                    </div>
+                    <style>{`.relative:hover > .hidden { display: block !important; }`}</style>
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   {moduleTabs.map((item) => {
