@@ -42,9 +42,9 @@ def test_import_service_imports_employees_and_certifications() -> None:
         seed_departments(db, 'Engineering', 'Product')
         service = ImportService(db)
         employee_csv = '\n'.join([
-            'employee_no,name,id_card_no,department,sub_department,job_family,job_level,status,manager_employee_no',
-            'EMP-1001,Alice Zhang,310101199001010123,Engineering,Backend Platform,Platform,P5,active,',
-            'EMP-1002,Bob Li,310101199001010124,Product,Product Strategy,Product,P4,active,EMP-1001',
+            'employee_no,name,id_card_no,department,sub_department,company,job_family,job_level,status,manager_employee_no',
+            'EMP-1001,Alice Zhang,310101199001010123,Engineering,Backend Platform,Acme Group,Platform,P5,active,',
+            'EMP-1002,Bob Li,310101199001010124,Product,Product Strategy,Beacon Labs,Product,P4,active,EMP-1001',
         ]).encode('utf-8')
         employee_job = service.run_import(import_type='employees', upload=UploadStub('employees.csv', employee_csv))
         assert employee_job.status == 'completed'
@@ -53,6 +53,7 @@ def test_import_service_imports_employees_and_certifications() -> None:
         bob = db.scalar(__import__('sqlalchemy').select(Employee).where(Employee.employee_no == 'EMP-1002'))
         assert bob is not None
         assert bob.manager_id is not None
+        assert bob.company == 'Beacon Labs'
         assert bob.id_card_no == '310101199001010124'
         assert bob.sub_department == 'Product Strategy'
 
@@ -69,6 +70,7 @@ def test_import_service_imports_employees_and_certifications() -> None:
         assert media_type.startswith('text/csv')
         assert '员工工号' in template_bytes.decode('utf-8-sig')
         assert '身份证号' in template_bytes.decode('utf-8-sig')
+        assert '所属公司' in template_bytes.decode('utf-8-sig')
 
         report_name, report_bytes, _ = service.build_export_report(cert_job)
         assert report_name.endswith('_report.csv')
@@ -98,15 +100,80 @@ def test_import_service_supports_gb18030_and_chinese_headers() -> None:
         seed_departments(db, 'Engineering')
         service = ImportService(db)
         employee_csv = '\n'.join([
-            '员工工号,员工姓名,身份证号,所属部门,下属部门,岗位族,岗位级别,在职状态,直属上级工号',
-            'EMP-1801,王小北,310101199001010128,Engineering,后端平台组,平台研发,P5,active,',
+            '员工工号,员工姓名,身份证号,所属部门,下属部门,所属公司,岗位族,岗位级别,在职状态,直属上级工号',
+            'EMP-1801,王小北,310101199001010128,Engineering,后端平台组,华东事业部,平台研发,P5,active,',
         ]).encode('gb18030')
         job = service.run_import(import_type='employees', upload=UploadStub('employees.csv', employee_csv))
         assert job.status == 'completed'
         created = db.scalar(__import__('sqlalchemy').select(Employee).where(Employee.employee_no == 'EMP-1801'))
         assert created is not None
+        assert created.company == '华东事业部'
         assert created.name == '王小北'
         assert created.id_card_no == '310101199001010128'
+    finally:
+        db.close()
+
+
+def test_import_service_company_column_can_clear_or_preserve_existing_value() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        service = ImportService(db)
+        initial_job = service.run_import(
+            import_type='employees',
+            upload=UploadStub(
+                'employees.csv',
+                '\n'.join([
+                    'employee_no,name,id_card_no,department,sub_department,company,job_family,job_level,status,manager_employee_no',
+                    'EMP-1901,Company User,310101199001010131,Engineering,Backend Platform,Legacy Co,Platform,P5,active,',
+                ]).encode('utf-8'),
+            ),
+        )
+        assert initial_job.status == 'completed'
+
+        clear_job = service.run_import(
+            import_type='employees',
+            upload=UploadStub(
+                'employees-clear.csv',
+                '\n'.join([
+                    'employee_no,name,id_card_no,department,sub_department,company,job_family,job_level,status,manager_employee_no',
+                    'EMP-1901,Company User,310101199001010131,Engineering,Backend Platform,   ,Platform,P5,active,',
+                ]).encode('utf-8'),
+            ),
+        )
+        assert clear_job.status == 'completed'
+        employee = db.scalar(__import__('sqlalchemy').select(Employee).where(Employee.employee_no == 'EMP-1901'))
+        assert employee is not None
+        assert employee.company is None
+
+        restore_job = service.run_import(
+            import_type='employees',
+            upload=UploadStub(
+                'employees-restore.csv',
+                '\n'.join([
+                    'employee_no,name,id_card_no,department,sub_department,company,job_family,job_level,status,manager_employee_no',
+                    'EMP-1901,Company User,310101199001010131,Engineering,Backend Platform,  Acme Group  ,Platform,P5,active,',
+                ]).encode('utf-8'),
+            ),
+        )
+        assert restore_job.status == 'completed'
+
+        preserve_job = service.run_import(
+            import_type='employees',
+            upload=UploadStub(
+                'employees-preserve.csv',
+                '\n'.join([
+                    'employee_no,name,id_card_no,department,sub_department,job_family,job_level,status,manager_employee_no',
+                    'EMP-1901,Company User Updated,310101199001010131,Engineering,Backend Platform,Platform,P5,active,',
+                ]).encode('utf-8'),
+            ),
+        )
+        assert preserve_job.status == 'completed'
+        employee = db.scalar(__import__('sqlalchemy').select(Employee).where(Employee.employee_no == 'EMP-1901'))
+        assert employee is not None
+        assert employee.name == 'Company User Updated'
+        assert employee.company == 'Acme Group'
     finally:
         db.close()
 
