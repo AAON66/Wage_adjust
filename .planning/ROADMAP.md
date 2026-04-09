@@ -109,7 +109,10 @@ Plans:
   2. 72h 超时触发的过期处理中，申请者上传的副本文件同样被自动删除
   3. 在文件列表中，尚未审批的共享作品旁边显示"待同意"状态标签
   4. 副本删除后，申请者的文件列表中不再显示该文件
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 21-01-PLAN.md — Backend history-safe cleanup foundation + atomic reject/expire model + file-list trigger contract
+- [ ] 21-02-PLAN.md — Shared FileList pending badge + MyReview cleanup feedback wiring
 
 ### Phase 22: AI 评估与批量导入异步迁移
 **Goal**: AI 评估和批量导入通过 Celery 后台执行，前端可跟踪任务进度

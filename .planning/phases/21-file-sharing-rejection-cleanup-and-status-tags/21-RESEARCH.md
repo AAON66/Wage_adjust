@@ -339,17 +339,17 @@ def delete_submission_evidence_for_file(self, submission_id: str, file_id: str) 
 
 None — all implementation-critical claims above were verified from repository code, planning artifacts, local environment checks, or official docs. [VERIFIED: codebase grep] [CITED: https://sqlite.org/foreignkeys.html] [CITED: https://alembic.sqlalchemy.org/en/latest/ops.html?highlight=operations]
 
-## Open Questions
+## Open Questions (Resolved 2026-04-09)
 
-1. **D-09 feedback should live on which existing requester-facing surface?**
-   - What we know: `MyReview` already has a toast surface, `SharingRequests` already preserves history, and D-10 forbids a new notification center. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
-   - What's unclear: whether the planner should fetch outgoing requests on `MyReview`, extend the file-list response with cleanup notices, or rely on an inline hint plus history-page explanation. [VERIFIED: codebase grep]
-   - Recommendation: lock this in planning before task split, because it changes whether the backend contract grows a notice payload or whether the frontend adds a second data fetch. [VERIFIED: codebase grep]
+1. **(RESOLVED) D-09 feedback lives on `MyReview`'s existing toast/page surface, fed by file-list response notices.**
+   - Decision: `fetchSubmissionFiles()` will return response-level `sharing_cleanup_notices`, and `MyReview` will consume them via the page's existing toast or equivalent existing feedback surface. `SharingRequests` remains the audit/history page, not the primary cleanup-feedback trigger. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
+   - Why: `MyReview` is already a requester-facing page with a usable feedback surface, and D-10 explicitly forbids introducing a new notification center or parallel page flow. This also keeps 72h cleanup feedback aligned with the same `/submissions/{id}/files` surface that now triggers lazy expiry. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
 
-2. **How much immutable request metadata should be snapshotted before deleting the requester file?**
-   - What we know: D-07 requires `content_hash` durability after delete, and current history UI derives `file_name` from live file rows. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
-   - What's unclear: whether Phase 21 should snapshot only `content_hash`, or also `file_name` / display text for audit stability if the original file later changes. [VERIFIED: codebase grep]
-   - Recommendation: treat persisted `content_hash` as mandatory for D-07, and decide in planning whether file-name snapshotting is worth the extra migration surface. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
+2. **(RESOLVED) Snapshot both `requester_content_hash` and `requester_file_name_snapshot` before deleting the requester file.**
+   - Decision: `requester_content_hash` is mandatory for D-07 reject-no-reapply enforcement, and `requester_file_name_snapshot` (or an equivalent immutable display field) is also mandatory so history rows and cleanup notices stay readable after requester-file deletion. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
+   - Why: current history display derives `file_name` from live file rows, which becomes unstable once the requester copy is intentionally deleted. Persisting both fields removes that coupling and gives the backend a durable source for history rendering and requester-facing delete reasons. [VERIFIED: 21-CONTEXT.md] [VERIFIED: codebase grep]
+
+No remaining open questions block planning. [VERIFIED: planning session]
 
 ## Environment Availability
 
