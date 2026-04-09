@@ -4,11 +4,13 @@ import json
 import logging
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings
 from backend.app.dependencies import get_app_settings, get_current_user, get_db
 from backend.app.models.submission import EmployeeSubmission
+from backend.app.models.sharing_request import SharingRequest
 from backend.app.models.uploaded_file import UploadedFile
 from backend.app.models.user import User
 from backend.app.schemas.file import (
@@ -20,6 +22,7 @@ from backend.app.schemas.file import (
     FilePreviewResponse,
     GitHubImportRequest,
     ParseResultResponse,
+    SharingCleanupNoticeRead,
     UploadedFileListResponse,
     UploadedFileRead,
 )
@@ -57,6 +60,57 @@ def ensure_file_access(db: Session, current_user: User, file_id: str):
     if file_record is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='File not found.')
     return file_record
+
+
+def _build_sharing_cleanup_message(status: str, file_name: str) -> str:
+    safe_name = file_name or '该文件'
+    if status == 'rejected':
+        return f'共享申请被拒绝，系统已自动删除副本文件「{safe_name}」。'
+    return f'共享申请已超时，系统已自动删除副本文件「{safe_name}」。'
+
+
+def _serialize_uploaded_files(db: Session, items: list[UploadedFile]) -> list[UploadedFileRead]:
+    file_ids = [item.id for item in items]
+    pending_file_ids = set(db.scalars(
+        select(SharingRequest.requester_file_id)
+        .where(
+            SharingRequest.requester_file_id.in_(file_ids),
+            SharingRequest.status == 'pending',
+        )
+    ).all()) if file_ids else set()
+
+    result: list[UploadedFileRead] = []
+    for item in items:
+        payload = UploadedFileRead.model_validate(item)
+        if item.id in pending_file_ids:
+            payload = payload.model_copy(update={
+                'sharing_status': 'pending',
+                'sharing_status_label': '待同意',
+            })
+        result.append(payload)
+    return result
+
+
+def _list_sharing_cleanup_notices(db: Session, submission_id: str) -> list[SharingCleanupNoticeRead]:
+    requests = list(db.scalars(
+        select(SharingRequest)
+        .where(
+            SharingRequest.requester_submission_id == submission_id,
+            SharingRequest.requester_file_id.is_(None),
+            SharingRequest.status.in_(['rejected', 'expired']),
+        )
+        .order_by(SharingRequest.resolved_at.desc(), SharingRequest.created_at.desc())
+    ).all())
+    return [
+        SharingCleanupNoticeRead(
+            request_id=request.id,
+            status=request.status,
+            file_name=request.requester_file_name_snapshot,
+            message=_build_sharing_cleanup_message(request.status, request.requester_file_name_snapshot),
+            resolved_at=request.resolved_at,
+        )
+        for request in requests
+    ]
 
 
 @router.post('/files/check-duplicate', response_model=CheckDuplicateResponse)
@@ -124,7 +178,7 @@ def upload_submission_files(
             )
         # Pre-check: verify sharing request can be created BEFORE uploading the file.
         # This prevents the file being persisted when create_request would fail (D-15 conflict).
-        sharing_svc = SharingService(db)
+        sharing_svc = SharingService(db, settings)
         try:
             sharing_svc.check_can_create_request(
                 submission_id=submission_id,
@@ -153,9 +207,7 @@ def upload_submission_files(
                 original_submission_id=original_file.submission_id,
             )
             db.commit()
-        return UploadedFileListResponse(
-            items=[UploadedFileRead.model_validate(item) for item in items], total=len(items),
-        )
+        return UploadedFileListResponse(items=_serialize_uploaded_files(db, items), total=len(items))
 
     try:
         items = service.upload_files(submission_id, files, contributors=contributor_list)
@@ -177,7 +229,7 @@ def upload_submission_files(
             ) from exc
         status_code = status.HTTP_404_NOT_FOUND if 'not found' in message.lower() else status.HTTP_400_BAD_REQUEST
         raise HTTPException(status_code=status_code, detail=message) from exc
-    return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in items], total=len(items))
+    return UploadedFileListResponse(items=_serialize_uploaded_files(db, items), total=len(items))
 
 
 @router.post('/submissions/{submission_id}/github-import', response_model=UploadedFileRead, status_code=status.HTTP_201_CREATED)
@@ -214,9 +266,16 @@ def list_submission_files(
     current_user: User = Depends(get_current_user),
 ) -> UploadedFileListResponse:
     ensure_submission_access(db, current_user, submission_id)
+    SharingService(db, settings).expire_and_cleanup_stale_requests(submission_id=submission_id)
     service = FileService(db, settings)
     items = service.list_files(submission_id)
-    return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in items], total=len(items))
+    result = UploadedFileListResponse(
+        items=_serialize_uploaded_files(db, items),
+        total=len(items),
+        sharing_cleanup_notices=_list_sharing_cleanup_notices(db, submission_id),
+    )
+    db.commit()
+    return result
 
 
 @router.put('/files/{file_id}', response_model=UploadedFileRead)
@@ -291,7 +350,7 @@ def parse_all_submission_files(
         updated_files, _ = parse_service.parse_submission_files(files)
     except RequiredLLMError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
-    return UploadedFileListResponse(items=[UploadedFileRead.model_validate(item) for item in updated_files], total=len(updated_files))
+    return UploadedFileListResponse(items=_serialize_uploaded_files(db, updated_files), total=len(updated_files))
 
 
 @router.get('/files/{file_id}/preview', response_model=FilePreviewResponse)

@@ -4,10 +4,13 @@ import base64
 import hashlib
 import json
 from pathlib import Path
+import ssl
 import time
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, unquote, urlparse
 from urllib.request import Request, urlopen
+
+import certifi
 
 from fastapi import UploadFile
 from sqlalchemy import select
@@ -612,7 +615,8 @@ class FileService:
 
     def _download_remote_file_once(self, raw_url: str, *, use_api_json_accept: bool) -> bytes:
         request = self._build_remote_request(raw_url, use_api_json_accept=use_api_json_accept)
-        with urlopen(request, timeout=GITHUB_DOWNLOAD_TIMEOUT_SECONDS) as response:
+        ssl_ctx = ssl.create_default_context(cafile=certifi.where())
+        with urlopen(request, timeout=GITHUB_DOWNLOAD_TIMEOUT_SECONDS, context=ssl_ctx) as response:
             if '/contents/' in urlparse(raw_url).path.lower():
                 return self._read_github_contents_payload(response)
             return self._read_binary_response(response)
@@ -687,6 +691,35 @@ class FileService:
             if item.metadata_json.get('file_id') == file_id:
                 self.db.delete(item)
 
+    def _delete_file_record(self, file_record: UploadedFile) -> str:
+        submission = self.get_submission(file_record.submission_id)
+        has_other_files = self.db.scalar(
+            select(UploadedFile.id)
+            .where(
+                UploadedFile.submission_id == file_record.submission_id,
+                UploadedFile.id != file_record.id,
+            )
+            .limit(1)
+        ) is not None
+
+        if self.storage is not None:
+            self.storage.delete(file_record.storage_key)
+        self.delete_submission_evidence_for_file(file_record.submission_id, file_record.id)
+        self.db.delete(file_record)
+
+        if submission is not None and not has_other_files:
+            submission.status = 'collecting'
+            self.db.add(submission)
+
+        self.db.flush()
+        return file_record.id
+
+    def delete_file_without_commit(self, file_id: str) -> str:
+        file_record = self.get_file(file_id)
+        if file_record is None:
+            raise ValueError('File not found.')
+        return self._delete_file_record(file_record)
+
     def replace_file(self, file_id: str, upload: UploadFile) -> UploadedFile:
         file_record = self.get_file(file_id)
         if file_record is None:
@@ -732,24 +765,9 @@ class FileService:
         return file_record
 
     def delete_file(self, file_id: str) -> str:
-        file_record = self.get_file(file_id)
-        if file_record is None:
-            raise ValueError('File not found.')
-
-        submission = self.get_submission(file_record.submission_id)
-        if self.storage is not None:
-            self.storage.delete(file_record.storage_key)
-        self.delete_submission_evidence_for_file(file_record.submission_id, file_record.id)
-        self.db.delete(file_record)
-
-        if submission is not None:
-            remaining_files = [item for item in submission.uploaded_files if item.id != file_id]
-            if not remaining_files:
-                submission.status = 'collecting'
-                self.db.add(submission)
-
+        deleted_file_id = self.delete_file_without_commit(file_id)
         self.db.commit()
-        return file_id
+        return deleted_file_id
 
     def mark_file_status(self, file_record: UploadedFile, status: str) -> UploadedFile:
         file_record.parse_status = status

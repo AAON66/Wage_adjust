@@ -289,12 +289,11 @@ def test_reject_request():
 
 
 def test_reject_history_survives_requester_file_delete_and_still_lists():
-    """D-03: deleting requester copy must not erase incoming/outgoing history."""
+    """D-03: reject cleanup removes the requester copy without erasing history."""
     _settings, sf = _build_db()
     _cycle_id, [requester, original] = _seed(sf)
 
     db = sf()
-    from backend.app.services.file_service import FileService
     from backend.app.services.sharing_service import SharingService
 
     sharing_svc = SharingService(db, _settings)
@@ -307,8 +306,6 @@ def test_reject_history_survives_requester_file_delete_and_still_lists():
     db.commit()
     sharing_svc.reject_request(sr.id, rejector_employee_id=original['emp_id'])
     db.commit()
-
-    FileService(db, _settings).delete_file(requester['file_id'])
 
     preserved = db.get(SharingRequest, sr.id)
     assert preserved is not None
@@ -347,7 +344,6 @@ def test_reject_duplicate_check_uses_persisted_hash_after_requester_file_delete(
     _cycle_id, [requester, original] = _seed(sf)
 
     db = sf()
-    from backend.app.services.file_service import FileService
     from backend.app.services.sharing_service import SharingService
 
     sharing_svc = SharingService(db, _settings)
@@ -360,8 +356,6 @@ def test_reject_duplicate_check_uses_persisted_hash_after_requester_file_delete(
     db.commit()
     sharing_svc.reject_request(sr.id, rejector_employee_id=original['emp_id'])
     db.commit()
-
-    FileService(db, _settings).delete_file(requester['file_id'])
 
     with pytest.raises(ValueError, match='已存在共享申请'):
         sharing_svc.check_can_create_request(
