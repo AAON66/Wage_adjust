@@ -198,13 +198,24 @@ export interface UploadedFileRecord {
   file_type: string;
   storage_key: string;
   parse_status: 'pending' | 'parsing' | 'parsed' | 'failed';
+  sharing_status?: 'pending' | null;
+  sharing_status_label?: string | null;
   created_at: string;
   size_label?: string;
+}
+
+export interface SharingCleanupNoticeRecord {
+  request_id: string;
+  status: 'rejected' | 'expired';
+  file_name: string;
+  message: string;
+  resolved_at?: string | null;
 }
 
 export interface UploadedFileListResponse {
   items: UploadedFileRecord[];
   total: number;
+  sharing_cleanup_notices: SharingCleanupNoticeRecord[];
 }
 
 export interface FileDeleteResponse {
