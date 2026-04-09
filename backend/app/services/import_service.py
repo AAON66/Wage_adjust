@@ -38,6 +38,7 @@ class ImportService:
             '身份证号': 'id_card_no',
             '所属部门': 'department',
             '下属部门': 'sub_department',
+            '所属公司': 'company',
             '岗位族': 'job_family',
             '岗位级别': 'job_level',
             '在职状态': 'status',
@@ -69,6 +70,7 @@ class ImportService:
         'id_card_no': '身份证号',
         'department': '所属部门',
         'sub_department': '下属部门',
+        'company': '所属公司',
         'job_family': '岗位族',
         'job_level': '岗位级别',
         'status': '在职状态',
@@ -221,8 +223,8 @@ class ImportService:
         output = io.StringIO()
         writer = csv.writer(output)
         if normalized_type == 'employees':
-            writer.writerow(['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '岗位族', '岗位级别', '在职状态', '直属上级工号'])
-            writer.writerow(['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '平台研发', 'P5', 'active', ''])
+            writer.writerow(['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '所属公司', '岗位族', '岗位级别', '在职状态', '直属上级工号'])
+            writer.writerow(['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '示例科技', '平台研发', 'P5', 'active', ''])
         elif normalized_type == 'certifications':
             writer.writerow(['员工工号', '认证类型', '认证阶段', '补贴比例', '发证时间', '到期时间'])
             writer.writerow(['EMP-1001', 'ai_skill', 'advanced', '0.02', '2026-01-15T00:00:00+00:00', ''])
@@ -254,8 +256,8 @@ class ImportService:
         header_alignment = Alignment(horizontal='center')
 
         if normalized_type == 'employees':
-            headers = ['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '岗位族', '岗位级别', '在职状态', '直属上级工号']
-            example = ['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '平台研发', 'P5', 'active', '']
+            headers = ['员工工号', '员工姓名', '身份证号', '所属部门', '下属部门', '所属公司', '岗位族', '岗位级别', '在职状态', '直属上级工号']
+            example = ['EMP-1001', '张小明', '310101199001010123', '产品技术中心', '后端平台组', '示例科技', '平台研发', 'P5', 'active', '']
         elif normalized_type == 'certifications':
             headers = ['员工工号', '认证类型', '认证阶段', '补贴比例', '发证时间', '到期时间']
             example = ['EMP-1001', 'ai_skill', 'advanced', '0.02', '2026-01-15T00:00:00+00:00', '']
@@ -431,6 +433,7 @@ class ImportService:
         results: list[dict[str, object]] = []
         staged_rows: list[tuple[Employee, str | None]] = []
         identity_service = IdentityBindingService(self.db)
+        has_company_column = 'company' in dataframe.columns
         for index, row in dataframe.iterrows():
             try:
                 with self.db.begin_nested():  # SAVEPOINT
@@ -439,6 +442,7 @@ class ImportService:
                     id_card_no = str(row['id_card_no']).strip() if 'id_card_no' in dataframe.columns else ''
                     department = str(row['department']).strip()
                     sub_department = str(row['sub_department']).strip() if 'sub_department' in dataframe.columns else ''
+                    company = str(row['company']).strip() if has_company_column else ''
                     job_family = str(row['job_family']).strip()
                     job_level = str(row['job_level']).strip()
                     status_val = str(row['status']).strip() or 'active'
@@ -461,6 +465,7 @@ class ImportService:
                             id_card_no=normalized_id_card_no,
                             department=department,
                             sub_department=sub_department or None,
+                            company=company or None,
                             job_family=job_family,
                             job_level=job_level,
                             status=status_val,
@@ -474,13 +479,26 @@ class ImportService:
                             'job_level': employee.job_level,
                             'status': employee.status,
                         }
+                        if has_company_column:
+                            old_values['company'] = employee.company
                         employee.name = name
                         employee.id_card_no = normalized_id_card_no
                         employee.department = department
                         employee.sub_department = sub_department or None
+                        if has_company_column:
+                            employee.company = company or None
                         employee.job_family = job_family
                         employee.job_level = job_level
                         employee.status = status_val
+                        new_value = {
+                            'name': name,
+                            'department': department,
+                            'job_family': job_family,
+                            'job_level': job_level,
+                            'status': status_val,
+                        }
+                        if has_company_column:
+                            new_value['company'] = employee.company
                         # Write audit log for employee update
                         audit_entry = AuditLog(
                             operator_id=self._operator_id,
@@ -489,13 +507,7 @@ class ImportService:
                             target_id=employee.id,
                             detail={
                                 'old_value': old_values,
-                                'new_value': {
-                                    'name': name,
-                                    'department': department,
-                                    'job_family': job_family,
-                                    'job_level': job_level,
-                                    'status': status_val,
-                                },
+                                'new_value': new_value,
                                 'operator_role': self._operator_role,
                             },
                         )
