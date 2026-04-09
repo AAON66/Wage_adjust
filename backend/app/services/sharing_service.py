@@ -38,6 +38,21 @@ class SharingService:
                 .values(status='expired', resolved_at=now)
             )
 
+    def _find_conflicting_request(
+        self,
+        *,
+        original_submission_id: str,
+        requester_content_hash: str,
+    ) -> SharingRequest | None:
+        return self.db.scalars(
+            select(SharingRequest)
+            .where(
+                SharingRequest.requester_content_hash == requester_content_hash,
+                SharingRequest.original_submission_id == original_submission_id,
+                SharingRequest.status.in_(['pending', 'approved', 'rejected']),
+            )
+        ).first()
+
     def check_can_create_request(
         self,
         *,
@@ -51,15 +66,10 @@ class SharingService:
         content_hash + original submission. Called BEFORE upload so the file
         is not persisted when the request would be blocked.
         """
-        existing = self.db.scalars(
-            select(SharingRequest)
-            .join(UploadedFile, SharingRequest.requester_file_id == UploadedFile.id)
-            .where(
-                UploadedFile.content_hash == content_hash_hint,
-                SharingRequest.original_submission_id == original_submission_id,
-                SharingRequest.status.in_(['pending', 'approved', 'rejected']),
-            )
-        ).first()
+        existing = self._find_conflicting_request(
+            original_submission_id=original_submission_id,
+            requester_content_hash=content_hash_hint,
+        )
         if existing:
             raise ValueError('该文件已存在共享申请，无法重复发起。')
 
@@ -80,24 +90,19 @@ class SharingService:
         requester_file = self.db.get(UploadedFile, requester_file_id)
         if requester_file is None:
             raise ValueError('Requester file not found.')
-        # D-15: check for existing non-expired request with same hash + same original submission
-        existing = self.db.scalars(
-            select(SharingRequest)
-            .join(UploadedFile, SharingRequest.requester_file_id == UploadedFile.id)
-            .where(
-                UploadedFile.content_hash == requester_file.content_hash,
-                SharingRequest.original_submission_id == original_submission_id,
-                SharingRequest.status.in_(['pending', 'approved', 'rejected']),
-            )
-        ).first()
-        if existing:
-            raise ValueError('该文件已存在共享申请，无法重复发起。')
+        self.check_can_create_request(
+            submission_id=requester_submission_id,
+            original_submission_id=original_submission_id,
+            content_hash_hint=requester_file.content_hash,
+        )
 
         sr = SharingRequest(
             requester_file_id=requester_file_id,
             original_file_id=original_file_id,
             requester_submission_id=requester_submission_id,
             original_submission_id=original_submission_id,
+            requester_content_hash=requester_file.content_hash,
+            requester_file_name_snapshot=requester_file.file_name,
             proposed_pct=proposed_pct,
         )
         self.db.add(sr)
@@ -110,16 +115,14 @@ class SharingService:
         if direction == 'incoming':
             query = (
                 select(SharingRequest)
-                .join(UploadedFile, SharingRequest.original_file_id == UploadedFile.id)
-                .join(EmployeeSubmission, UploadedFile.submission_id == EmployeeSubmission.id)
+                .join(EmployeeSubmission, SharingRequest.original_submission_id == EmployeeSubmission.id)
                 .where(EmployeeSubmission.employee_id == employee_id)
                 .order_by(SharingRequest.created_at.desc())
             )
         else:
             query = (
                 select(SharingRequest)
-                .join(UploadedFile, SharingRequest.requester_file_id == UploadedFile.id)
-                .join(EmployeeSubmission, UploadedFile.submission_id == EmployeeSubmission.id)
+                .join(EmployeeSubmission, SharingRequest.requester_submission_id == EmployeeSubmission.id)
                 .where(EmployeeSubmission.employee_id == employee_id)
                 .order_by(SharingRequest.created_at.desc())
             )
@@ -190,25 +193,15 @@ class SharingService:
         *,
         revoker_employee_id: str,
     ) -> SharingRequest:
-        """Revoke a previously rejected sharing request: status back to pending."""
+        """Rejected requests are terminal and cannot return to pending."""
         sr = self.db.get(SharingRequest, request_id)
         if sr is None:
             raise ValueError('Sharing request not found')
-        if sr.status != 'rejected':
-            raise ValueError(f'Cannot revoke rejection with status {sr.status}')
         original_file = self.db.get(UploadedFile, sr.original_file_id)
         original_sub = self.db.get(EmployeeSubmission, original_file.submission_id)
         if original_sub.employee_id != revoker_employee_id:
             raise PermissionError('Only original uploader can revoke rejection')
-
-        cycle = self.db.get(EvaluationCycle, original_sub.cycle_id)
-        if cycle is not None and cycle.status == 'archived':
-            raise ValueError('评估周期已下架，无法撤销拒绝')
-
-        sr.status = 'pending'
-        sr.resolved_at = None
-        self.db.flush()
-        return sr
+        raise ValueError('拒绝后的共享申请已是终态，不支持撤销。')
 
     def revoke_approval(
         self,
@@ -265,8 +258,7 @@ class SharingService:
         self._expire_stale_requests()
         count = self.db.scalar(
             select(func.count(SharingRequest.id))
-            .join(UploadedFile, SharingRequest.original_file_id == UploadedFile.id)
-            .join(EmployeeSubmission, UploadedFile.submission_id == EmployeeSubmission.id)
+            .join(EmployeeSubmission, SharingRequest.original_submission_id == EmployeeSubmission.id)
             .where(EmployeeSubmission.employee_id == employee_id, SharingRequest.status == 'pending')
         )
         return count or 0

@@ -20,7 +20,7 @@ router = APIRouter(tags=['sharing'])
 
 def _enrich_sharing_request(db: Session, sr) -> SharingRequestRead:
     """Populate denormalized display fields for UI."""
-    req_file = db.get(UploadedFile, sr.requester_file_id)
+    req_file = db.get(UploadedFile, sr.requester_file_id) if sr.requester_file_id else None
     orig_file = db.get(UploadedFile, sr.original_file_id)
     req_sub = db.get(EmployeeSubmission, sr.requester_submission_id)
     orig_sub = db.get(EmployeeSubmission, sr.original_submission_id)
@@ -34,7 +34,11 @@ def _enrich_sharing_request(db: Session, sr) -> SharingRequestRead:
     return SharingRequestRead(
         **base,
         requester_name=(req_sub.employee.name if req_sub and req_sub.employee else ''),
-        file_name=(orig_file.file_name if orig_file else (req_file.file_name if req_file else '')),
+        file_name=(
+            orig_file.file_name
+            if orig_file
+            else (sr.requester_file_name_snapshot or (req_file.file_name if req_file else ''))
+        ),
         original_uploader_name=(orig_sub.employee.name if orig_sub and orig_sub.employee else ''),
         cycle_archived=cycle_archived,
     )
@@ -122,7 +126,7 @@ def revoke_sharing_rejection(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> SharingRequestRead:
-    """Revoke a previously rejected sharing request. Restores status to pending."""
+    """Compat route kept only to reject the deprecated revoke action."""
     employee_id = current_user.employee_id
     if not employee_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='User not bound to employee')
