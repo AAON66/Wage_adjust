@@ -4,6 +4,7 @@ from celery import Celery
 from celery.signals import worker_process_init
 
 from backend.app.core.config import get_settings
+from backend.app.core.database import SessionLocal, engine
 
 settings = get_settings()
 
@@ -30,9 +31,11 @@ celery_app.conf.update(
 
 @worker_process_init.connect
 def dispose_db_engine_on_worker_init(**_: object) -> None:
-    from backend.app.core.database import engine
-
-    engine.dispose()
+    # Celery prefork workers must drop the actual task DB bind after fork.
+    session_bind = SessionLocal.kw.get('bind') or engine
+    session_bind.dispose()
+    if session_bind is not engine:
+        engine.dispose()
 
 
 from backend.app.tasks import test_tasks as _test_tasks  # noqa: F401,E402
