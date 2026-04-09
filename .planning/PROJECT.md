@@ -74,6 +74,7 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ File sharing workflow: duplicate warning + sharing request + approve/reject + contribution ratio + 72h timeout — v1.1
 - ✓ Salary display simplification: summary panel, expandable detail, eligibility badge with rule drill-down — v1.1
 - ✓ Celery+Redis async foundation: shared worker DB lifecycle, health endpoint, Docker-backed runtime proof, requirements closure — v1.2 Phase 19
+- ✓ Employee company field: shared backend/frontend contract, import overwrite-clear-preserve semantics, admin form editing, detail-only visibility — validated in Phase 20
 
 ### Active (Next Milestone)
 
@@ -177,6 +178,7 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 | Atomic upload+SharingRequest creation in single transaction | ✓ Good — eliminates orphan sharing requests | v1.1 |
 | filter-before-paginate for batch eligibility query (SQLite limitation) | ⚠️ Revisit — will need server-side pagination for large datasets | v1.1 |
 | Role-step binding for override approval (HRBP then admin) | ✓ Good — matches existing approval pattern | v1.1 |
+| Employee `company` stays on the shared contract but is rendered only on detail surfaces | ✓ Good — avoids API split while preserving visibility boundaries | v1.2 |
 | NAV restructuring deferred (Phase 11 implemented but not fully verified) | — Pending — carry to v1.2 | v1.1 |
 
 ---
@@ -187,7 +189,7 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 
 **v1.1 shipped 2026-04-07:** 7 phases, 13 plans, 343 commits. Added eligibility engine with 4 business rules, file sharing workflow, multimodal vision evaluation, account binding with JWT invalidation, and simplified salary display with expandable detail panels.
 
-**Current codebase state:** ~30,800 Python LOC + ~20,000 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis foundation is now runtime-verified for worker startup and task execution; business async jobs are still pending migration.
+**Current codebase state:** ~30,800 Python LOC + ~20,000 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis foundation is runtime-verified for worker startup and task execution; employee records now support an optional `company` field across import/manual/detail flows with detail-only UI visibility; business async jobs are still pending migration.
 
 **Known issues / tech debt:**
 - filter-before-paginate for eligibility batch query won't scale beyond ~10k employees — needs server-side cursor pagination
@@ -214,4 +216,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 19 completion*
+*Last updated: 2026-04-09 after Phase 20 completion*
