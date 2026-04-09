@@ -74,6 +74,7 @@ export interface EmployeeRecord {
   employee_no: string;
   name: string;
   id_card_no: string | null;
+  company: string | null;
   department: string;
   sub_department: string | null;
   job_family: string;
@@ -90,6 +91,7 @@ export interface EmployeeCreatePayload {
   employee_no: string;
   name: string;
   id_card_no: string | null;
+  company: string | null;
   department: string;
   sub_department: string | null;
   job_family: string;
@@ -102,6 +104,7 @@ export interface EmployeeUpdatePayload {
   employee_no?: string;
   name?: string;
   id_card_no?: string | null;
+  company?: string | null;
   department?: string;
   sub_department?: string | null;
   job_family?: string;
