@@ -59,16 +59,33 @@ def _seed_departments(context: ApiDatabaseContext, *names: str) -> None:
         db.close()
 
 
+def _run_import_sync(context: ApiDatabaseContext, import_type: str, csv_bytes: bytes, filename: str = 'test.csv') -> dict:
+    """Run import synchronously via service (bypassing async endpoint) for result testing."""
+    from fastapi import UploadFile
+
+    db = context.session_factory()
+    try:
+        from backend.app.services.import_service import ImportService
+
+        upload = UploadFile(file=io.BytesIO(csv_bytes), filename=filename)
+        service = ImportService(db, operator_id='test-admin', operator_role='admin')
+        job = service.run_import(import_type=import_type, upload=upload)
+        from backend.app.schemas.import_job import ImportJobRead
+
+        return ImportJobRead.model_validate(job).model_dump(mode='json')
+    finally:
+        db.close()
+
+
 # ---------------------------------------------------------------------------
-# IMP-02: HTTP 207 Multi-Status for partial failures
+# Async endpoint contract tests (POST /imports/jobs returns 202)
 # ---------------------------------------------------------------------------
 
 
-class TestHttp207Response:
-    """IMP-02: Partial failure returns HTTP 207 Multi-Status."""
+class TestAsyncImportEndpoint:
+    """Verify POST /imports/jobs returns 202 + TaskTriggerResponse."""
 
-    def test_partial_failure_returns_207(self) -> None:
-        """Upload CSV with valid + invalid rows, expect response.status_code == 207."""
+    def test_valid_upload_returns_202_with_task_id(self) -> None:
         client, context = _build_client()
         with client:
             token = _register_and_login_admin(client)
@@ -78,42 +95,88 @@ class TestHttp207Response:
             csv = (
                 '员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号\n'
                 'API-001,有效行,产品技术中心,技术,P6,active,\n'
-                'API-002,无效行,不存在部门,技术,P7,active,\n'
             ).encode('utf-8')
             files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
             response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            assert response.status_code == 207, f'Expected 207, got {response.status_code}'
+            assert response.status_code == 202
+            body = response.json()
+            assert 'task_id' in body
+            assert body['status'] == 'pending'
 
-    def test_all_success_returns_201(self) -> None:
-        """Upload all-valid CSV, expect response.status_code == 201."""
+    def test_empty_file_returns_400(self) -> None:
         client, context = _build_client()
         with client:
             token = _register_and_login_admin(client)
             headers = {'Authorization': f'Bearer {token}'}
+
+            files = {'file': ('test.csv', io.BytesIO(b''), 'text/csv')}
+            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
+            assert response.status_code == 400
+            assert 'empty' in response.json()['message'].lower()
+
+    def test_unsupported_type_returns_400(self) -> None:
+        client, context = _build_client()
+        with client:
+            token = _register_and_login_admin(client)
+            headers = {'Authorization': f'Bearer {token}'}
+
+            csv = b'col1,col2\nval1,val2\n'
+            files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
+            response = client.post('/api/v1/imports/jobs?import_type=invalid_type', files=files, headers=headers)
+            assert response.status_code == 400
+            assert 'Unsupported' in response.json()['message']
+
+
+# ---------------------------------------------------------------------------
+# IMP-02: Import service partial failure behavior (tested via service layer)
+# ---------------------------------------------------------------------------
+
+
+class TestHttp207Response:
+    """IMP-02: Partial failure returns import job with failed_rows > 0 (via service)."""
+
+    def test_partial_failure_returns_207(self) -> None:
+        """Upload CSV with valid + invalid rows via service, expect failed_rows > 0."""
+        client, context = _build_client()
+        with client:
+            _register_and_login_admin(client)
+            _seed_departments(context, '产品技术中心')
+
+            csv = (
+                '员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号\n'
+                'API-001,有效行,产品技术中心,技术,P6,active,\n'
+                'API-002,无效行,不存在部门,技术,P7,active,\n'
+            ).encode('utf-8')
+            data = _run_import_sync(context, 'employees', csv)
+            assert data['failed_rows'] > 0
+            assert data['success_rows'] > 0
+
+    def test_all_success_returns_201(self) -> None:
+        """Upload all-valid CSV via service, expect failed_rows == 0."""
+        client, context = _build_client()
+        with client:
+            _register_and_login_admin(client)
             _seed_departments(context, '产品技术中心')
 
             csv = (
                 '员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号\n'
                 'OK-001,全成功,产品技术中心,技术,P6,active,\n'
             ).encode('utf-8')
-            files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
-            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            assert response.status_code == 201
+            data = _run_import_sync(context, 'employees', csv)
+            assert data['failed_rows'] == 0
 
     def test_all_failure_returns_207(self) -> None:
-        """Upload all-invalid CSV, expect response.status_code == 207."""
+        """Upload all-invalid CSV via service, expect all rows failed."""
         client, context = _build_client()
         with client:
-            token = _register_and_login_admin(client)
-            headers = {'Authorization': f'Bearer {token}'}
+            _register_and_login_admin(client)
 
             csv = (
                 '员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号\n'
                 'FAIL-001,全失败,不存在部门,技术,P7,active,\n'
             ).encode('utf-8')
-            files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
-            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            assert response.status_code == 207
+            data = _run_import_sync(context, 'employees', csv)
+            assert data['failed_rows'] > 0
 
 
 # ---------------------------------------------------------------------------
@@ -128,8 +191,7 @@ class TestResponseSummary:
         """Assert response JSON contains total_rows, success_rows, failed_rows."""
         client, context = _build_client()
         with client:
-            token = _register_and_login_admin(client)
-            headers = {'Authorization': f'Bearer {token}'}
+            _register_and_login_admin(client)
             _seed_departments(context, '产品技术中心')
 
             csv = (
@@ -137,9 +199,7 @@ class TestResponseSummary:
                 'SUM-001,汇总测试,产品技术中心,技术,P6,active,\n'
                 'SUM-002,汇总失败,不存在部门,技术,P7,active,\n'
             ).encode('utf-8')
-            files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
-            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            data = response.json()
+            data = _run_import_sync(context, 'employees', csv)
             assert 'total_rows' in data
             assert 'success_rows' in data
             assert 'failed_rows' in data
@@ -151,16 +211,14 @@ class TestResponseSummary:
         """Each failed row must have row_index, status, and message fields."""
         client, context = _build_client()
         with client:
-            token = _register_and_login_admin(client)
-            headers = {'Authorization': f'Bearer {token}'}
+            _register_and_login_admin(client)
 
             csv = (
                 '员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号\n'
                 'ERR-001,错误行,不存在部门,技术,P7,active,\n'
             ).encode('utf-8')
-            files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
-            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            rows = response.json()['result_summary']['rows']
+            data = _run_import_sync(context, 'employees', csv)
+            rows = data['result_summary']['rows']
             failed = [r for r in rows if r['status'] == 'failed']
             assert len(failed) >= 1
             for row in failed:
@@ -172,16 +230,14 @@ class TestResponseSummary:
         """Failed rows must include error_column field identifying which column caused failure."""
         client, context = _build_client()
         with client:
-            token = _register_and_login_admin(client)
-            headers = {'Authorization': f'Bearer {token}'}
+            _register_and_login_admin(client)
 
             csv = (
                 '员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号\n'
                 'COL-001,错误列测试,不存在部门,技术,P7,active,\n'
             ).encode('utf-8')
-            files = {'file': ('test.csv', io.BytesIO(csv), 'text/csv')}
-            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            rows = response.json()['result_summary']['rows']
+            data = _run_import_sync(context, 'employees', csv)
+            rows = data['result_summary']['rows']
             failed = [r for r in rows if r['status'] == 'failed']
             assert len(failed) >= 1
             for row in failed:
@@ -189,11 +245,10 @@ class TestResponseSummary:
 
     def test_mixed_100_rows_90_success_10_failure(self) -> None:
         """IMP-01/IMP-02 gate test: 100 rows CSV (90 valid + 10 invalid),
-        expect 207 response, success_rows=90, failed_rows=10."""
+        expect success_rows=90, failed_rows=10."""
         client, context = _build_client()
         with client:
-            token = _register_and_login_admin(client)
-            headers = {'Authorization': f'Bearer {token}'}
+            _register_and_login_admin(client)
             _seed_departments(context, '产品技术中心')
 
             lines = ['员工工号,员工姓名,所属部门,岗位族,岗位级别,在职状态,身份证号']
@@ -202,10 +257,7 @@ class TestResponseSummary:
             for i in range(91, 101):
                 lines.append(f'BULK-{i:03d},无效员工{i},不存在部门{i},技术,P7,active,')
             csv = '\n'.join(lines).encode('utf-8')
-            files = {'file': ('bulk100.csv', io.BytesIO(csv), 'text/csv')}
-            response = client.post('/api/v1/imports/jobs?import_type=employees', files=files, headers=headers)
-            assert response.status_code == 207
-            data = response.json()
+            data = _run_import_sync(context, 'employees', csv)
             assert data['success_rows'] == 90
             assert data['failed_rows'] == 10
             assert data['total_rows'] == 100
