@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
 import pandas as pd
@@ -162,7 +163,13 @@ class ImportService:
         self.db.commit()
         return deleted_ids
 
-    def run_import(self, *, import_type: str, upload: UploadFile) -> ImportJob:
+    def run_import(
+        self,
+        *,
+        import_type: str,
+        upload: UploadFile,
+        progress_callback: Callable[[int, int, int], None] | None = None,
+    ) -> ImportJob:
         normalized_type = import_type.strip().lower()
         if normalized_type not in self.SUPPORTED_TYPES:
             raise ValueError(self._localize_error_message('Unsupported import type.'))
@@ -189,6 +196,8 @@ class ImportService:
             # D-06: 单次导入不能超过 MAX_ROWS 行
             if len(dataframe) > self.MAX_ROWS:
                 raise ValueError(f'单次导入不能超过 {self.MAX_ROWS} 行，请分批导入。')
+            if progress_callback:
+                progress_callback(0, len(dataframe), 0)
             row_results = self._dispatch_import(normalized_type, dataframe)
             job.total_rows = len(row_results)
             job.success_rows = sum(1 for item in row_results if item['status'] == 'success')
@@ -197,6 +206,8 @@ class ImportService:
                 'rows': row_results,
                 'supported_types': sorted(self.SUPPORTED_TYPES),
             }
+            if progress_callback:
+                progress_callback(job.total_rows, job.total_rows, job.failed_rows)
             # Status: 'partial' when mixed, 'failed' when all fail, 'completed' when all succeed
             if job.failed_rows == 0:
                 job.status = 'completed'

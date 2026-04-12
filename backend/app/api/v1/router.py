@@ -25,6 +25,7 @@ from backend.app.api.v1.sharing import router as sharing_router
 from backend.app.api.v1.submissions import router as submissions_router
 from backend.app.api.v1.system import router as system_router
 from backend.app.api.v1.users import router as users_router
+from backend.app.api.v1.tasks import router as tasks_router
 from backend.app.api.v1.webhooks import router as webhooks_router
 
 api_router = APIRouter()
@@ -52,3 +53,4 @@ api_router.include_router(attendance_router)
 api_router.include_router(api_keys_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(health_router)
+api_router.include_router(tasks_router)
