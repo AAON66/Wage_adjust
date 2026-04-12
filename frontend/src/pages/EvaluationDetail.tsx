@@ -18,6 +18,7 @@ import { SalaryHistoryPanel } from '../components/salary/SalaryHistoryPanel';
 import { SalarySummaryPanel } from '../components/salary/SalarySummaryPanel';
 import type { ManualAdjustmentState, SalaryFormatters } from '../components/salary/SalarySummaryPanel';
 import { useAuth } from '../hooks/useAuth';
+import { useTaskPolling } from '../hooks/useTaskPolling';
 import { submitDefaultApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
 import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, regenerateEvaluation, submitHrReview, submitManualReview } from '../services/evaluationService';
@@ -524,6 +525,7 @@ export function EvaluationDetailPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
+  const [evaluationTaskId, setEvaluationTaskId] = useState<string | null>(null);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
   const [isSalaryHistoryLoading, setIsSalaryHistoryLoading] = useState(false);
   const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(true);
@@ -614,6 +616,27 @@ export function EvaluationDetailPage() {
     setSubmission(submissionResponse);
     await refreshSubmissionData(submissionResponse.id);
   }
+
+  useTaskPolling(evaluationTaskId, {
+    onComplete: (result) => {
+      const evalResult = result as EvaluationRecord;
+      setEvaluation(evalResult);
+      setDimensions(mapEvaluationToDrafts(evalResult));
+      setReviewLevel(evalResult.ai_level);
+      setReviewComment(localizeEvaluationNarrative(evalResult.explanation));
+      setSalaryRecommendation(null);
+      setEvaluationTaskId(null);
+      setIsGeneratingEvaluation(false);
+      void reloadCurrentCycleData();
+      setSuccessMessage(evaluation ? 'AI 评分已按最新材料重新生成，可以继续主管复核。' : 'AI 评分已生成，可以继续主管复核。');
+    },
+    onError: (error) => {
+      setEvaluationTaskId(null);
+      setIsGeneratingEvaluation(false);
+      setErrorMessage(error);
+    },
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1314,19 +1337,15 @@ export function EvaluationDetailPage() {
           throw new Error(`仍有 ${summary.failed} 份材料解析失败，请先处理失败材料后再生成 AI 评分。`);
         }
       }
-      const nextEvaluation = evaluation ? await regenerateEvaluation(submission.id) : await generateEvaluation(submission.id);
-      setEvaluation(nextEvaluation);
-      setSalaryRecommendation(null);
-      setDimensions(mapEvaluationToDrafts(nextEvaluation));
-      setReviewLevel(nextEvaluation.ai_level);
-      setReviewComment(localizeEvaluationNarrative(nextEvaluation.explanation));
-      await reloadCurrentCycleData();
-      setSuccessMessage(evaluation ? 'AI 评分已按最新材料重新生成，可以继续主管复核。' : 'AI 评分已生成，可以继续主管复核。');
+      const triggerResponse = evaluation
+        ? await regenerateEvaluation(submission.id)
+        : await generateEvaluation(submission.id);
+      setEvaluationTaskId(triggerResponse.task_id);
     } catch (error) {
       setErrorMessage(resolveError(error));
+      setIsGeneratingEvaluation(false);
     } finally {
       setIsParsingAll(false);
-      setIsGeneratingEvaluation(false);
     }
   }
 
@@ -1661,6 +1680,9 @@ export function EvaluationDetailPage() {
               <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingEvaluation || !submission || !hasFiles} onClick={handleGenerateEvaluation} type="button">
                 <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '生成中...' : evaluation ? '重新生成 AI 评分' : '生成 AI 评分'}</h3>
                 <p className="mt-2 text-sm leading-6 text-steel">解析后生成评分。</p>
+                {isGeneratingEvaluation && (
+                  <span className="ml-2 text-sm text-gray-500 animate-pulse">AI 评估中...</span>
+                )}
               </button>
               <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation || evaluation.status !== 'confirmed'} onClick={handleGenerateSalary} type="button">
                 <h3 className="font-medium text-ink">{isGeneratingSalary ? '生成中...' : '生成调薪建议'}</h3>
