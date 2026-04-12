@@ -961,3 +961,18 @@ export interface EligibilityOverrideDecisionPayload {
   decision: 'approve' | 'reject';
   comment?: string;
 }
+
+// === Async Task Polling (Phase 22) ===
+
+export interface TaskTriggerResponse {
+  task_id: string;
+  status: 'pending';
+}
+
+export interface TaskStatusResponse {
+  task_id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  progress?: { processed: number; total: number; errors: number };
+  result?: unknown;
+  error?: string;
+}
