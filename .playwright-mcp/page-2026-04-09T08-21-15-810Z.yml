@@ -1,0 +1,255 @@
+- main [ref=e150]:
+  - generic [ref=e151]:
+    - complementary [ref=e152]:
+      - generic [ref=e154]:
+        - generic [ref=e156]: 智
+        - generic [ref=e157]:
+          - generic [ref=e158]: 智评调薪
+          - generic [ref=e159]: 管理员工作区
+      - navigation [ref=e160]:
+        - link "角色首页" [ref=e161] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e162]
+          - text: 角色首页
+        - generic [ref=e165]:
+          - button "▼ 运营管理" [ref=e166] [cursor=pointer]:
+            - generic [ref=e167]: ▼ 运营管理
+          - link "员工评估" [ref=e168] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e169]
+            - text: 员工评估
+          - link "创建周期" [ref=e172] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e173]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e177] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e178]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e180] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e181]
+            - text: 审批中心
+          - link "调薪资格" [ref=e184] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e185]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e187] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e188]
+            - text: 考勤管理
+          - link "共享申请" [ref=e191] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e192]
+            - text: 共享申请
+        - generic [ref=e197]:
+          - button "▼ 数据分析" [ref=e198] [cursor=pointer]:
+            - generic [ref=e199]: ▼ 数据分析
+          - link "组织看板" [ref=e200] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e201]
+            - text: 组织看板
+          - link "审计日志" [ref=e202] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e203]
+            - text: 审计日志
+        - generic [ref=e206]:
+          - button "▼ 系统管理" [ref=e207] [cursor=pointer]:
+            - generic [ref=e208]: ▼ 系统管理
+          - link "平台账号" [ref=e209] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e210]
+            - text: 平台账号
+          - link "员工档案" [ref=e215] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e216]
+            - text: 员工档案
+          - link "导入中心" [ref=e218] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e219]
+            - text: 导入中心
+          - link "飞书配置" [ref=e222] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e223]
+            - text: 飞书配置
+          - link "API Key 管理" [ref=e226] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e227]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e229] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e230]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e233] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e234]
+          - text: 账号设置
+      - generic [ref=e237]:
+        - generic [ref=e238]:
+          - generic [ref=e239]: A
+          - generic [ref=e240]:
+            - generic [ref=e241]: admin@company.com
+            - generic [ref=e242]: 管理员
+        - generic [ref=e243]:
+          - link "首页" [ref=e244] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e245] [cursor=pointer]
+    - generic [ref=e246]:
+      - generic [ref=e248]:
+        - generic [ref=e249]:
+          - paragraph [ref=e250]: 管理员工作区
+          - heading "员工评估详情" [level=1] [ref=e251]
+          - paragraph [ref=e252]: 按模块处理材料、证据、复核和调薪。
+        - generic [ref=e253]:
+          - link "返回工作台" [ref=e254] [cursor=pointer]:
+            - /url: /workspace
+          - link "审批中心" [ref=e255] [cursor=pointer]:
+            - /url: /approvals
+      - generic [ref=e256]:
+        - paragraph [ref=e257]: 加载员工评估详情失败。
+        - generic [ref=e258]:
+          - generic [ref=e260]:
+            - generic [ref=e261]:
+              - generic [ref=e262]:
+                - heading "李旭新" [level=2] [ref=e263]
+                - generic [ref=e264]: 启用
+              - paragraph [ref=e265]: 员工编号 02601
+              - paragraph [ref=e266]: 按当前周期处理评估流程。
+            - generic [ref=e267]:
+              - paragraph [ref=e268]: 当前模块
+              - paragraph [ref=e269]: 概览
+              - paragraph [ref=e270]: 2026 Q1 AI能力评估
+          - generic [ref=e271]:
+            - generic [ref=e272]:
+              - generic [ref=e273]:
+                - paragraph [ref=e274]: 部门
+                - paragraph [ref=e275]: 社区运营中心
+              - generic [ref=e276]:
+                - paragraph [ref=e277]: 所属公司
+                - paragraph [ref=e278]: 未设置
+              - generic [ref=e279]:
+                - paragraph [ref=e280]: 岗位族
+                - paragraph [ref=e281]: AI应用工程师
+              - generic [ref=e282]:
+                - paragraph [ref=e283]: 岗位级别
+                - paragraph [ref=e284]: P3
+              - generic [ref=e285]:
+                - text: 当前周期
+                - combobox "当前周期" [ref=e286]:
+                  - option "2026 Q1 AI能力评估" [selected]
+            - generic [ref=e287]:
+              - generic [ref=e288]:
+                - paragraph [ref=e290]: 模块切换
+                - generic [ref=e292]: "?"
+              - generic [ref=e293]:
+                - button "概览 2026 Q1 AI能力评估" [ref=e294] [cursor=pointer]:
+                  - generic [ref=e295]: 概览
+                  - generic [ref=e296]: 2026 Q1 AI能力评估
+                - button "材料解析 等待上传" [ref=e297] [cursor=pointer]:
+                  - generic [ref=e298]: 材料解析
+                  - generic [ref=e299]: 等待上传
+                - button "证据卡片 暂无证据" [ref=e300] [cursor=pointer]:
+                  - generic [ref=e301]: 证据卡片
+                  - generic [ref=e302]: 暂无证据
+                - button "人工复核 未生成" [ref=e303] [cursor=pointer]:
+                  - generic [ref=e304]: 人工复核
+                  - generic [ref=e305]: 未生成
+                - button "调薪建议 未生成" [ref=e306] [cursor=pointer]:
+                  - generic [ref=e307]: 调薪建议
+                  - generic [ref=e308]: 未生成
+        - generic [ref=e309]:
+          - generic [ref=e310]:
+            - generic [ref=e312]:
+              - generic [ref=e313]:
+                - paragraph [ref=e314]: 当前概览
+                - heading "这个周期先看什么" [level=2] [ref=e315]
+                - paragraph [ref=e316]: 先看状态、风险和下一步。
+              - generic [ref=e317]: 已评估
+            - generic [ref=e318]:
+              - generic [ref=e319]:
+                - generic [ref=e320]:
+                  - paragraph [ref=e321]: 已上传材料
+                  - paragraph [ref=e322]: "0"
+                  - paragraph [ref=e323]: 等待上传
+                - generic [ref=e324]:
+                  - paragraph [ref=e325]: 证据卡片
+                  - paragraph [ref=e326]: "0"
+                  - paragraph [ref=e327]: 等待提取
+                - generic [ref=e328]:
+                  - paragraph [ref=e329]: 评估状态
+                  - paragraph [ref=e330]: 未生成
+                  - paragraph [ref=e331]: 等待生成
+                - generic [ref=e332]:
+                  - paragraph [ref=e333]: 调薪状态
+                  - paragraph [ref=e334]: 未生成
+                  - paragraph [ref=e335]: 尚未生成
+              - generic [ref=e336]:
+                - generic [ref=e337]:
+                  - paragraph [ref=e338]: 流程状态
+                  - generic [ref=e339]: 当前处于 AI 评分
+                - generic [ref=e340]:
+                  - generic [ref=e341]:
+                    - generic [ref=e342]: 步骤 1
+                    - generic [ref=e344]: 收集中
+                    - generic [ref=e345]: 收集材料
+                  - generic [ref=e346]:
+                    - generic [ref=e347]: 步骤 2
+                    - generic [ref=e349]: 已提交
+                    - generic [ref=e350]: 材料就绪
+                  - generic [ref=e351]:
+                    - generic [ref=e352]: 步骤 3
+                    - generic [ref=e354]: 解析中
+                    - generic [ref=e355]: AI 解析
+                  - generic [ref=e356]:
+                    - generic [ref=e357]: 步骤 4
+                    - generic [ref=e359]: 已评估
+                    - generic [ref=e360]: AI 评分
+                  - generic [ref=e361]:
+                    - generic [ref=e362]: 步骤 5
+                    - generic [ref=e364]: 复核中
+                    - generic [ref=e365]: 人工复核
+                  - generic [ref=e366]:
+                    - generic [ref=e367]: 步骤 6
+                    - generic [ref=e369]: 已校准
+                    - generic [ref=e370]: 结果确认
+                  - generic [ref=e371]:
+                    - generic [ref=e372]: 步骤 7
+                    - generic [ref=e374]: 已审批
+                    - generic [ref=e375]: 审批通过
+                  - generic [ref=e376]:
+                    - generic [ref=e377]: 步骤 8
+                    - generic [ref=e379]: 已发布
+                    - generic [ref=e380]: 结果发布
+              - generic [ref=e381]:
+                - heading "维度评分详情" [level=3] [ref=e382]
+                - paragraph [ref=e383]: 暂无维度评分数据
+          - complementary [ref=e384]:
+            - generic [ref=e385]:
+              - paragraph [ref=e386]: 下一步动作
+              - heading "处理建议" [level=2] [ref=e387]
+              - paragraph [ref=e388]: 优先处理当前动作。
+            - generic [ref=e389]:
+              - button "启动 AI 解析 先解析材料。" [disabled] [ref=e390]:
+                - heading "启动 AI 解析" [level=3] [ref=e391]
+                - paragraph [ref=e392]: 先解析材料。
+              - button "生成 AI 评分 解析后生成评分。" [disabled] [ref=e393]:
+                - heading "生成 AI 评分" [level=3] [ref=e394]
+                - paragraph [ref=e395]: 解析后生成评分。
+              - button "生成调薪建议 确认后生成调薪建议。" [disabled] [ref=e396]:
+                - heading "生成调薪建议" [level=3] [ref=e397]
+                - paragraph [ref=e398]: 确认后生成调薪建议。
+            - generic [ref=e399]:
+              - paragraph [ref=e400]: 当前上下文
+              - generic [ref=e401]:
+                - generic [ref=e402]:
+                  - generic [ref=e403]: 提交记录
+                  - generic [ref=e404]: e3b2c835-1b4c-48d5-bd01-c244e86817ff
+                - generic [ref=e405]:
+                  - generic [ref=e406]: 评估状态
+                  - generic [ref=e407]: 未生成
+                - generic [ref=e408]:
+                  - generic [ref=e409]: 调薪状态
+                  - generic [ref=e410]: 未生成
+                - generic [ref=e411]:
+                  - generic [ref=e412]: 主管当前均分
+                  - generic [ref=e413]: "70.0"

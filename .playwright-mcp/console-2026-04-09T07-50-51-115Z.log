@@ -1,0 +1,7 @@
+[      87ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5174/node_modules/.vite/deps/chunk-NXESFFTV.js?v=3cd1631e:21608
+[     150ms] [ERROR] Access to XMLHttpRequest at 'http://127.0.0.1:8011/api/v1/approvals/submission-candidates' from origin 'http://127.0.0.1:5174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5174/approvals:0
+[     151ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://127.0.0.1:8011/api/v1/approvals/submission-candidates:0
+[     157ms] [ERROR] Access to XMLHttpRequest at 'http://127.0.0.1:8011/api/v1/users?page=1&page_size=100' from origin 'http://127.0.0.1:5174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5174/approvals:0
+[     157ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://127.0.0.1:8011/api/v1/users?page=1&page_size=100:0
+[     165ms] [ERROR] Access to XMLHttpRequest at 'http://127.0.0.1:8011/api/v1/approvals?include_all=true&decision=pending' from origin 'http://127.0.0.1:5174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5174/approvals:0
+[     165ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://127.0.0.1:8011/api/v1/approvals?include_all=true&decision=pending:0
