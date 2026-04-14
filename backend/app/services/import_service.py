@@ -15,6 +15,7 @@ from backend.app.models.certification import Certification
 from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.import_job import ImportJob
+from backend.app.models.non_statutory_leave import NonStatutoryLeave
 from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.salary_adjustment_record import SalaryAdjustmentRecord
 from backend.app.services.identity_binding_service import IdentityBindingService
@@ -23,13 +24,15 @@ logger = logging.getLogger(__name__)
 
 
 class ImportService:
-    SUPPORTED_TYPES = {'employees', 'certifications', 'performance_grades', 'salary_adjustments'}
+    SUPPORTED_TYPES = {'employees', 'certifications', 'performance_grades', 'salary_adjustments', 'hire_info', 'non_statutory_leave'}
     MAX_ROWS = 5000  # D-06: 单次导入最大行数
     REQUIRED_COLUMNS = {
         'employees': ['employee_no', 'name', 'department', 'job_family', 'job_level'],
         'certifications': ['employee_no', 'certification_type', 'certification_stage', 'bonus_rate', 'issued_at'],
         'performance_grades': ['employee_no', 'year', 'grade'],
         'salary_adjustments': ['employee_no', 'adjustment_date', 'adjustment_type'],
+        'hire_info': ['employee_no', 'hire_date'],
+        'non_statutory_leave': ['employee_no', 'year', 'total_days'],
     }
     COLUMN_ALIASES = {
         'employees': {
@@ -62,6 +65,16 @@ class ImportService:
             '调薪类型': 'adjustment_type',
             '调薪金额': 'amount',
         },
+        'hire_info': {
+            '员工工号': 'employee_no',
+            '入职日期': 'hire_date',
+        },
+        'non_statutory_leave': {
+            '员工工号': 'employee_no',
+            '年度': 'year',
+            '假期天数': 'total_days',
+            '假期类型': 'leave_type',
+        },
     }
     COLUMN_LABELS = {
         'employee_no': '员工工号',
@@ -83,6 +96,9 @@ class ImportService:
         'adjustment_date': '调薪日期',
         'adjustment_type': '调薪类型',
         'amount': '调薪金额',
+        'hire_date': '入职日期',
+        'total_days': '假期天数',
+        'leave_type': '假期类型',
     }
 
     def __init__(
@@ -232,6 +248,12 @@ class ImportService:
         elif normalized_type == 'salary_adjustments':
             writer.writerow(['员工工号', '调薪日期', '调薪类型', '调薪金额'])
             writer.writerow(['EMP-1001', '2025-06-01', '年度调薪', '2000'])
+        elif normalized_type == 'hire_info':
+            writer.writerow(['员工工号', '入职日期'])
+            writer.writerow(['EMP-1001', '2024-03-15'])
+        elif normalized_type == 'non_statutory_leave':
+            writer.writerow(['员工工号', '年度', '假期天数', '假期类型'])
+            writer.writerow(['EMP-1001', '2025', '5.5', '事假'])
         # UTF-8 BOM helps Excel on Windows open Chinese CSVs correctly.
         content = output.getvalue().encode('utf-8-sig')
         return f'{normalized_type}_template.csv', content, 'text/csv; charset=utf-8'
@@ -265,6 +287,12 @@ class ImportService:
         elif normalized_type == 'salary_adjustments':
             headers = ['员工工号', '调薪日期', '调薪类型', '调薪金额']
             example = ['EMP-1001', '2025-06-01', '年度调薪', '2000']
+        elif normalized_type == 'hire_info':
+            headers = ['员工工号', '入职日期']
+            example = ['EMP-1001', '2024-03-15']
+        elif normalized_type == 'non_statutory_leave':
+            headers = ['员工工号', '年度', '假期天数', '假期类型']
+            example = ['EMP-1001', '2025', '5.5', '事假']
         else:
             headers = []
             example = []
@@ -393,6 +421,10 @@ class ImportService:
             return self._import_performance_grades(dataframe)
         if import_type == 'salary_adjustments':
             return self._import_salary_adjustments(dataframe)
+        if import_type == 'hire_info':
+            return self._import_hire_info(dataframe)
+        if import_type == 'non_statutory_leave':
+            return self._import_non_statutory_leave(dataframe)
         return self._import_certifications(dataframe)
 
     def _normalize_columns(self, import_type: str, dataframe: pd.DataFrame) -> pd.DataFrame:
@@ -750,4 +782,122 @@ class ImportService:
             return '调薪类型'
         if '调薪金额' in msg:
             return '调薪金额'
+        return ''
+
+    # ------------------------------------------------------------------
+    # Hire info import (D-11/ELIGIMP-02)
+    # ------------------------------------------------------------------
+
+    def _import_hire_info(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+        results: list[dict[str, object]] = []
+        for index, row in dataframe.iterrows():
+            try:
+                with self.db.begin_nested():  # SAVEPOINT
+                    employee_no = str(row['employee_no']).strip()
+                    employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
+                    if employee is None:
+                        raise ValueError(f'未找到员工工号 "{employee_no}"')
+
+                    try:
+                        hire_date = pd.to_datetime(row['hire_date']).date()
+                    except Exception:
+                        raise ValueError(f'入职日期格式无效: "{row["hire_date"]}"')
+
+                    employee.hire_date = hire_date
+                    self.db.add(employee)
+                    self.db.flush()
+                results.append({'row_index': int(index) + 1, 'status': 'success', 'message': '入职日期导入成功。'})
+            except Exception as exc:
+                self.db.expire_all()
+                results.append({
+                    'row_index': int(index) + 1,
+                    'status': 'failed',
+                    'message': str(exc),
+                    'error_column': self._detect_hire_error_column(exc),
+                })
+        self.db.commit()
+        return results
+
+    def _detect_hire_error_column(self, exc: Exception) -> str:
+        msg = str(exc)
+        if '员工工号' in msg or '未找到' in msg:
+            return '员工工号'
+        if '入职日期' in msg:
+            return '入职日期'
+        return ''
+
+    # ------------------------------------------------------------------
+    # Non-statutory leave import (D-12/ELIGIMP-02)
+    # ------------------------------------------------------------------
+
+    def _import_non_statutory_leave(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+        results: list[dict[str, object]] = []
+        for index, row in dataframe.iterrows():
+            try:
+                with self.db.begin_nested():  # SAVEPOINT
+                    employee_no = str(row['employee_no']).strip()
+                    employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
+                    if employee is None:
+                        raise ValueError(f'未找到员工工号 "{employee_no}"')
+
+                    try:
+                        year = int(row['year'])
+                    except (ValueError, TypeError):
+                        raise ValueError(f'年度格式无效: "{row["year"]}"')
+
+                    try:
+                        total_days = float(str(row['total_days']).strip())
+                    except (ValueError, TypeError):
+                        raise ValueError(f'假期天数格式无效: "{row["total_days"]}"')
+
+                    # Parse optional leave_type
+                    leave_type = None
+                    if 'leave_type' in dataframe.columns:
+                        raw_leave_type = str(row['leave_type']).strip()
+                        if raw_leave_type and raw_leave_type.lower() != 'nan':
+                            leave_type = raw_leave_type
+
+                    # Upsert on (employee_id, year)
+                    existing = self.db.scalar(
+                        select(NonStatutoryLeave).where(
+                            NonStatutoryLeave.employee_id == employee.id,
+                            NonStatutoryLeave.year == year,
+                        )
+                    )
+                    if existing is not None:
+                        existing.total_days = total_days
+                        existing.leave_type = leave_type
+                        existing.source = 'excel'
+                        self.db.add(existing)
+                    else:
+                        record = NonStatutoryLeave(
+                            employee_id=employee.id,
+                            employee_no=employee_no,
+                            year=year,
+                            total_days=total_days,
+                            leave_type=leave_type,
+                            source='excel',
+                        )
+                        self.db.add(record)
+                    self.db.flush()
+                results.append({'row_index': int(index) + 1, 'status': 'success', 'message': '非法定假期记录导入成功。'})
+            except Exception as exc:
+                self.db.expire_all()
+                results.append({
+                    'row_index': int(index) + 1,
+                    'status': 'failed',
+                    'message': str(exc),
+                    'error_column': self._detect_leave_error_column(exc),
+                })
+        self.db.commit()
+        return results
+
+    def _detect_leave_error_column(self, exc: Exception) -> str:
+        msg = str(exc)
+        if '员工工号' in msg or '未找到' in msg:
+            return '员工工号'
+        if '年度' in msg or 'year' in msg.lower():
+            return '年度'
+        if '假期天数' in msg:
+            return '假期天数'
         return ''
