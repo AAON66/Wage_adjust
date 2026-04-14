@@ -49,7 +49,7 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 - [x] **Phase 19: Celery+Redis 异步基础设施** - 任务队列激活、worker 启动验证、健康检查端点 (completed 2026-04-09)
 - [x] **Phase 20: 员工所属公司字段** - Employee 模型扩展 + 档案详情展示 (completed 2026-04-09)
 - [x] **Phase 21: 文件共享拒绝清理与状态标签** - 拒绝/超时自动删除副本 + 待同意标签 (completed 2026-04-09)
-- [ ] **Phase 22: AI 评估与批量导入异步迁移** - LLM 评估和导入任务迁移到 Celery
+- [x] **Phase 22: AI 评估与批量导入异步迁移** - LLM 评估和导入任务迁移到 Celery (completed 2026-04-12)
 - [ ] **Phase 23: 调薪资格统一导入管理** - 4 类数据 Tab 管理 + Excel/飞书双通道 + 飞书限流
 - [ ] **Phase 24: 生产部署配置** - gunicorn+uvicorn worker + Dockerfile + docker-compose
 
@@ -123,11 +123,11 @@ Plans:
   2. 批量导入（Excel/飞书）提交后在后台执行，前端可查看导入进度百分比
   3. Celery task 使用独立的 DB session，不复用 FastAPI 请求级 session
   4. 单个任务失败不影响 worker 继续处理其他任务
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 22-01-PLAN.md — Backend Celery task 模块 + schema + 通用轮询端点 + 单元测试
-- [ ] 22-02-PLAN.md — evaluations/imports API 端点异步迁移
-- [ ] 22-03-PLAN.md — Frontend taskService + useTaskPolling hook + 页面集成
+- [x] 22-01-PLAN.md — Backend Celery task 模块 + schema + 通用轮询端点 + 单元测试
+- [x] 22-02-PLAN.md — evaluations/imports API 端点异步迁移
+- [x] 22-03-PLAN.md — Frontend taskService + useTaskPolling hook + 页面集成
 **UI hint**: yes
 
 ### Phase 23: 调薪资格统一导入管理
@@ -182,6 +182,6 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 19. Celery+Redis 基础设施 | v1.2 | 3/3 | Complete    | 2026-04-09 |
 | 20. 员工所属公司 | v1.2 | 2/2 | Complete    | 2026-04-09 |
 | 21. 共享拒绝清理 | v1.2 | 2/2 | Complete   | 2026-04-09 |
-| 22. 异步迁移 | v1.2 | 0/3 | Not started | - |
+| 22. 异步迁移 | v1.2 | 3/3 | Complete    | 2026-04-14 |
 | 23. 资格导入管理 | v1.2 | 0/0 | Not started | - |
 | 24. 生产部署 | v1.2 | 0/0 | Not started | - |
