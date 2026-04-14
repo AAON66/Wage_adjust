@@ -70,9 +70,20 @@ class RedisRateLimiter:
             raise RuntimeError(f'DeepSeek Redis rate limit reached ({count}/{self.limit} rpm).')
 
 
-# InMemoryRateLimiter has been extracted to backend.app.core.rate_limiter.
-# Re-export here for backward compatibility.
-from backend.app.core.rate_limiter import InMemoryRateLimiter  # noqa: F811
+class InMemoryRateLimiter:
+    def __init__(self, limit: int, *, window_seconds: int = 60, clock: Callable[[], float] | None = None) -> None:
+        self.limit = max(limit, 1)
+        self.window_seconds = window_seconds
+        self.clock = clock or time.monotonic
+        self.events: deque[float] = deque()
+
+    def acquire(self) -> None:
+        now = self.clock()
+        while self.events and now - self.events[0] >= self.window_seconds:
+            self.events.popleft()
+        if len(self.events) >= self.limit:
+            raise RuntimeError('DeepSeek rate limit reached for the current minute window.')
+        self.events.append(now)
 
 
 class DeepSeekPromptLibrary:

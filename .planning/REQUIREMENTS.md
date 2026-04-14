@@ -15,15 +15,15 @@
 
 ## 异步任务 (ASYNC)
 
-- [ ] **ASYNC-01**: Celery app 配置完成（升级至 5.5.1），worker 可正常启动并执行 task
+- [x] **ASYNC-01**: Celery app 配置完成（升级至 5.5.1），worker 可正常启动并执行 task
 - [ ] **ASYNC-02**: AI 评估调用（LLM 文本评估 + 视觉评估）迁移到 Celery task，API 返回 task_id 供前端轮询结果
 - [ ] **ASYNC-03**: 批量导入（Excel/飞书）通过 Celery task 后台执行，前端可查看导入进度
-- [ ] **ASYNC-04**: Celery worker 健康检查端点可用，docker-compose 中包含 worker 服务
+- [x] **ASYNC-04**: Celery worker 健康检查端点可用，docker-compose 中包含 worker 服务
 
 ## 员工档案 (EMP)
 
-- [ ] **EMP-01**: Employee 模型新增 company（所属公司）字段，支持通过批量导入和管理端手动设置
-- [ ] **EMP-02**: 所属公司仅在员工档案详情页展示，不出现在员工列表等其他页面
+- [x] **EMP-01**: Employee 模型新增 company（所属公司）字段，支持通过批量导入和管理端手动设置
+- [x] **EMP-02**: 所属公司仅在员工档案详情页展示，不出现在员工列表等其他页面
 
 ## 文件共享 (SHARE)
 
@@ -71,12 +71,12 @@
 | DEPLOY-03 | Phase 24 | Pending |
 | DEPLOY-04 | Phase 24 | Pending |
 | DEPLOY-05 | Phase 18 | Pending |
-| ASYNC-01 | Phase 19 | Pending |
+| ASYNC-01 | Phase 19 | Complete |
 | ASYNC-02 | Phase 22 | Pending |
 | ASYNC-03 | Phase 22 | Pending |
-| ASYNC-04 | Phase 19 | Pending |
-| EMP-01 | Phase 20 | Pending |
-| EMP-02 | Phase 20 | Pending |
+| ASYNC-04 | Phase 19 | Complete |
+| EMP-01 | Phase 20 | Complete |
+| EMP-02 | Phase 20 | Complete |
 | SHARE-06 | Phase 21 | Pending |
 | SHARE-07 | Phase 21 | Pending |
 | SHARE-08 | Phase 21 | Pending |
@@ -93,4 +93,4 @@
 
 ---
 *Requirements defined: 2026-04-08*
-*Traceability updated: 2026-04-07 (roadmap created)*
+*Traceability updated: 2026-04-09 (Phase 20 verified)*

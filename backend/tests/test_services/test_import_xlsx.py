@@ -54,8 +54,8 @@ class TestXlsxRead:
             from openpyxl import Workbook
             wb = Workbook()
             ws = wb.active
-            ws.append(['员工工号', '员工姓名', '所属部门', '岗位族', '岗位级别', '在职状态', '身份证号'])
-            ws.append(['XLSX-001', '张Excel', '产品技术中心', '技术', 'P6', 'active', ''])
+            ws.append(['员工工号', '员工姓名', '所属部门', '下属部门', '所属公司', '岗位族', '岗位级别', '在职状态', '身份证号'])
+            ws.append(['XLSX-001', '张Excel', '产品技术中心', '后端平台组', '星海集团', '技术', 'P6', 'active', ''])
             output = io.BytesIO()
             wb.save(output)
             xlsx_bytes = output.getvalue()
@@ -69,6 +69,7 @@ class TestXlsxRead:
             emp = db.scalar(select(Employee).where(Employee.employee_no == 'XLSX-001'))
             assert emp is not None
             assert emp.name == '张Excel'
+            assert emp.company == '星海集团'
 
     def test_gbk_csv_no_garbled_characters(self) -> None:
         """Import GBK-encoded CSV, verify Chinese fields stored correctly (no garbling)."""
@@ -160,6 +161,8 @@ class TestXlsxTemplate:
             wb = load_workbook(io.BytesIO(content))
             ws = wb.active
             assert ws.cell(row=1, column=1).value is not None, 'Header row must exist'
+            headers = [ws.cell(row=1, column=index).value for index in range(1, ws.max_column + 1)]
+            assert '所属公司' in headers
 
     def test_certification_xlsx_template_generated(self) -> None:
         """build_template_xlsx('certifications') returns xlsx bytes."""

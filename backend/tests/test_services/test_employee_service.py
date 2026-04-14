@@ -42,6 +42,7 @@ def test_create_and_list_employees() -> None:
             name='Alice',
             id_card_no='310101199001010123',
             department='Engineering',
+            company='  Acme Group  ',
             sub_department='Backend Platform',
             job_family='Platform',
             job_level='P5',
@@ -53,6 +54,7 @@ def test_create_and_list_employees() -> None:
 
     assert created.employee_no == 'E001'
     assert created.id_card_no == '310101199001010123'
+    assert created.company == 'Acme Group'
     assert created.sub_department == 'Backend Platform'
     assert total == 1
     assert items[0].name == 'Alice'
@@ -143,6 +145,7 @@ def test_update_employee_changes_profile_fields() -> None:
             name='Erin',
             id_card_no='310101199001010127',
             department='Engineering',
+            company='Legacy Co',
             sub_department='Backend Platform',
             job_family='Platform',
             job_level='P5',
@@ -157,6 +160,7 @@ def test_update_employee_changes_profile_fields() -> None:
             name='Erin Updated',
             id_card_no='310101199001010128',
             department='Sales',
+            company='  Acme Group  ',
             sub_department='Commercial Ops',
             job_family='Business',
             job_level='P6',
@@ -168,8 +172,41 @@ def test_update_employee_changes_profile_fields() -> None:
     assert updated.employee_no == 'E005-UPDATED'
     assert updated.name == 'Erin Updated'
     assert updated.department == 'Sales'
+    assert updated.company == 'Acme Group'
     assert updated.sub_department == 'Commercial Ops'
     assert updated.job_family == 'Business'
     assert updated.job_level == 'P6'
     assert updated.status == 'inactive'
     assert updated.id_card_no == '310101199001010128'
+
+
+def test_update_employee_can_clear_company() -> None:
+    db = build_session()
+    seed_departments(db, 'Engineering')
+    service = EmployeeService(db)
+    created = service.create_employee(
+        EmployeeCreate(
+            employee_no='E006',
+            name='Fiona',
+            id_card_no='310101199001010129',
+            department='Engineering',
+            company='Acme Group',
+            job_family='Platform',
+            job_level='P5',
+            status='active',
+        )
+    )
+
+    updated = service.update_employee(created.id, EmployeeUpdate(company=''))
+
+    assert updated is not None
+    assert updated.company is None
+
+
+def test_company_migration_exists_and_is_sqlite_safe() -> None:
+    migration_files = sorted(Path('alembic/versions').glob('*_add_company_to_employee.py'))
+
+    assert migration_files, 'Expected add_company_to_employee migration file.'
+    source = migration_files[0].read_text(encoding='utf-8')
+    assert "batch_alter_table('employees')" in source
+    assert "sa.Column('company', sa.String(length=128), nullable=True)" in source

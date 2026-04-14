@@ -46,10 +46,10 @@ Full details: `.planning/milestones/v1.1-ROADMAP.md`
 **Milestone Goal:** 使系统兼容 Python 3.9 并优化部署，启用 Celery+Redis 异步任务架构，完善调薪资格数据导入管理，修复文件共享拒绝后的显示问题，增加员工所属公司字段。
 
 - [x] **Phase 18: Python 3.9 兼容与依赖修复** - 全量类型注解降级 + 依赖版本锁定 + SQLite FK 修复 (completed 2026-04-08)
-- [ ] **Phase 19: Celery+Redis 异步基础设施** - 任务队列激活、worker 启动验证、健康检查端点
-- [ ] **Phase 20: 员工所属公司字段** - Employee 模型扩展 + 档案详情展示
-- [ ] **Phase 21: 文件共享拒绝清理与状态标签** - 拒绝/超时自动删除副本 + 待同意标签
-- [ ] **Phase 22: AI 评估与批量导入异步迁移** - LLM 评估和导入任务迁移到 Celery
+- [x] **Phase 19: Celery+Redis 异步基础设施** - 任务队列激活、worker 启动验证、健康检查端点 (completed 2026-04-09)
+- [x] **Phase 20: 员工所属公司字段** - Employee 模型扩展 + 档案详情展示 (completed 2026-04-09)
+- [x] **Phase 21: 文件共享拒绝清理与状态标签** - 拒绝/超时自动删除副本 + 待同意标签 (completed 2026-04-09)
+- [x] **Phase 22: AI 评估与批量导入异步迁移** - LLM 评估和导入任务迁移到 Celery (completed 2026-04-12)
 - [ ] **Phase 23: 调薪资格统一导入管理** - 4 类数据 Tab 管理 + Excel/飞书双通道 + 飞书限流
 - [ ] **Phase 24: 生产部署配置** - gunicorn+uvicorn worker + Dockerfile + docker-compose
 
@@ -80,10 +80,11 @@ Plans:
   2. 提交一个测试 task 后，worker 日志显示任务被接收并执行完成
   3. `/api/v1/health/celery` 健康检查端点返回 worker 在线状态
   4. docker-compose.yml 中包含 celery-worker 服务定义，启动后 worker 自动连接 Redis
-**Plans:** 2 plans
+**Plans:** 3/3 plans complete
 Plans:
-- [ ] 19-01-PLAN.md — Celery app 实例 + tasks 目录 + 测试 task + celery 升级
-- [ ] 19-02-PLAN.md — 健康检查端点 + docker-compose 服务编排
+- [x] 19-01-PLAN.md — Celery app 实例 + tasks 目录 + 测试 task + celery 升级
+- [x] 19-02-PLAN.md — 健康检查端点 + docker-compose 服务编排
+- [x] 19-03-PLAN.md — Worker DB engine/session 对齐 + 真实 broker/worker 运行时验证 + ASYNC traceability 闭环
 
 ### Phase 20: 员工所属公司字段
 **Goal**: HR 可为员工设置所属公司，并在档案详情中查看
@@ -94,7 +95,10 @@ Plans:
   2. 通过批量导入 Excel（含 company 列）后，员工记录的 company 字段正确写入
   3. 管理端员工编辑表单可手动设置/修改所属公司
   4. 员工档案详情页显示所属公司信息，但员工列表页不显示该字段
-**Plans**: TBD
+**Plans**: 2/2 plans complete
+Plans:
+- [x] 20-01-PLAN.md — Backend company schema + migration + import semantics + regression coverage
+- [x] 20-02-PLAN.md — Frontend admin/detail rollout + list-page non-display guardrails
 
 ### Phase 21: 文件共享拒绝清理与状态标签
 **Goal**: 共享申请被拒绝或超时后，申请者的副本文件被自动清理，未审批的共享文件显示待同意标签
@@ -105,7 +109,10 @@ Plans:
   2. 72h 超时触发的过期处理中，申请者上传的副本文件同样被自动删除
   3. 在文件列表中，尚未审批的共享作品旁边显示"待同意"状态标签
   4. 副本删除后，申请者的文件列表中不再显示该文件
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [x] 21-01-PLAN.md — Backend history-safe cleanup foundation + atomic reject/expire model + file-list trigger contract
+- [x] 21-02-PLAN.md — Shared FileList pending badge + MyReview cleanup feedback wiring
 
 ### Phase 22: AI 评估与批量导入异步迁移
 **Goal**: AI 评估和批量导入通过 Celery 后台执行，前端可跟踪任务进度
@@ -116,7 +123,11 @@ Plans:
   2. 批量导入（Excel/飞书）提交后在后台执行，前端可查看导入进度百分比
   3. Celery task 使用独立的 DB session，不复用 FastAPI 请求级 session
   4. 单个任务失败不影响 worker 继续处理其他任务
-**Plans**: TBD
+**Plans:** 3/3 plans complete
+Plans:
+- [x] 22-01-PLAN.md — Backend Celery task 模块 + schema + 通用轮询端点 + 单元测试
+- [x] 22-02-PLAN.md — evaluations/imports API 端点异步迁移
+- [x] 22-03-PLAN.md — Frontend taskService + useTaskPolling hook + 页面集成
 **UI hint**: yes
 
 ### Phase 23: 调薪资格统一导入管理
@@ -129,7 +140,11 @@ Plans:
   3. 每个 Tab 支持配置飞书多维表格字段映射并执行同步
   4. 导入完成后显示成功/失败/跳过的统计数字和可展开的错误明细
   5. 飞书 API 调用具备 RPM 限流和指数退避重试，连续请求不触发 429 错误
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 23-01-PLAN.md — NonStatutoryLeave 模型 + ImportService 扩展 + 限流器提取 + FeishuService 扩展
+- [ ] 23-02-PLAN.md — Pydantic Schema + API Router + 飞书同步 Celery Task
+- [ ] 23-03-PLAN.md — 前端 6 Tab 页面 + Excel 导入面板 + 飞书拖拽映射 + 同步面板
 **UI hint**: yes
 
 ### Phase 24: 生产部署配置
@@ -168,9 +183,9 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 16. File Sharing | v1.1 | 2/2 | Complete | 2026-04-06 |
 | 17. Display Simplification | v1.1 | 2/2 | Complete | 2026-04-07 |
 | 18. Python 3.9 兼容 | v1.2 | 3/3 | Complete    | 2026-04-08 |
-| 19. Celery+Redis 基础设施 | v1.2 | 0/2 | Planning | - |
-| 20. 员工所属公司 | v1.2 | 0/0 | Not started | - |
-| 21. 共享拒绝清理 | v1.2 | 0/0 | Not started | - |
-| 22. 异步迁移 | v1.2 | 0/0 | Not started | - |
-| 23. 资格导入管理 | v1.2 | 0/0 | Not started | - |
+| 19. Celery+Redis 基础设施 | v1.2 | 3/3 | Complete    | 2026-04-09 |
+| 20. 员工所属公司 | v1.2 | 2/2 | Complete    | 2026-04-09 |
+| 21. 共享拒绝清理 | v1.2 | 2/2 | Complete   | 2026-04-09 |
+| 22. 异步迁移 | v1.2 | 3/3 | Complete    | 2026-04-14 |
+| 23. 资格导入管理 | v1.2 | 0/3 | Planned | - |
 | 24. 生产部署 | v1.2 | 0/0 | Not started | - |

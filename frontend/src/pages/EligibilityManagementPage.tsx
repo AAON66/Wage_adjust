@@ -8,6 +8,8 @@ import type { EligibilityImportType } from '../services/eligibilityImportService
 
 type TabKey = 'list' | 'overrides' | 'performance_grades' | 'salary_adjustments' | 'hire_info' | 'non_statutory_leave';
 
+const IMPORT_TAB_KEYS: EligibilityImportType[] = ['performance_grades', 'salary_adjustments', 'hire_info', 'non_statutory_leave'];
+
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'list', label: '调薪资格' },
   { key: 'overrides', label: '特殊申请' },
@@ -17,25 +19,19 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'non_statutory_leave', label: '非法定假期' },
 ];
 
-const IMPORT_TABS: Set<TabKey> = new Set([
-  'performance_grades',
-  'salary_adjustments',
-  'hire_info',
-  'non_statutory_leave',
-]);
-
 function isImportTab(key: TabKey): key is EligibilityImportType {
-  return IMPORT_TABS.has(key);
+  return (IMPORT_TAB_KEYS as string[]).includes(key);
 }
 
 export function EligibilityManagementPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('list');
-  const activeTabLabel = TABS.find((t) => t.key === activeTab)?.label ?? '';
+
+  const activeTabMeta = TABS.find((t) => t.key === activeTab);
 
   return (
     <AppShell
       title="调薪资格管理"
-      description="查看资格状态、特殊申请与数据导入管理。"
+      description="查看员工调薪资格状态、筛选导出，以及处理特殊审批申请。"
     >
       <div className="space-y-5">
         <nav className="flex gap-1 border-b" style={{ borderColor: 'var(--color-border)' }}>
@@ -57,8 +53,8 @@ export function EligibilityManagementPage() {
 
         {activeTab === 'list' && <EligibilityListTab />}
         {activeTab === 'overrides' && <OverrideRequestsTab />}
-        {isImportTab(activeTab) && (
-          <ImportTabContent importType={activeTab} label={activeTabLabel} />
+        {isImportTab(activeTab) && activeTabMeta && (
+          <ImportTabContent importType={activeTab} label={activeTabMeta.label} />
         )}
       </div>
     </AppShell>

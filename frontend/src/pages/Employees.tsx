@@ -1,13 +1,19 @@
 import axios from 'axios';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
 import { fetchEmployees } from '../services/employeeService';
-import type { EmployeeListResponse } from '../types/api';
+import { fetchDepartments } from '../services/userAdminService';
+import type { DepartmentRecord, EmployeeListResponse } from '../types/api';
 import { canAccessDepartment, getScopedDepartmentNames, isDepartmentScopedRole } from '../utils/departmentScope';
+
+const EMPLOYEE_STATUSES = [
+  { value: 'active', label: '启用' },
+  { value: 'inactive', label: '停用' },
+];
 
 function resolveError(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -20,14 +26,53 @@ export function EmployeesPage() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<EmployeeListResponse | null>(null);
+  const [departments, setDepartments] = useState<DepartmentRecord[]>([]);
+  const [jobFamilies, setJobFamilies] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Keyword search state with IME composition guard
+  const [keywordInput, setKeywordInput] = useState(searchParams.get('keyword') ?? '');
+  const isComposingRef = useRef(false);
+  const debounceTimerRef = useRef<number | null>(null);
 
   const department = searchParams.get('department') ?? '';
   const jobFamily = searchParams.get('job_family') ?? '';
   const status = searchParams.get('status') ?? '';
+  const keyword = searchParams.get('keyword') ?? '';
   const isDepartmentScoped = isDepartmentScopedRole(user?.role);
   const scopedDepartments = useMemo(() => getScopedDepartmentNames(user), [user]);
+
+  // Load departments and extract job families on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFilterOptions() {
+      try {
+        const [deptResponse, empResponse] = await Promise.all([
+          fetchDepartments(),
+          fetchEmployees({ page: 1, page_size: 1000 }),
+        ]);
+        if (cancelled) return;
+
+        setDepartments(deptResponse.items);
+
+        // Extract distinct job families from employee data
+        const families = new Set<string>();
+        for (const emp of empResponse.items) {
+          if (emp.job_family) {
+            families.add(emp.job_family);
+          }
+        }
+        setJobFamilies(Array.from(families).sort((a, b) => a.localeCompare(b, 'zh-CN')));
+      } catch {
+        // Silently fail — filters will just show no options
+      }
+    }
+
+    void loadFilterOptions();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     if (!isDepartmentScoped || canAccessDepartment(user, department)) {
@@ -51,6 +96,7 @@ export function EmployeesPage() {
           department: department || undefined,
           job_family: jobFamily || undefined,
           status: status || undefined,
+          keyword: keyword || undefined,
         });
         if (!cancelled) {
           setData(response);
@@ -70,9 +116,9 @@ export function EmployeesPage() {
     return () => {
       cancelled = true;
     };
-  }, [department, jobFamily, status]);
+  }, [department, jobFamily, status, keyword]);
 
-  function updateFilter(key: 'department' | 'job_family' | 'status', value: string) {
+  function updateFilter(key: 'department' | 'job_family' | 'status' | 'keyword', value: string) {
     const next = new URLSearchParams(searchParams);
     if (value) {
       next.set(key, value);
@@ -81,6 +127,67 @@ export function EmployeesPage() {
     }
     setSearchParams(next);
   }
+
+  const commitKeyword = useCallback(
+    (value: string) => {
+      updateFilter('keyword', value.trim());
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [searchParams, setSearchParams],
+  );
+
+  function handleKeywordChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const value = event.target.value;
+    setKeywordInput(value);
+
+    // Do not trigger search while IME is composing
+    if (isComposingRef.current) return;
+
+    // Debounce the search to avoid excessive API calls
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = window.setTimeout(() => {
+      commitKeyword(value);
+      debounceTimerRef.current = null;
+    }, 400);
+  }
+
+  function handleCompositionStart() {
+    isComposingRef.current = true;
+  }
+
+  function handleCompositionEnd(event: React.CompositionEvent<HTMLInputElement>) {
+    isComposingRef.current = false;
+    const value = (event.target as HTMLInputElement).value;
+    setKeywordInput(value);
+
+    // Trigger search after composition ends
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = window.setTimeout(() => {
+      commitKeyword(value);
+      debounceTimerRef.current = null;
+    }, 400);
+  }
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => () => {
+    if (debounceTimerRef.current !== null) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+  }, []);
+
+  // Determine department options based on role scope
+  const departmentOptions = useMemo(() => {
+    if (isDepartmentScoped) {
+      return scopedDepartments.map((name) => ({ value: name, label: name }));
+    }
+    return departments
+      .filter((d) => d.status === 'active')
+      .map((d) => ({ value: d.name, label: d.name }));
+  }, [isDepartmentScoped, scopedDepartments, departments]);
 
   return (
     <AppShell
@@ -98,21 +205,70 @@ export function EmployeesPage() {
       }
     >
       <section className="surface" style={{ padding: '16px 20px' }}>
-        <div className="grid gap-3 md:grid-cols-3">
-          {isDepartmentScoped ? (
-            <select className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} value={department}>
-              <option value="">全部可见部门</option>
-              {scopedDepartments.map((item) => (
-                <option key={item} value={item}>
-                  {item}
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {/* Department dropdown */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-steel">部门</span>
+            <select
+              className="toolbar-input"
+              onChange={(event) => updateFilter('department', event.target.value)}
+              value={department}
+            >
+              <option value="">{isDepartmentScoped ? '全部可见部门' : '全部部门'}</option>
+              {departmentOptions.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
                 </option>
               ))}
             </select>
-          ) : (
-            <input className="toolbar-input" onChange={(event) => updateFilter('department', event.target.value)} placeholder="按部门筛选" value={department} />
-          )}
-          <input className="toolbar-input" onChange={(event) => updateFilter('job_family', event.target.value)} placeholder="按岗位族筛选" value={jobFamily} />
-          <input className="toolbar-input" onChange={(event) => updateFilter('status', event.target.value)} placeholder="按状态筛选" value={status} />
+          </label>
+
+          {/* Job family dropdown */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-steel">岗位族</span>
+            <select
+              className="toolbar-input"
+              onChange={(event) => updateFilter('job_family', event.target.value)}
+              value={jobFamily}
+            >
+              <option value="">全部岗位族</option>
+              {jobFamilies.map((family) => (
+                <option key={family} value={family}>
+                  {family}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Status dropdown */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-steel">状态</span>
+            <select
+              className="toolbar-input"
+              onChange={(event) => updateFilter('status', event.target.value)}
+              value={status}
+            >
+              <option value="">全部状态</option>
+              {EMPLOYEE_STATUSES.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {/* Keyword search input with IME guard */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-steel">搜索</span>
+            <input
+              className="toolbar-input"
+              onChange={handleKeywordChange}
+              onCompositionStart={handleCompositionStart}
+              onCompositionEnd={handleCompositionEnd}
+              placeholder="按工号或姓名搜索"
+              value={keywordInput}
+            />
+          </label>
         </div>
         {isDepartmentScoped ? (
           <p className="mt-3 text-sm text-steel">

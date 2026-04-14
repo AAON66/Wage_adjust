@@ -18,6 +18,7 @@ import { SalaryHistoryPanel } from '../components/salary/SalaryHistoryPanel';
 import { SalarySummaryPanel } from '../components/salary/SalarySummaryPanel';
 import type { ManualAdjustmentState, SalaryFormatters } from '../components/salary/SalarySummaryPanel';
 import { useAuth } from '../hooks/useAuth';
+import { useTaskPolling } from '../hooks/useTaskPolling';
 import { submitDefaultApproval } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
 import { confirmEvaluation, fetchEvaluationBySubmission, generateEvaluation, regenerateEvaluation, submitHrReview, submitManualReview } from '../services/evaluationService';
@@ -524,6 +525,7 @@ export function EvaluationDetailPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [isGeneratingEvaluation, setIsGeneratingEvaluation] = useState(false);
+  const [evaluationTaskId, setEvaluationTaskId] = useState<string | null>(null);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
   const [isSalaryHistoryLoading, setIsSalaryHistoryLoading] = useState(false);
   const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(true);
@@ -614,6 +616,27 @@ export function EvaluationDetailPage() {
     setSubmission(submissionResponse);
     await refreshSubmissionData(submissionResponse.id);
   }
+
+  useTaskPolling(evaluationTaskId, {
+    onComplete: (result) => {
+      const evalResult = result as EvaluationRecord;
+      setEvaluation(evalResult);
+      setDimensions(mapEvaluationToDrafts(evalResult));
+      setReviewLevel(evalResult.ai_level);
+      setReviewComment(localizeEvaluationNarrative(evalResult.explanation));
+      setSalaryRecommendation(null);
+      setEvaluationTaskId(null);
+      setIsGeneratingEvaluation(false);
+      void reloadCurrentCycleData();
+      setSuccessMessage(evaluation ? 'AI 评分已按最新材料重新生成，可以继续主管复核。' : 'AI 评分已生成，可以继续主管复核。');
+    },
+    onError: (error) => {
+      setEvaluationTaskId(null);
+      setIsGeneratingEvaluation(false);
+      setErrorMessage(error);
+    },
+  });
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1314,19 +1337,15 @@ export function EvaluationDetailPage() {
           throw new Error(`仍有 ${summary.failed} 份材料解析失败，请先处理失败材料后再生成 AI 评分。`);
         }
       }
-      const nextEvaluation = evaluation ? await regenerateEvaluation(submission.id) : await generateEvaluation(submission.id);
-      setEvaluation(nextEvaluation);
-      setSalaryRecommendation(null);
-      setDimensions(mapEvaluationToDrafts(nextEvaluation));
-      setReviewLevel(nextEvaluation.ai_level);
-      setReviewComment(localizeEvaluationNarrative(nextEvaluation.explanation));
-      await reloadCurrentCycleData();
-      setSuccessMessage(evaluation ? 'AI 评分已按最新材料重新生成，可以继续主管复核。' : 'AI 评分已生成，可以继续主管复核。');
+      const triggerResponse = evaluation
+        ? await regenerateEvaluation(submission.id)
+        : await generateEvaluation(submission.id);
+      setEvaluationTaskId(triggerResponse.task_id);
     } catch (error) {
       setErrorMessage(resolveError(error));
+      setIsGeneratingEvaluation(false);
     } finally {
       setIsParsingAll(false);
-      setIsGeneratingEvaluation(false);
     }
   }
 
@@ -1661,6 +1680,9 @@ export function EvaluationDetailPage() {
               <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingEvaluation || !submission || !hasFiles} onClick={handleGenerateEvaluation} type="button">
                 <h3 className="font-medium text-ink">{isGeneratingEvaluation ? '生成中...' : evaluation ? '重新生成 AI 评分' : '生成 AI 评分'}</h3>
                 <p className="mt-2 text-sm leading-6 text-steel">解析后生成评分。</p>
+                {isGeneratingEvaluation && (
+                  <span className="ml-2 text-sm text-gray-500 animate-pulse">AI 评估中...</span>
+                )}
               </button>
               <button className="surface-subtle px-4 py-4 text-left disabled:opacity-60" disabled={isGeneratingSalary || !evaluation || evaluation.status !== 'confirmed'} onClick={handleGenerateSalary} type="button">
                 <h3 className="font-medium text-ink">{isGeneratingSalary ? '生成中...' : '生成调薪建议'}</h3>
@@ -2209,8 +2231,9 @@ export function EvaluationDetailPage() {
             </div>
 
             <div className="px-6 py-6 lg:px-7">
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
                 <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">部门</p><p className="mt-2 text-lg font-semibold text-ink">{employee.department}</p></div>
+                <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">所属公司</p><p className="mt-2 text-lg font-semibold text-ink">{employee.company ?? '未设置'}</p></div>
                 <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">岗位族</p><p className="mt-2 text-lg font-semibold text-ink">{employee.job_family}</p></div>
                 <div className="surface-subtle px-4 py-4"><p className="text-sm text-steel">岗位级别</p><p className="mt-2 text-lg font-semibold text-ink">{employee.job_level}</p></div>
                 <label className="surface-subtle px-4 py-4">
@@ -2228,7 +2251,13 @@ export function EvaluationDetailPage() {
                     <div>
                       <p className="text-sm font-semibold text-ink">模块切换</p>
                     </div>
-                  <div className="cursor-help text-xs text-steel" style={{ border: '1px solid var(--color-border)', borderRadius: 6, padding: '4px 12px' }} title={activeModuleMeta.helper}>模块说明</div>
+                  <div className="relative" style={{ display: 'inline-block' }}>
+                    <div className="text-steel" style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid var(--color-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, cursor: 'help' }}>?</div>
+                    <div className="absolute right-0 top-full mt-1 z-10 hidden text-xs text-steel" style={{ background: 'var(--color-ink)', color: '#fff', borderRadius: 6, padding: '6px 10px', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                      {activeModuleMeta.helper}
+                    </div>
+                    <style>{`.relative:hover > .hidden { display: block !important; }`}</style>
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-3">
                   {moduleTabs.map((item) => {

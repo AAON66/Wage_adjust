@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import base64
+
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from backend.app.dependencies import get_current_user, get_db, require_roles
@@ -12,28 +14,35 @@ from backend.app.schemas.import_job import (
     ImportJobListResponse,
     ImportJobRead,
 )
+from backend.app.schemas.task import TaskTriggerResponse
 from backend.app.services.import_service import ImportService
+from backend.app.tasks.import_tasks import run_import_task
 
 router = APIRouter(prefix='/imports', tags=['imports'])
 
 
-@router.post('/jobs')
+@router.post('/jobs', status_code=status.HTTP_202_ACCEPTED)
 def create_import_job(
     import_type: str,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db),
     current_user=Depends(require_roles('admin', 'hrbp', 'manager')),
-):
-    service = ImportService(db, operator_id=current_user.id, operator_role=current_user.role)
-    try:
-        job = service.run_import(import_type=import_type, upload=file)
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    data = ImportJobRead.model_validate(job).model_dump(mode='json')
-    # IMP-02: HTTP 207 Multi-Status when partial failure
-    if job.failed_rows > 0:
-        return JSONResponse(content=data, status_code=207)
-    return JSONResponse(content=data, status_code=201)
+) -> TaskTriggerResponse:
+    normalized_type = import_type.strip().lower()
+    if normalized_type not in ImportService.SUPPORTED_TYPES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Unsupported import type.')
+    raw_bytes = file.file.read()
+    if not raw_bytes:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Uploaded file is empty.')
+    file_bytes_b64 = base64.b64encode(raw_bytes).decode('ascii')
+    file_name = file.filename or f'{normalized_type}.csv'
+    task = run_import_task.delay(
+        normalized_type,
+        file_bytes_b64,
+        file_name,
+        operator_id=str(current_user.id),
+        operator_role=current_user.role,
+    )
+    return TaskTriggerResponse(task_id=task.id, status='pending')
 
 
 @router.get('/jobs', response_model=ImportJobListResponse)

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ImportJobTable } from '../components/import/ImportJobTable';
 import { ImportResultPanel } from '../components/import/ImportResultPanel';
 import { AppShell } from '../components/layout/AppShell';
+import { useTaskPolling } from '../hooks/useTaskPolling';
 import { createImportJob, downloadImportTemplate, exportImportJob, fetchImportJobs } from '../services/importService';
 import type { ImportJobRecord, ImportRowResult } from '../types/api';
 
@@ -41,6 +42,27 @@ export function ImportCenterPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastImportResult, setLastImportResult] = useState<ImportJobRecord | null>(null);
+  const [importTaskId, setImportTaskId] = useState<string | null>(null);
+  const [importProgress, setImportProgress] = useState<{ processed: number; total: number; errors: number } | null>(null);
+
+  useTaskPolling(importTaskId, {
+    onComplete: (result) => {
+      setImportTaskId(null);
+      setImportProgress(null);
+      setLastImportResult(result as ImportJobRecord);
+      setIsUploading(false);
+      void loadJobs();
+    },
+    onError: (error) => {
+      setImportTaskId(null);
+      setImportProgress(null);
+      setIsUploading(false);
+      setErrorMessage(error);
+    },
+    onProgress: (progress) => {
+      setImportProgress(progress);
+    },
+  });
 
   async function loadJobs() {
     const response = await fetchImportJobs();
@@ -87,18 +109,17 @@ export function ImportCenterPage() {
     setIsUploading(true);
     setErrorMessage(null);
     setLastImportResult(null);
+    setImportProgress(null);
     try {
-      const result = await createImportJob(selectedType, selectedFile);
-      setLastImportResult(result);
+      const triggerResponse = await createImportJob(selectedType, selectedFile);
+      setImportTaskId(triggerResponse.task_id);
       setSelectedFile(null);
       const input = window.document.getElementById('import-file-input') as HTMLInputElement | null;
       if (input) {
         input.value = '';
       }
-      await loadJobs();
     } catch (error) {
       setErrorMessage(resolveError(error));
-    } finally {
       setIsUploading(false);
     }
   }
@@ -189,10 +210,17 @@ export function ImportCenterPage() {
             <input accept=".csv,.xlsx,.xls" className="toolbar-input mt-3 w-full" id="import-file-input" onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)} style={{ height: 'auto', padding: '6px 10px' }} type="file" />
             <p className="mt-3 text-xs leading-5 text-steel">请根据模板要求准备文件后再导入，系统会按任务结果返回成功与失败明细。</p>
           </label>
-          <div className="flex items-end">
+          <div className="flex flex-col items-end justify-end">
             <button className="action-primary w-full lg:w-auto" disabled={isUploading} onClick={() => void handleUpload()} type="button">
               {isUploading ? '导入中...' : '开始导入'}
             </button>
+            {isUploading && (
+              <div className="text-sm text-gray-500 animate-pulse mt-2">
+                {importProgress
+                  ? `导入中 ${importProgress.processed}/${importProgress.total} 行${importProgress.errors > 0 ? `（${importProgress.errors} 行失败）` : ''}`
+                  : '导入中...'}
+              </div>
+            )}
           </div>
         </div>
       </section>

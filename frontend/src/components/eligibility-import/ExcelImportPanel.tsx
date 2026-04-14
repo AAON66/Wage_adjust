@@ -20,233 +20,169 @@ function formatFileSize(bytes: number): string {
 }
 
 export function ExcelImportPanel({ importType, label, onResult }: ExcelImportPanelProps) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [dragOver, setDragOver] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<{ processed: number; total: number; errors: number } | null>(null);
 
-  const { status, progress, result, error: pollError, isPolling } = useTaskPolling(taskId);
-
-  // When polling completes, relay result
-  const prevStatusRef = useRef<string | null>(null);
-  if (status !== prevStatusRef.current) {
-    prevStatusRef.current = status;
-    if (status === 'completed' && result) {
+  const taskStatus = useTaskPolling(taskId, {
+    onComplete: (result) => {
+      setTaskId(null);
       onResult(result);
+    },
+    onError: (errMsg) => {
       setTaskId(null);
-      setSelectedFile(null);
-      setIsUploading(false);
-    }
-    if (status === 'failed') {
-      setErrorMessage(pollError ?? '导入任务执行失败。');
-      setTaskId(null);
-      setIsUploading(false);
-    }
-  }
+      setError(errMsg);
+    },
+    onProgress: setProgress,
+  });
 
-  const handleFileSelect = useCallback((file: File) => {
-    const ext = file.name.toLowerCase();
-    if (!ext.endsWith('.xlsx') && !ext.endsWith('.xls')) {
-      setErrorMessage('仅支持 .xlsx 或 .xls 格式的 Excel 文件。');
+  const isPolling = taskId !== null && taskStatus !== null && (taskStatus.status === 'pending' || taskStatus.status === 'running');
+
+  const handleFileSelect = useCallback((selected: File | null) => {
+    if (!selected) return;
+    const ext = selected.name.split('.').pop()?.toLowerCase();
+    if (ext !== 'xlsx' && ext !== 'xls') {
+      setError('仅支持 .xlsx 或 .xls 格式文件');
       return;
     }
-    setSelectedFile(file);
-    setErrorMessage(null);
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(true);
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
+    setFile(selected);
+    setError(null);
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragOver(false);
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileSelect(file);
-    }
+    setDragOver(false);
+    const dropped = e.dataTransfer.files[0];
+    if (dropped) handleFileSelect(dropped);
   }, [handleFileSelect]);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileSelect(file);
-    }
-  }, [handleFileSelect]);
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  }, []);
 
-  const handleClearFile = useCallback(() => {
-    setSelectedFile(null);
-    setErrorMessage(null);
+  const handleDragLeave = useCallback(() => {
+    setDragOver(false);
+  }, []);
+
+  const handleUpload = useCallback(async () => {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    setProgress(null);
+    try {
+      const response = await uploadEligibilityExcel(importType, file);
+      const data = response.data as { task_id: string };
+      setTaskId(data.task_id);
+    } catch {
+      setError('文件上传失败，请重试');
+    } finally {
+      setUploading(false);
+    }
+  }, [file, importType]);
+
+  const clearFile = useCallback(() => {
+    setFile(null);
+    setError(null);
+    setProgress(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   }, []);
 
-  const handleStartImport = useCallback(async () => {
-    if (!selectedFile) return;
-    setIsUploading(true);
-    setErrorMessage(null);
-    try {
-      const response = await uploadEligibilityExcel(importType, selectedFile);
-      setTaskId(response.task_id);
-    } catch (err) {
-      setIsUploading(false);
-      if (err instanceof Error) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage('上传文件失败，请稍后重试。');
-      }
-    }
-  }, [selectedFile, importType]);
-
-  const dropZoneStyle: React.CSSProperties = {
-    border: `2px dashed ${isDragOver ? 'var(--color-primary)' : 'var(--color-border)'}`,
-    borderRadius: 8,
-    padding: '32px 24px',
-    textAlign: 'center',
-    background: isDragOver ? 'var(--color-primary-light)' : 'var(--color-bg-subtle)',
-    transition: 'border-color 0.12s, background 0.12s',
-    cursor: 'pointer',
-  };
-
   return (
-    <section className="surface" style={{ padding: '16px 20px' }}>
+    <div>
       <p className="eyebrow">Excel 导入</p>
-      <h2 className="section-title" style={{ marginBottom: 12 }}>
-        通过 Excel 文件导入{label}数据
-      </h2>
+      <h3 className="section-title" style={{ marginBottom: 12 }}>
+        上传{label}数据文件
+      </h3>
 
-      {!selectedFile ? (
-        <div
-          role="button"
-          tabIndex={0}
-          style={dropZoneStyle}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              fileInputRef.current?.click();
-            }
-          }}
-        >
-          <svg
-            width="32"
-            height="32"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--color-steel)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{ margin: '0 auto 8px' }}
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <p style={{ fontSize: 13.5, color: 'var(--color-steel)', margin: '0 0 4px' }}>
-            拖拽 Excel 文件到此处，或点击选择文件
-          </p>
-          <p style={{ fontSize: 12, color: 'var(--color-placeholder)', margin: 0 }}>
-            支持 .xlsx / .xls 格式，单次最多 5000 行
-          </p>
-        </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '12px 16px',
-            background: 'var(--color-bg-subtle)',
-            borderRadius: 8,
-            border: '1px solid var(--color-border)',
-          }}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="var(--color-success)"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-            <polyline points="14 2 14 8 20 8" />
-          </svg>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 13.5, color: 'var(--color-ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {selectedFile.name}
-            </p>
-            <p style={{ fontSize: 12, color: 'var(--color-steel)', margin: 0 }}>
-              {formatFileSize(selectedFile.size)}
-            </p>
+      {/* File Drop Zone */}
+      <div
+        role="button"
+        tabIndex={0}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
+        style={{
+          border: `2px dashed ${dragOver ? 'var(--color-primary)' : 'var(--color-border)'}`,
+          borderRadius: 8,
+          padding: '32px 24px',
+          textAlign: 'center',
+          cursor: 'pointer',
+          background: dragOver ? 'var(--color-primary-light, rgba(59,130,246,0.05))' : 'transparent',
+          transition: 'border-color 0.2s, background 0.2s',
+        }}
+      >
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          hidden
+          onChange={(e) => handleFileSelect(e.target.files?.[0] ?? null)}
+        />
+        {file ? (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, color: 'var(--color-ink)' }}>
+              {file.name} ({formatFileSize(file.size)})
+            </span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); clearFile(); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--color-steel)',
+                fontSize: 16,
+                lineHeight: 1,
+                padding: '2px 6px',
+              }}
+              aria-label="清除已选文件"
+            >
+              x
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleClearFile}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 4,
-              color: 'var(--color-steel)',
-              lineHeight: 1,
-            }}
-            aria-label="清除已选文件"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-        </div>
+        ) : (
+          <p style={{ fontSize: 14, color: 'var(--color-steel)', margin: 0 }}>
+            将 .xlsx 或 .xls 文件拖拽到此处，或点击选择文件
+          </p>
+        )}
+      </div>
+
+      {error && (
+        <p style={{ marginTop: 8, fontSize: 13, color: 'var(--color-danger)' }}>{error}</p>
       )}
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".xlsx,.xls"
-        hidden
-        onChange={handleInputChange}
-      />
-
-      {errorMessage ? (
-        <p role="alert" style={{ marginTop: 8, fontSize: 13, color: 'var(--color-danger)' }}>
-          {errorMessage}
+      {/* Progress indicator */}
+      {(uploading || isPolling) && (
+        <p style={{ marginTop: 8, fontSize: 13, color: 'var(--color-primary)' }}>
+          {uploading
+            ? '正在上传文件...'
+            : progress
+              ? `正在导入数据... 已处理 ${progress.processed}/${progress.total} 条`
+              : '正在导入数据...'}
         </p>
-      ) : null}
+      )}
 
-      {(isUploading || isPolling) && progress ? (
-        <p role="status" aria-live="polite" style={{ marginTop: 8, fontSize: 13, color: 'var(--color-steel)' }}>
-          正在导入数据... 已处理 {progress.processed}/{progress.total} 条
-        </p>
-      ) : null}
-
-      {(isUploading || isPolling) && !progress ? (
-        <p role="status" aria-live="polite" style={{ marginTop: 8, fontSize: 13, color: 'var(--color-steel)' }}>
-          正在导入数据...
-        </p>
-      ) : null}
-
+      {/* Action buttons */}
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <a
           className="action-secondary"
           href={getTemplateUrl(importType)}
-          download
+          target="_blank"
+          rel="noopener noreferrer"
           style={{ textDecoration: 'none' }}
         >
           下载模板
@@ -254,12 +190,12 @@ export function ExcelImportPanel({ importType, label, onResult }: ExcelImportPan
         <button
           className="action-primary"
           type="button"
-          disabled={!selectedFile || isUploading || isPolling}
-          onClick={() => void handleStartImport()}
+          disabled={!file || uploading || isPolling}
+          onClick={handleUpload}
         >
-          {isUploading || isPolling ? '导入中...' : '开始导入'}
+          开始导入
         </button>
       </div>
-    </section>
+    </div>
   );
 }

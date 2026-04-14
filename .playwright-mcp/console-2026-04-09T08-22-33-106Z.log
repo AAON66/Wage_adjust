@@ -1,3 +1,0 @@
-[      64ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5174/node_modules/.vite/deps/chunk-NXESFFTV.js?v=3cd1631e:21608
-[     132ms] [ERROR] Access to XMLHttpRequest at 'http://127.0.0.1:8011/api/v1/submissions/e3b2c835-1b4c-48d5-bd01-c244e86817ff/files' from origin 'http://127.0.0.1:5174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. @ http://127.0.0.1:5174/employees/5bf34cfa-7c81-4af8-9b79-36b53e9d7ed7:0
-[     133ms] [ERROR] Failed to load resource: net::ERR_FAILED @ http://127.0.0.1:8011/api/v1/submissions/e3b2c835-1b4c-48d5-bd01-c244e86817ff/files:0

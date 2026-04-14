@@ -1,17 +1,19 @@
 ﻿import api from './api';
-import type { ImportJobListResponse, ImportJobRecord } from '../types/api';
+import type { ImportJobListResponse, ImportJobRecord, TaskTriggerResponse } from '../types/api';
 
 export async function fetchImportJobs(): Promise<ImportJobListResponse> {
   const response = await api.get<ImportJobListResponse>('/imports/jobs');
   return response.data;
 }
 
-export async function createImportJob(importType: string, file: File): Promise<ImportJobRecord> {
+export async function createImportJob(importType: string, file: File): Promise<TaskTriggerResponse> {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post<ImportJobRecord>(`/imports/jobs?import_type=${encodeURIComponent(importType)}`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const response = await api.post<TaskTriggerResponse>(
+    `/imports/jobs?import_type=${encodeURIComponent(importType)}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
   return response.data;
 }
 
