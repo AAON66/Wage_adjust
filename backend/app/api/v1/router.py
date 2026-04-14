@@ -13,6 +13,7 @@ from backend.app.api.v1.dashboard import router as dashboard_router
 from backend.app.api.v1.departments import router as departments_router
 from backend.app.api.v1.eligibility import router as eligibility_router
 from backend.app.api.v1.employees import router as employees_router
+from backend.app.api.v1.eligibility_import import router as eligibility_import_router
 from backend.app.api.v1.evaluations import router as evaluations_router
 from backend.app.api.v1.feishu import router as feishu_router
 from backend.app.api.v1.files import router as files_router
@@ -54,3 +55,4 @@ api_router.include_router(api_keys_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(health_router)
 api_router.include_router(tasks_router)
+api_router.include_router(eligibility_import_router)
