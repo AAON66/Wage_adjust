@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { DimensionCard } from '../components/evaluation/DimensionCard';
 import { DuplicateWarningModal } from '../components/evaluation/DuplicateWarningModal';
@@ -38,7 +38,6 @@ import type {
   EvaluationRecord,
   EvidenceRecord,
   SalaryRecommendationRecord,
-  SharingCleanupNoticeRecord,
   SubmissionRecord,
   UploadedFileRecord,
 } from '../types/api';
@@ -85,38 +84,6 @@ function mapEvidence(item: EvidenceRecord): EvidenceRecord {
   return { ...item, tags };
 }
 
-function resolveSharingCleanupMessage(notice: SharingCleanupNoticeRecord): string {
-  const fileLabel = notice.file_name ? `共享副本《${notice.file_name}》` : '共享副本';
-  if (notice.status === 'rejected') {
-    return `${fileLabel}已因被拒绝而自动删除。`;
-  }
-  if (notice.status === 'expired') {
-    return `${fileLabel}已因 72 小时未获同意而自动删除，可重新上传发起共享申请。`;
-  }
-  return notice.message;
-}
-
-function summarizeSharingCleanupNotices(notices: SharingCleanupNoticeRecord[]): string {
-  if (notices.length === 1) {
-    return resolveSharingCleanupMessage(notices[0]);
-  }
-
-  const rejectedCount = notices.filter((notice) => notice.status === 'rejected').length;
-  const expiredCount = notices.filter((notice) => notice.status === 'expired').length;
-  const parts: string[] = [];
-
-  if (rejectedCount > 0) {
-    parts.push(`${rejectedCount} 个因被拒绝`);
-  }
-  if (expiredCount > 0) {
-    parts.push(`${expiredCount} 个因 72 小时未获同意`);
-  }
-
-  const reasonSummary = parts.length > 0 ? `：${parts.join('，')}` : '';
-  const retryHint = expiredCount > 0 ? '超时文件可重新上传发起共享申请。' : '';
-  return `${notices.length} 个共享副本已自动删除${reasonSummary}。${retryHint}`.trim();
-}
-
 function resolveCurrentStep(
   salaryStatus: string | null,
   approvals: ApprovalRecord[],
@@ -157,9 +124,6 @@ export function MyReviewPage() {
   const [fileQueue, setFileQueue] = useState<FileQueueItem[]>([]);
   const [hashCheckStatus, setHashCheckStatus] = useState<'idle' | 'checking' | 'error'>('idle');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const cleanupToastTimerRef = useRef<number | null>(null);
-  const cleanupNoticeSubmissionIdRef = useRef<string | null>(null);
-  const seenCleanupNoticeKeysRef = useRef<Set<string>>(new Set());
 
   async function loadCycleWorkspace(targetEmployeeId: string, cycleId: string) {
     const submissionResponse = await ensureSubmission(targetEmployeeId, cycleId);
@@ -173,7 +137,6 @@ export function MyReviewPage() {
     setSubmissions(submissionListResponse.items);
     setFiles(fileResponse.items);
     setEvidenceItems(evidenceResponse.items.map(mapEvidence));
-    handleSharingCleanupNotices(submissionResponse.id, fileResponse.sharing_cleanup_notices);
 
     // Fetch evaluation (404 = no evaluation yet, not an error)
     let evalData: EvaluationRecord | null = null;
@@ -288,12 +251,6 @@ export function MyReviewPage() {
     };
   }, [employee, selectedCycleId]);
 
-  useEffect(() => () => {
-    if (cleanupToastTimerRef.current != null) {
-      window.clearTimeout(cleanupToastTimerRef.current);
-    }
-  }, []);
-
   const cycleNameById = useMemo(() => Object.fromEntries(cycles.map((cycle) => [cycle.id, cycle.name])), [cycles]);
   const currentCycle = useMemo(() => cycles.find((cycle) => cycle.id === selectedCycleId) ?? null, [cycles, selectedCycleId]);
 
@@ -304,35 +261,9 @@ export function MyReviewPage() {
     await loadCycleWorkspace(employee.id, selectedCycleId);
   }
 
-  function handleSharingCleanupNotices(submissionId: string, notices: SharingCleanupNoticeRecord[]) {
-    if (cleanupNoticeSubmissionIdRef.current !== submissionId) {
-      cleanupNoticeSubmissionIdRef.current = submissionId;
-      seenCleanupNoticeKeysRef.current = new Set();
-    }
-
-    const unseenNotices = notices.filter((notice) => {
-      const key = `${notice.request_id}:${notice.status}:${notice.resolved_at ?? ''}`;
-      if (seenCleanupNoticeKeysRef.current.has(key)) {
-        return false;
-      }
-      seenCleanupNoticeKeysRef.current.add(key);
-      return true;
-    });
-
-    if (unseenNotices.length > 0) {
-      showToast(summarizeSharingCleanupNotices(unseenNotices));
-    }
-  }
-
   function showToast(message: string) {
     setToastMessage(message);
-    if (cleanupToastTimerRef.current != null) {
-      window.clearTimeout(cleanupToastTimerRef.current);
-    }
-    cleanupToastTimerRef.current = window.setTimeout(() => {
-      setToastMessage(null);
-      cleanupToastTimerRef.current = null;
-    }, 4000);
+    setTimeout(() => setToastMessage(null), 4000);
   }
 
   async function finishQueueAndUpload(queue: FileQueueItem[]) {

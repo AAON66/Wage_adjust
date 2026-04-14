@@ -57,16 +57,14 @@ def create_db_engine(settings: Settings | None = None) -> Engine:
     return new_engine
 
 
-def create_session_factory(
-    settings: Settings | None = None, *, engine_instance: Engine | None = None
-) -> sessionmaker[Session]:
+def create_session_factory(settings: Settings | None = None) -> sessionmaker[Session]:
     """Create a configured session factory for the current environment."""
-    bind_engine = engine_instance or create_db_engine(settings)
-    return sessionmaker(bind=bind_engine, autocommit=False, autoflush=False, class_=Session)
+    engine = create_db_engine(settings)
+    return sessionmaker(bind=engine, autocommit=False, autoflush=False, class_=Session)
 
 
 engine: Engine = create_db_engine()
-SessionLocal: sessionmaker[Session] = create_session_factory(engine_instance=engine)
+SessionLocal: sessionmaker[Session] = create_session_factory()
 
 
 def get_db_session() -> Generator[Session, None, None]:

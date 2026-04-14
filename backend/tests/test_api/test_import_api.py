@@ -4,7 +4,6 @@ from pathlib import Path
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 
 from backend.app.core.config import Settings
 from backend.app.core.database import create_db_engine, create_session_factory, init_database
@@ -12,7 +11,6 @@ from backend.app.dependencies import get_db
 from backend.app.main import create_app
 from backend.app.models import load_model_modules
 from backend.app.models.department import Department
-from backend.app.models.employee import Employee
 
 
 class ApiDatabaseContext:
@@ -68,8 +66,8 @@ def test_import_api_flow() -> None:
         seed_departments(context, 'Engineering')
 
         employee_csv = '\n'.join([
-            'employee_no,name,id_card_no,department,sub_department,company,job_family,job_level,status,manager_employee_no',
-            'EMP-2001,Alice Zhang,310101199001010123,Engineering,Backend Platform,Acme Group,Platform,P5,active,',
+            'employee_no,name,id_card_no,department,sub_department,job_family,job_level,status,manager_employee_no',
+            'EMP-2001,Alice Zhang,310101199001010123,Engineering,Backend Platform,Platform,P5,active,',
         ]).encode('utf-8')
         create_response = client.post(
             '/api/v1/imports/jobs?import_type=employees',
@@ -88,34 +86,16 @@ def test_import_api_flow() -> None:
         assert detail_response.status_code == 200
         assert detail_response.json()['import_type'] == 'employees'
 
-        template_response = client.get('/api/v1/imports/templates/employees?format=csv', headers=headers)
+        template_response = client.get('/api/v1/imports/templates/employees', headers=headers)
         assert template_response.status_code == 200
         assert 'attachment; filename=employees_template.csv' in template_response.headers['content-disposition']
         assert '员工工号' in template_response.content.decode('utf-8-sig')
         assert '身份证号' in template_response.content.decode('utf-8-sig')
-        assert '所属公司' in template_response.content.decode('utf-8-sig')
 
-        export_response = client.get(f'/api/v1/imports/jobs/{job_id}/export?format=csv', headers=headers)
+        export_response = client.get(f'/api/v1/imports/jobs/{job_id}/export', headers=headers)
         assert export_response.status_code == 200
         assert 'attachment;' in export_response.headers['content-disposition']
         assert '导入成功。' in export_response.text
-
-        upsert_response = client.post(
-            '/api/v1/imports/jobs?import_type=employees',
-            files={'file': ('employees-upsert.csv', '\n'.join([
-                'employee_no,name,id_card_no,department,sub_department,company,job_family,job_level,status,manager_employee_no',
-                'EMP-2001,Alice Zhang,310101199001010123,Engineering,Backend Platform,Beacon Labs,Platform,P5,active,',
-            ]).encode('utf-8'), 'text/csv')},
-            headers=headers,
-        )
-        assert upsert_response.status_code == 201
-        db = context.session_factory()
-        try:
-            employee = db.scalar(select(Employee).where(Employee.employee_no == 'EMP-2001'))
-            assert employee is not None
-            assert employee.company == 'Beacon Labs'
-        finally:
-            db.close()
 
         xlsx_response = client.post(
             '/api/v1/imports/jobs?import_type=employees',
@@ -124,7 +104,7 @@ def test_import_api_flow() -> None:
         )
         assert xlsx_response.status_code == 201
         assert xlsx_response.json()['status'] == 'failed'
-        assert xlsx_response.json()['result_summary']['error']
+        assert '暂不支持直接读取 Excel' in xlsx_response.json()['result_summary']['error']
 
 
 def test_import_api_supports_delete_and_bulk_delete() -> None:

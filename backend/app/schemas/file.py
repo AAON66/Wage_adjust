@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
@@ -38,26 +38,15 @@ class UploadedFileRead(BaseModel):
     file_type: str
     storage_key: str
     parse_status: str
-    sharing_status: Optional[str] = None
-    sharing_status_label: Optional[str] = None
     content_hash: str = ''
     owner_contribution_pct: float = 100.0
     contributors: List[ContributorRead] = []
     created_at: datetime
 
 
-class SharingCleanupNoticeRead(BaseModel):
-    request_id: str
-    status: str
-    file_name: str
-    message: str
-    resolved_at: Optional[datetime] = None
-
-
 class UploadedFileListResponse(BaseModel):
     items: List[UploadedFileRead]
     total: int
-    sharing_cleanup_notices: List[SharingCleanupNoticeRead] = []
 
 
 class GitHubImportRequest(BaseModel):

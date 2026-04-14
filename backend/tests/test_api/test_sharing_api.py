@@ -5,7 +5,6 @@ and atomic upload+sharing-request creation.
 """
 from __future__ import annotations
 
-from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -23,7 +22,6 @@ from backend.app.models.sharing_request import SharingRequest
 from backend.app.models.submission import EmployeeSubmission
 from backend.app.models.uploaded_file import UploadedFile
 from backend.app.models.user import User
-from backend.app.utils.helpers import utc_now
 
 
 class ApiDatabaseContext:
@@ -252,19 +250,12 @@ def test_pending_count_returns_zero_initially() -> None:
 # approve/reject 403 (non-owner)
 # ---------------------------------------------------------------------------
 
-def _seed_pending_request_with_copy(
-    context: ApiDatabaseContext,
-    seed: dict,
-    *,
-    status: str = 'pending',
-    file_name: str = 'dup.pptx',
-    created_at=None,
-) -> dict[str, str]:
-    """Create a sharing request directly in DB. Returns request + requester copy IDs."""
+def _seed_pending_request(context: ApiDatabaseContext, seed: dict) -> str:
+    """Create a pending sharing request directly in DB. Returns request_id."""
     db = context.session_factory()
     try:
         file2 = UploadedFile(
-            submission_id=seed['sub2_id'], file_name=file_name, file_type='pptx',
+            submission_id=seed['sub2_id'], file_name='dup.pptx', file_type='pptx',
             storage_key=f'uploads/{uuid4().hex}', content_hash='api_share_hash',
         )
         db.add(file2)
@@ -276,22 +267,15 @@ def _seed_pending_request_with_copy(
             original_file_id=seed['file1_id'],
             requester_submission_id=seed['sub2_id'],
             original_submission_id=seed['sub1_id'],
-            requester_content_hash='api_share_hash',
-            requester_file_name_snapshot=file_name,
-            status=status,
+            status='pending',
             proposed_pct=50.0,
-            created_at=created_at,
         )
         db.add(sr)
         db.commit()
         db.refresh(sr)
-        return {'request_id': sr.id, 'requester_file_id': file2.id}
+        return sr.id
     finally:
         db.close()
-
-
-def _seed_pending_request(context: ApiDatabaseContext, seed: dict) -> str:
-    return _seed_pending_request_with_copy(context, seed)['request_id']
 
 
 def test_approve_returns_403_for_non_owner() -> None:
@@ -310,32 +294,6 @@ def test_approve_returns_403_for_non_owner() -> None:
             json={'final_pct': 50},
         )
         assert response.status_code == 403
-
-
-def test_revoke_rejection_endpoint_is_blocked() -> None:
-    client, context = build_client()
-    with client:
-        token = register_admin(client)
-        headers = {'Authorization': f'Bearer {token}'}
-        seed = seed_two_employees_with_files(context)
-        bind_user_to_employee(context, 'admin@example.com', seed['emp1_id'])
-        request_id = _seed_pending_request(context, seed)
-
-        db = context.session_factory()
-        try:
-            sr = db.get(SharingRequest, request_id)
-            assert sr is not None
-            sr.status = 'rejected'
-            db.add(sr)
-            db.commit()
-        finally:
-            db.close()
-
-        response = client.post(
-            f'/api/v1/sharing-requests/{request_id}/revoke-rejection',
-            headers=headers,
-        )
-        assert response.status_code in {400, 404}
 
 
 def test_reject_returns_403_for_non_owner() -> None:
@@ -373,157 +331,6 @@ def test_approve_succeeds_for_owner() -> None:
         body = response.json()
         assert body['status'] == 'approved'
         assert body['final_pct'] == 60.0
-
-
-def test_sharing_history_uses_snapshot_when_requester_file_missing() -> None:
-    client, context = build_client()
-    with client:
-        token = register_admin(client)
-        headers = {'Authorization': f'Bearer {token}'}
-        seed = seed_two_employees_with_files(context)
-        bind_user_to_employee(context, 'admin@example.com', seed['emp1_id'])
-
-        db = context.session_factory()
-        try:
-            file2 = UploadedFile(
-                submission_id=seed['sub2_id'],
-                file_name='dup_snapshot.pptx',
-                file_type='pptx',
-                storage_key=f'uploads/{uuid4().hex}',
-                content_hash='api_share_hash',
-            )
-            db.add(file2)
-            db.commit()
-            db.refresh(file2)
-
-            sr = SharingRequest(
-                requester_file_id=None,
-                original_file_id=seed['file1_id'],
-                requester_submission_id=seed['sub2_id'],
-                original_submission_id=seed['sub1_id'],
-                requester_content_hash='api_share_hash',
-                requester_file_name_snapshot='dup_snapshot.pptx',
-                status='rejected',
-                proposed_pct=50.0,
-            )
-            db.add(sr)
-            db.commit()
-        finally:
-            db.close()
-
-        response = client.get('/api/v1/sharing-requests?direction=incoming', headers=headers)
-        assert response.status_code == 200, response.text
-        body = response.json()
-        assert body['total'] == 1
-        item = body['items'][0]
-        assert item['requester_file_id'] is None
-        assert item['requester_name'] == 'Requester User'
-        assert item['file_name'] == 'orig.pptx'
-        assert item['status'] == 'rejected'
-
-
-def test_list_files_marks_pending_requester_copy_with_sharing_status_only() -> None:
-    client, context = build_client()
-    with client:
-        token = register_admin(client)
-        headers = {'Authorization': f'Bearer {token}'}
-        seed = seed_two_employees_with_files(context)
-        pending = _seed_pending_request_with_copy(context, seed)
-
-        db = context.session_factory()
-        try:
-            extra_file = UploadedFile(
-                submission_id=seed['sub2_id'],
-                file_name='notes.txt',
-                file_type='txt',
-                storage_key=f'uploads/{uuid4().hex}',
-                content_hash='another_hash',
-                parse_status='parsed',
-            )
-            db.add(extra_file)
-            db.commit()
-            db.refresh(extra_file)
-            extra_file_id = extra_file.id
-        finally:
-            db.close()
-
-        requester_response = client.get(f'/api/v1/submissions/{seed["sub2_id"]}/files', headers=headers)
-        assert requester_response.status_code == 200, requester_response.text
-        requester_body = requester_response.json()
-        assert requester_body['sharing_cleanup_notices'] == []
-
-        items_by_id = {item['id']: item for item in requester_body['items']}
-        assert items_by_id[pending['requester_file_id']]['sharing_status'] == 'pending'
-        assert items_by_id[pending['requester_file_id']]['sharing_status_label'] == '待同意'
-        assert items_by_id[pending['requester_file_id']]['parse_status'] == 'pending'
-        assert items_by_id[extra_file_id]['sharing_status'] is None
-        assert items_by_id[extra_file_id]['sharing_status_label'] is None
-        assert items_by_id[extra_file_id]['parse_status'] == 'parsed'
-
-        original_response = client.get(f'/api/v1/submissions/{seed["sub1_id"]}/files', headers=headers)
-        assert original_response.status_code == 200, original_response.text
-        original_item = original_response.json()['items'][0]
-        assert original_item['sharing_status'] is None
-        assert original_item['sharing_status_label'] is None
-
-
-def test_list_files_triggers_expired_cleanup_and_returns_notice() -> None:
-    client, context = build_client()
-    with client:
-        token = register_admin(client)
-        headers = {'Authorization': f'Bearer {token}'}
-        seed = seed_two_employees_with_files(context)
-        pending = _seed_pending_request_with_copy(
-            context,
-            seed,
-            created_at=utc_now() - timedelta(hours=73),
-        )
-
-        response = client.get(f'/api/v1/submissions/{seed["sub2_id"]}/files', headers=headers)
-        assert response.status_code == 200, response.text
-        body = response.json()
-        assert body['items'] == []
-        assert len(body['sharing_cleanup_notices']) == 1
-        notice = body['sharing_cleanup_notices'][0]
-        assert notice['status'] == 'expired'
-        assert notice['file_name'] == 'dup.pptx'
-        assert '超时' in notice['message']
-
-        db = context.session_factory()
-        try:
-            sr = db.get(SharingRequest, pending['request_id'])
-            assert sr is not None
-            assert sr.status == 'expired'
-            assert sr.requester_file_id is None
-            assert db.get(UploadedFile, pending['requester_file_id']) is None
-        finally:
-            db.close()
-
-
-def test_list_files_returns_rejected_cleanup_notice_after_reject() -> None:
-    client, context = build_client()
-    with client:
-        token = register_admin(client)
-        headers = {'Authorization': f'Bearer {token}'}
-        seed = seed_two_employees_with_files(context)
-        pending = _seed_pending_request_with_copy(context, seed)
-        bind_user_to_employee(context, 'admin@example.com', seed['emp1_id'])
-
-        reject_response = client.post(
-            f'/api/v1/sharing-requests/{pending["request_id"]}/reject',
-            headers=headers,
-        )
-        assert reject_response.status_code == 200, reject_response.text
-
-        list_response = client.get(f'/api/v1/submissions/{seed["sub2_id"]}/files', headers=headers)
-        assert list_response.status_code == 200, list_response.text
-        body = list_response.json()
-        assert body['items'] == []
-        assert len(body['sharing_cleanup_notices']) == 1
-        notice = body['sharing_cleanup_notices'][0]
-        assert notice['status'] == 'rejected'
-        assert notice['file_name'] == 'dup.pptx'
-        assert '拒绝' in notice['message']
 
 
 # ---------------------------------------------------------------------------

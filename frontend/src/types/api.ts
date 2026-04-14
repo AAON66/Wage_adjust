@@ -74,7 +74,6 @@ export interface EmployeeRecord {
   employee_no: string;
   name: string;
   id_card_no: string | null;
-  company: string | null;
   department: string;
   sub_department: string | null;
   job_family: string;
@@ -91,7 +90,6 @@ export interface EmployeeCreatePayload {
   employee_no: string;
   name: string;
   id_card_no: string | null;
-  company: string | null;
   department: string;
   sub_department: string | null;
   job_family: string;
@@ -104,7 +102,6 @@ export interface EmployeeUpdatePayload {
   employee_no?: string;
   name?: string;
   id_card_no?: string | null;
-  company?: string | null;
   department?: string;
   sub_department?: string | null;
   job_family?: string;
@@ -126,7 +123,6 @@ export interface EmployeeQuery {
   department?: string;
   job_family?: string;
   status?: string;
-  keyword?: string;
 }
 
 export interface CycleRecord {
@@ -199,24 +195,13 @@ export interface UploadedFileRecord {
   file_type: string;
   storage_key: string;
   parse_status: 'pending' | 'parsing' | 'parsed' | 'failed';
-  sharing_status?: 'pending' | null;
-  sharing_status_label?: string | null;
   created_at: string;
   size_label?: string;
-}
-
-export interface SharingCleanupNoticeRecord {
-  request_id: string;
-  status: 'rejected' | 'expired';
-  file_name: string;
-  message: string;
-  resolved_at?: string | null;
 }
 
 export interface UploadedFileListResponse {
   items: UploadedFileRecord[];
   total: number;
-  sharing_cleanup_notices: SharingCleanupNoticeRecord[];
 }
 
 export interface FileDeleteResponse {
@@ -961,19 +946,4 @@ export interface EligibilityOverrideCreatePayload {
 export interface EligibilityOverrideDecisionPayload {
   decision: 'approve' | 'reject';
   comment?: string;
-}
-
-// === Async Task Polling (Phase 22) ===
-
-export interface TaskTriggerResponse {
-  task_id: string;
-  status: 'pending';
-}
-
-export interface TaskStatusResponse {
-  task_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  progress?: { processed: number; total: number; errors: number };
-  result?: unknown;
-  error?: string;
 }

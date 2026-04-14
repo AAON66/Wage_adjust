@@ -23,12 +23,10 @@ class SharingRequestRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    requester_file_id: Optional[str] = None
+    requester_file_id: str
     original_file_id: str
     requester_submission_id: str
     original_submission_id: str
-    requester_content_hash: str | None = None
-    requester_file_name_snapshot: str | None = None
     status: str
     proposed_pct: float
     final_pct: Optional[float] = None

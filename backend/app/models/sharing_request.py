@@ -19,8 +19,8 @@ class SharingRequest(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         UniqueConstraint('requester_file_id', 'original_file_id', name='uq_sharing_request_file_pair'),
     )
 
-    requester_file_id: Mapped[Optional[str]] = mapped_column(
-        ForeignKey('uploaded_files.id', ondelete='SET NULL'), nullable=True, index=True,
+    requester_file_id: Mapped[str] = mapped_column(
+        ForeignKey('uploaded_files.id', ondelete='CASCADE'), nullable=False, index=True,
     )
     original_file_id: Mapped[str] = mapped_column(
         ForeignKey('uploaded_files.id', ondelete='CASCADE'), nullable=False, index=True,
@@ -31,8 +31,6 @@ class SharingRequest(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     original_submission_id: Mapped[str] = mapped_column(
         ForeignKey('employee_submissions.id', ondelete='CASCADE'), nullable=False,
     )
-    requester_content_hash: Mapped[str] = mapped_column(String(64), nullable=False, default='', server_default='')
-    requester_file_name_snapshot: Mapped[str] = mapped_column(String(255), nullable=False, default='', server_default='')
     status: Mapped[str] = mapped_column(String(32), nullable=False, default='pending')
     proposed_pct: Mapped[float] = mapped_column(Float, nullable=False, default=50.0)
     final_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)

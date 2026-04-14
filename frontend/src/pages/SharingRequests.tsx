@@ -7,6 +7,7 @@ import {
   listSharingRequests,
   rejectSharingRequest,
   revokeSharingApproval,
+  revokeSharingRejection,
 } from '../services/sharingService';
 import type { SharingRequestRecord } from '../types/api';
 
@@ -67,6 +68,21 @@ export function SharingRequestsPage() {
           ?.response?.data?.detail ||
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         '撤销失败，请稍后重试。';
+      setError(msg);
+    }
+  }
+
+  async function handleRevokeRejection(id: string) {
+    setError(null);
+    try {
+      await revokeSharingRejection(id);
+      await fetchRequests(direction);
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string; message?: string } } })
+          ?.response?.data?.detail ||
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        '撤销拒绝失败，请稍后重试。';
       setError(msg);
     }
   }
@@ -148,6 +164,7 @@ export function SharingRequestsPage() {
                     onApprove={handleApprove}
                     onReject={handleReject}
                     onRevoke={handleRevoke}
+                    onRevokeRejection={handleRevokeRejection}
                   />
                 ))}
               </tbody>

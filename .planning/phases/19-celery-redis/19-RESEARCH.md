@@ -387,19 +387,17 @@ api_router.include_router(health_router)
 | A3 | `CELERY_` 前缀配置已废弃 | State of the Art | 低 — Celery 4.0+ 切换到小写配置 |
 | A4 | `autoretry_for` 声明式重试可用 | State of the Art | 低 — Celery 4.2+ 引入 |
 
-## Open Questions (RESOLVED)
+## Open Questions
 
 1. **Dockerfile 是否需要本阶段创建？**
    - What we know: docker-compose.yml 的 backend 和 celery-worker 服务都用 `build: .`，需要 Dockerfile
    - What's unclear: 项目中目前没有 Dockerfile，但 DEPLOY-04（Phase 24）也要求 Dockerfile
-   - Resolution: 已在 Phase 19 落地基础 Dockerfile，并由 `docker-compose.yml` 的 `backend` / `celery-worker` 复用；Phase 24 仅继续扩展生产部署细节，不再回退这一基础镜像前提
-   - Outcome: 该问题已解决，本阶段需要并且已经有基础 Dockerfile 才能支撑 Redis + worker 的真实运行时验证
+   - Recommendation: 本阶段创建一个基础 Dockerfile（仅后端），Phase 24 再完善。否则 docker-compose 无法工作
 
 2. **SQLite 在 Celery prefork 模式下的限制**
    - What we know: 开发环境使用 SQLite；SQLite 对并发写入支持有限
    - What's unclear: prefork concurrency=2 时两个 worker 进程同时写 SQLite 是否会出现锁定
-   - Resolution: Phase 19 的验证 task 只执行 `SELECT 1`，运行时 proof 也只要求读路径打通，因此不把 SQLite 并发写锁问题纳入本阶段完成标准；真正的业务异步写入风险留给后续迁移 Phase 22，并由更适合的生产数据库承接
-   - Outcome: 本阶段以只读 DB probe 关闭 worker/Redis 链路真值，SQLite 写并发限制被明确记录为后续阶段约束，而不是当前 blocker
+   - Recommendation: 测试 task 的 DB 操作使用只读查询（SELECT 1），避免并发写入问题；文档注明生产环境应使用 PostgreSQL
 
 ## Environment Availability
 

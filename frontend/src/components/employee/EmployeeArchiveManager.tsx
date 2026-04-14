@@ -7,7 +7,6 @@ const INITIAL_EMPLOYEE_FORM: EmployeeCreatePayload = {
   employee_no: '',
   name: '',
   id_card_no: null,
-  company: null,
   department: '',
   sub_department: null,
   job_family: '',
@@ -30,7 +29,6 @@ function toFormValues(employee: EmployeeRecord): EmployeeCreatePayload {
     employee_no: employee.employee_no,
     name: employee.name,
     id_card_no: employee.id_card_no,
-    company: employee.company,
     department: employee.department,
     sub_department: employee.sub_department,
     job_family: employee.job_family,
@@ -132,10 +130,6 @@ export function EmployeeArchiveManager({
           <label className="surface-subtle px-4 py-4">
             <span className="text-sm text-steel">身份证号</span>
             <input className="toolbar-input mt-3 w-full" onChange={(event) => updateForm('id_card_no', event.target.value || null)} placeholder="用于自动匹配平台账号，可留空" value={form.id_card_no ?? ''} />
-          </label>
-          <label className="surface-subtle px-4 py-4">
-            <span className="text-sm text-steel">所属公司</span>
-            <input className="toolbar-input mt-3 w-full" onChange={(event) => updateForm('company', event.target.value || null)} placeholder="例如 华东区域公司，可留空" value={form.company ?? ''} />
           </label>
           <label className="surface-subtle px-4 py-4">
             <span className="text-sm text-steel">所属部门</span>

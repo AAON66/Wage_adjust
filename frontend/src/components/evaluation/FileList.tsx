@@ -15,11 +15,6 @@ const PARSE_STATUS_LABELS: Record<UploadedFileRecord['parse_status'], string> = 
   failed:  '解析失败',
 };
 
-const SHARING_PENDING_STYLE: React.CSSProperties = {
-  background: 'var(--color-primary-light)',
-  color: 'var(--color-primary)',
-};
-
 interface FileListProps {
   files: UploadedFileRecord[];
   onDelete: (fileId: string) => void;
@@ -57,7 +52,6 @@ export function FileList({ files, onDelete, onReplace, onRetryParse, workingFile
           const replaceInputId = `replace-${file.id}`;
           const isWorking = workingFileId === file.id;
           const parseActionLabel = file.parse_status === 'pending' ? '开始解析' : '重新解析';
-          const showsPendingSharingBadge = file.sharing_status === 'pending';
 
           return (
             <article key={file.id} className="list-row">
@@ -66,16 +60,9 @@ export function FileList({ files, onDelete, onReplace, onRetryParse, workingFile
                   <h4 style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--color-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.file_name}</h4>
                   <p style={{ marginTop: 3, fontSize: 12, color: 'var(--color-steel)' }}>{file.file_type.toUpperCase()}{file.size_label ? ` · ${file.size_label}` : ''}</p>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 6 }}>
-                  <span className="status-pill" style={PARSE_STATUS_STYLES[file.parse_status]}>
-                    {PARSE_STATUS_LABELS[file.parse_status]}
-                  </span>
-                  {showsPendingSharingBadge ? (
-                    <span className="status-pill" style={SHARING_PENDING_STYLE}>
-                      待同意
-                    </span>
-                  ) : null}
-                </div>
+                <span className="status-pill" style={PARSE_STATUS_STYLES[file.parse_status]}>
+                  {PARSE_STATUS_LABELS[file.parse_status]}
+                </span>
               </div>
               <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 <label className="action-secondary cursor-pointer" style={{ fontSize: 12, height: 28, padding: '0 10px' }} htmlFor={replaceInputId}>

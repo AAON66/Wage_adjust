@@ -153,22 +153,7 @@ def weighted_total_from_response(body: dict, overrides: dict[str, float] | None 
     return round(total, 2)
 
 
-def generate_evaluation_sync(context: ApiDatabaseContext, submission_id: str) -> dict:
-    """Helper: run evaluation synchronously via service (bypassing async endpoint)."""
-    db = context.session_factory()
-    try:
-        from backend.app.services.evaluation_service import EvaluationService
-        from backend.app.api.v1.evaluations import serialize_evaluation
-
-        service = EvaluationService(db, context.settings)
-        evaluation = service.generate_evaluation(submission_id)
-        return serialize_evaluation(evaluation).model_dump(mode='json')
-    finally:
-        db.close()
-
-
-def test_evaluation_api_generate_returns_202_async() -> None:
-    """Verify generate endpoint returns 202 + TaskTriggerResponse."""
+def test_evaluation_api_small_gap_auto_confirms() -> None:
     client, context = build_client()
     with client:
         admin_token = register_user(client, email='admin@example.com', role='admin')
@@ -176,21 +161,8 @@ def test_evaluation_api_generate_returns_202_async() -> None:
         submission_id = seed_submission_with_evidence(context)
 
         generate_response = client.post('/api/v1/evaluations/generate', json={'submission_id': submission_id}, headers=headers)
-        assert generate_response.status_code == 202
+        assert generate_response.status_code == 201
         body = generate_response.json()
-        assert 'task_id' in body
-        assert body['status'] == 'pending'
-
-
-def test_evaluation_api_small_gap_auto_confirms() -> None:
-    client, context = build_client()
-    with client:
-        admin_token = register_user(client, email='admin2@example.com', role='admin')
-        headers = {'Authorization': f'Bearer {admin_token}'}
-        submission_id = seed_submission_with_evidence(context)
-
-        # Generate evaluation synchronously via service for review testing
-        body = generate_evaluation_sync(context, submission_id)
         assert '岗位职能解读' in body['explanation']
         evaluation_id = body['id']
 
@@ -228,10 +200,10 @@ def test_evaluation_api_large_gap_goes_to_hr_and_can_be_returned_or_approved() -
         hr_headers = {'Authorization': f'Bearer {hrbp_token}'}
         submission_id = seed_submission_with_evidence(context)
 
-        # Generate evaluation synchronously via service
-        gen_body = generate_evaluation_sync(context, submission_id)
-        evaluation_id = gen_body['id']
-        ai_score = gen_body['ai_overall_score']
+        generate_response = client.post('/api/v1/evaluations/generate', json={'submission_id': submission_id}, headers=manager_headers)
+        assert generate_response.status_code == 201
+        evaluation_id = generate_response.json()['id']
+        ai_score = generate_response.json()['ai_overall_score']
 
         review_response = client.patch(
             f'/api/v1/evaluations/{evaluation_id}/manual-review',
@@ -277,8 +249,9 @@ def test_evaluation_api_marks_integrity_risk_when_prompt_manipulation_detected()
         headers = {'Authorization': f'Bearer {manager_token}'}
         submission_id = seed_submission_with_evidence(context, suspicious=True)
 
-        # Generate evaluation synchronously via service
-        body = generate_evaluation_sync(context, submission_id)
+        generate_response = client.post('/api/v1/evaluations/generate', json={'submission_id': submission_id}, headers=headers)
+        assert generate_response.status_code == 201
+        body = generate_response.json()
         assert body['integrity_flagged'] is True
         assert body['integrity_issue_count'] == 1
         assert '100 分' in body['integrity_examples'][0]
@@ -289,7 +262,6 @@ def test_evaluation_api_marks_integrity_risk_when_prompt_manipulation_detected()
 
 
 def test_evaluation_api_blocks_cross_department_manager_access() -> None:
-    """Permission check still happens synchronously - cross-dept manager gets 403."""
     client, context = build_client()
     with client:
         manager_token = register_user(client, email='sales-manager@example.com', role='manager')
@@ -308,8 +280,9 @@ def test_evaluation_api_uses_department_specific_weights_in_response() -> None:
         headers = {'Authorization': f'Bearer {admin_token}'}
         submission_id = seed_submission_with_evidence(context, department='Sales', job_family='Commercial')
 
-        # Generate evaluation synchronously via service
-        body = generate_evaluation_sync(context, submission_id)
+        generate_response = client.post('/api/v1/evaluations/generate', json={'submission_id': submission_id}, headers=headers)
+        assert generate_response.status_code == 201
+        body = generate_response.json()
 
         impact_dimension = next(item for item in body['dimension_scores'] if item['dimension_code'] == 'IMPACT')
         depth_dimension = next(item for item in body['dimension_scores'] if item['dimension_code'] == 'DEPTH')

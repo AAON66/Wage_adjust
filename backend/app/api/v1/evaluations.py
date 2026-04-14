@@ -14,10 +14,8 @@ from backend.app.schemas.evaluation import (
     EvaluationManualReviewRequest,
     EvaluationRead,
 )
-from backend.app.schemas.task import TaskTriggerResponse
 from backend.app.services.evaluation_service import EvaluationService
 from backend.app.services.access_scope_service import AccessScopeService
-from backend.app.tasks.evaluation_tasks import generate_evaluation_task
 
 router = APIRouter(prefix='/evaluations', tags=['evaluations'])
 
@@ -69,36 +67,52 @@ def serialize_evaluation(evaluation) -> EvaluationRead:
     )
 
 
-@router.post('/generate', response_model=TaskTriggerResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post('/generate', response_model=EvaluationRead, status_code=status.HTTP_201_CREATED)
 def generate_evaluation(
     payload: EvaluationGenerateRequest,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(get_current_user),
-) -> TaskTriggerResponse:
+) -> EvaluationRead:
     try:
         submission = AccessScopeService(db).ensure_submission_access(current_user, payload.submission_id)
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     if submission is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Submission not found.')
-    task = generate_evaluation_task.delay(payload.submission_id, False, str(current_user.id))
-    return TaskTriggerResponse(task_id=task.id, status='pending')
+    service = EvaluationService(db, settings)
+    try:
+        evaluation = service.generate_evaluation(payload.submission_id)
+    except ValueError as exc:
+        message = str(exc)
+        if 'not found' in message.lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
+    return serialize_evaluation(evaluation)
 
 
-@router.post('/regenerate', response_model=TaskTriggerResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post('/regenerate', response_model=EvaluationRead)
 def regenerate_evaluation(
     payload: EvaluationGenerateRequest,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
     current_user: User = Depends(get_current_user),
-) -> TaskTriggerResponse:
+) -> EvaluationRead:
     try:
         submission = AccessScopeService(db).ensure_submission_access(current_user, payload.submission_id)
     except PermissionError as exc:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
     if submission is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='Submission not found.')
-    task = generate_evaluation_task.delay(payload.submission_id, True, str(current_user.id))
-    return TaskTriggerResponse(task_id=task.id, status='pending')
+    service = EvaluationService(db, settings)
+    try:
+        evaluation = service.generate_evaluation(payload.submission_id, force=True)
+    except ValueError as exc:
+        message = str(exc)
+        if 'not found' in message.lower():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message) from exc
+    return serialize_evaluation(evaluation)
 
 
 @router.get('/by-submission/{submission_id}', response_model=EvaluationRead)

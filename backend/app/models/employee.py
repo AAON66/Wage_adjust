@@ -20,7 +20,6 @@ class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     id_card_no: Mapped[Optional[str]] = mapped_column(EncryptedString(256), nullable=True, unique=True, index=True)
     department: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     sub_department: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
-    company: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
     job_family: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
     job_level: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     manager_id: Mapped[Optional[str]] = mapped_column(ForeignKey("employees.id"), nullable=True, index=True)

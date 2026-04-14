@@ -108,7 +108,6 @@ def test_employee_and_cycle_api_flow() -> None:
                 'name': 'Alice Zhang',
                 'id_card_no': '310101199001010123',
                 'department': 'Engineering',
-                'company': 'Acme Group',
                 'sub_department': 'Backend Platform',
                 'job_family': 'Platform',
                 'job_level': 'P5',
@@ -118,7 +117,6 @@ def test_employee_and_cycle_api_flow() -> None:
             headers=headers,
         )
         assert create_employee_response.status_code == 201
-        assert create_employee_response.json()['company'] == 'Acme Group'
         employee_id = create_employee_response.json()['id']
 
         list_employees_response = client.get('/api/v1/employees?department=Engineering', headers=headers)
@@ -128,7 +126,6 @@ def test_employee_and_cycle_api_flow() -> None:
         detail_response = client.get(f'/api/v1/employees/{employee_id}', headers=headers)
         assert detail_response.status_code == 200
         assert detail_response.json()['employee_no'] == 'EMP-1001'
-        assert detail_response.json()['company'] == 'Acme Group'
         assert detail_response.json()['id_card_no'] == '310101199001010123'
         assert detail_response.json()['sub_department'] == 'Backend Platform'
 
@@ -416,7 +413,6 @@ def test_employee_profile_can_be_updated() -> None:
                 'name': 'Editable User',
                 'id_card_no': '310101199001010129',
                 'department': 'Engineering',
-                'company': 'Legacy Co',
                 'sub_department': 'Backend Platform',
                 'job_family': 'Platform',
                 'job_level': 'P5',
@@ -433,7 +429,6 @@ def test_employee_profile_can_be_updated() -> None:
             json={
                 'name': 'Updated User',
                 'department': 'Sales',
-                'company': '  Acme Group  ',
                 'sub_department': 'Commercial Ops',
                 'job_family': 'Business',
                 'job_level': 'P6',
@@ -445,7 +440,6 @@ def test_employee_profile_can_be_updated() -> None:
         payload = update_employee_response.json()
         assert payload['name'] == 'Updated User'
         assert payload['department'] == 'Sales'
-        assert payload['company'] == 'Acme Group'
         assert payload['sub_department'] == 'Commercial Ops'
         assert payload['job_family'] == 'Business'
         assert payload['job_level'] == 'P6'
