@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from datetime import datetime, timezone
+from typing import Tuple
 
 import httpx
 from sqlalchemy import select
@@ -12,9 +14,12 @@ from sqlalchemy.orm import Session
 from backend.app.core.config import get_settings
 from backend.app.core.database import SessionLocal
 from backend.app.core.encryption import decrypt_value, encrypt_value
+from backend.app.core.rate_limiter import InMemoryRateLimiter
 from backend.app.models.attendance_record import AttendanceRecord
 from backend.app.models.employee import Employee
+from backend.app.models.non_statutory_leave import NonStatutoryLeave
 from backend.app.models.performance_record import PerformanceRecord
+from backend.app.models.salary_adjustment_record import SalaryAdjustmentRecord
 from backend.app.models.feishu_config import FeishuConfig
 from backend.app.models.feishu_sync_log import FeishuSyncLog
 from backend.app.schemas.feishu import FeishuConfigCreate, FeishuConfigUpdate, FieldMappingItem
@@ -32,10 +37,19 @@ class FeishuService:
     OVERLAP_WINDOW_MS = 5 * 60 * 1000  # 增量同步 overlap 5 分钟
     MAX_UNMATCHED_LOG = 100  # 最多记录前 100 个未匹配工号
 
+    # URL patterns for parse_bitable_url
+    _BITABLE_URL_PATTERN_QUERY = re.compile(
+        r'https?://[^/]*\.feishu\.cn/base/([A-Za-z0-9_-]+)\?.*table=([A-Za-z0-9_-]+)'
+    )
+    _BITABLE_URL_PATTERN_PATH = re.compile(
+        r'https?://[^/]*\.feishu\.cn/base/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)'
+    )
+
     def __init__(self, db: Session) -> None:
         self.db = db
         self._token: str | None = None
         self._token_expires_at: float = 0
+        self._rate_limiter = InMemoryRateLimiter(60)
 
     # ------------------------------------------------------------------
     # Token management
@@ -105,8 +119,28 @@ class FeishuService:
             if page_token:
                 body['page_token'] = page_token
 
-            resp = httpx.post(url, headers=headers, json=body, timeout=30)
-            data = resp.json()
+            self._rate_limiter.wait_and_acquire()
+
+            # Retry with exponential backoff on rate-limit or transient errors
+            resp = None
+            for attempt in range(4):  # 1 initial + 3 retries
+                try:
+                    resp = httpx.post(url, headers=headers, json=body, timeout=30)
+                    data = resp.json()
+                    # Feishu rate-limit error code or HTTP 429
+                    if resp.status_code == 429 or data.get('code') == 99991400:
+                        if attempt < 3:
+                            time.sleep(2 ** attempt)
+                            self._rate_limiter.wait_and_acquire()
+                            continue
+                    break
+                except httpx.HTTPError:
+                    if attempt < 3:
+                        time.sleep(2 ** attempt)
+                        continue
+                    raise
+
+            data = resp.json()  # type: ignore[union-attr]
 
             # If filter caused an error, fallback to full fetch + app-layer filter
             if data.get('code') != 0 and use_filter and not filter_failed:
@@ -219,6 +253,35 @@ class FeishuService:
         return mapped
 
     # ------------------------------------------------------------------
+    # Employee lookup helper (handles leading-zero mismatch)
+    # ------------------------------------------------------------------
+
+    def _build_employee_map(self) -> dict[str, str]:
+        """Build employee_no → id map that tolerates leading-zero differences.
+
+        E.g. both '02615' and '2615' will match an employee stored as either form.
+        """
+        emp_rows = self.db.execute(select(Employee.employee_no, Employee.id)).all()
+        emp_map: dict[str, str] = {}
+        for emp_no, emp_id in emp_rows:
+            emp_map[emp_no] = emp_id
+            # Also index by stripped version so '02615' matches '2615' and vice versa
+            stripped = emp_no.lstrip('0') or '0'
+            if stripped not in emp_map:
+                emp_map[stripped] = emp_id
+        return emp_map
+
+    @staticmethod
+    def _lookup_employee(emp_map: dict[str, str], emp_no: str | None) -> str | None:
+        """Find employee_id by trying exact match first, then stripped leading zeros."""
+        if not emp_no:
+            return None
+        emp_id = emp_map.get(emp_no)
+        if emp_id is not None:
+            return emp_id
+        return emp_map.get(emp_no.lstrip('0') or '0')
+
+    # ------------------------------------------------------------------
     # Core sync logic (single transaction)
     # ------------------------------------------------------------------
 
@@ -274,11 +337,8 @@ class FeishuService:
             records = self._fetch_all_records(token, config.bitable_app_token, config.bitable_table_id, field_mapping, since)
             sync_log.total_fetched = len(records)
 
-            # Build employee_no -> employee_id mapping (one-time bulk query)
-            emp_rows = self.db.execute(
-                select(Employee.employee_no, Employee.id)
-            ).all()
-            emp_map = {row[0]: row[1] for row in emp_rows}
+            # Build employee_no -> employee_id mapping (handles leading-zero mismatch)
+            emp_map = self._build_employee_map()
             logger.info('Employee map keys (first 20): %s', list(emp_map.keys())[:20])
 
             # Upsert records
@@ -293,7 +353,7 @@ class FeishuService:
                 try:
                     emp_no = record.get('employee_no')
                     logger.info('Matching emp_no=%r (type=%s) against emp_map', emp_no, type(emp_no).__name__)
-                    employee_id = emp_map.get(emp_no) if emp_no else None
+                    employee_id = self._lookup_employee(emp_map, emp_no)
 
                     if employee_id is None:
                         unmatched += 1
@@ -425,11 +485,8 @@ class FeishuService:
         # Fetch records
         records = self._fetch_all_records(token, app_token, table_id, field_mapping)
 
-        # Build employee_no -> employee_id mapping
-        emp_rows = self.db.execute(
-            select(Employee.employee_no, Employee.id)
-        ).all()
-        emp_map = {row[0]: row[1] for row in emp_rows}
+        # Build employee_no -> employee_id mapping (handles leading-zero mismatch)
+        emp_map = self._build_employee_map()
 
         synced = 0
         skipped = 0
@@ -439,7 +496,7 @@ class FeishuService:
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = emp_map.get(emp_no) if emp_no else None
+                employee_id = self._lookup_employee(emp_map, emp_no)
                 if employee_id is None:
                     logger.warning('Performance sync: employee_no=%s not found, skipping', emp_no)
                     skipped += 1
@@ -497,6 +554,338 @@ class FeishuService:
 
         self.db.commit()
         return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+
+    # ------------------------------------------------------------------
+    # Salary adjustments sync (ELIGIMP-02)
+    # ------------------------------------------------------------------
+
+    def sync_salary_adjustments(
+        self,
+        *,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> dict:
+        """Sync salary adjustment records from Feishu bitable."""
+        if field_mapping is None:
+            field_mapping = {
+                '员工工号': 'employee_no',
+                '调薪日期': 'adjustment_date',
+                '调薪类型': 'adjustment_type',
+                '调薪金额': 'amount',
+            }
+
+        config = self.get_config()
+        if config is None:
+            raise RuntimeError('No active Feishu config found')
+
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+        token = self._ensure_token(config.app_id, app_secret)
+        records = self._fetch_all_records(token, app_token, table_id, field_mapping)
+
+        emp_map = self._build_employee_map()
+
+        synced = 0
+        skipped = 0
+        failed = 0
+        total = len(records)
+
+        for record in records:
+            try:
+                emp_no = record.get('employee_no')
+                employee_id = self._lookup_employee(emp_map, emp_no)
+                if employee_id is None:
+                    skipped += 1
+                    continue
+
+                import pandas as pd
+                from decimal import Decimal, InvalidOperation
+
+                raw_date = record.get('adjustment_date')
+                if raw_date is None:
+                    skipped += 1
+                    continue
+                try:
+                    adjustment_date = pd.to_datetime(raw_date).date()
+                except Exception:
+                    skipped += 1
+                    continue
+
+                raw_type = record.get('adjustment_type')
+                if raw_type is None:
+                    skipped += 1
+                    continue
+                adj_type_map = {'转正调薪': 'probation', '年度调薪': 'annual', '专项调薪': 'special'}
+                adj_type = adj_type_map.get(str(raw_type).strip(), str(raw_type).strip().lower())
+
+                amount = None
+                raw_amount = record.get('amount')
+                if raw_amount is not None:
+                    try:
+                        amount = Decimal(str(raw_amount).strip())
+                    except InvalidOperation:
+                        pass
+
+                new_record = SalaryAdjustmentRecord(
+                    employee_id=employee_id,
+                    employee_no=emp_no,
+                    adjustment_date=adjustment_date,
+                    adjustment_type=adj_type,
+                    amount=amount,
+                    source='feishu',
+                )
+                self.db.add(new_record)
+                self.db.flush()
+                synced += 1
+            except Exception:
+                logger.exception('Failed to process salary adjustment record: emp_no=%s', record.get('employee_no'))
+                failed += 1
+
+        self.db.commit()
+        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+
+    # ------------------------------------------------------------------
+    # Hire info sync (ELIGIMP-02)
+    # ------------------------------------------------------------------
+
+    def sync_hire_info(
+        self,
+        *,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> dict:
+        """Sync hire dates from Feishu bitable, updating Employee.hire_date."""
+        if field_mapping is None:
+            field_mapping = {
+                '员工工号': 'employee_no',
+                '入职日期': 'hire_date',
+            }
+
+        config = self.get_config()
+        if config is None:
+            raise RuntimeError('No active Feishu config found')
+
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+        token = self._ensure_token(config.app_id, app_secret)
+        records = self._fetch_all_records(token, app_token, table_id, field_mapping)
+
+        emp_map = self._build_employee_map()
+
+        synced = 0
+        skipped = 0
+        failed = 0
+        total = len(records)
+
+        for record in records:
+            try:
+                emp_no = record.get('employee_no')
+                employee_id = self._lookup_employee(emp_map, emp_no)
+                if employee_id is None:
+                    skipped += 1
+                    continue
+
+                import pandas as pd
+                raw_date = record.get('hire_date')
+                if raw_date is None:
+                    skipped += 1
+                    continue
+                try:
+                    hire_date = pd.to_datetime(raw_date).date()
+                except Exception:
+                    skipped += 1
+                    continue
+
+                employee = self.db.get(Employee, employee_id)
+                if employee is None:
+                    skipped += 1
+                    continue
+                employee.hire_date = hire_date
+                self.db.add(employee)
+                self.db.flush()
+                synced += 1
+            except Exception:
+                logger.exception('Failed to process hire info record: emp_no=%s', record.get('employee_no'))
+                failed += 1
+
+        self.db.commit()
+        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+
+    # ------------------------------------------------------------------
+    # Non-statutory leave sync (ELIGIMP-02)
+    # ------------------------------------------------------------------
+
+    def sync_non_statutory_leave(
+        self,
+        *,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> dict:
+        """Sync non-statutory leave records from Feishu bitable with upsert on (employee_id, year)."""
+        if field_mapping is None:
+            field_mapping = {
+                '员工工号': 'employee_no',
+                '年度': 'year',
+                '假期天数': 'total_days',
+                '假期类型': 'leave_type',
+            }
+
+        config = self.get_config()
+        if config is None:
+            raise RuntimeError('No active Feishu config found')
+
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+        token = self._ensure_token(config.app_id, app_secret)
+        records = self._fetch_all_records(token, app_token, table_id, field_mapping)
+
+        emp_map = self._build_employee_map()
+
+        synced = 0
+        skipped = 0
+        failed = 0
+        total = len(records)
+
+        for record in records:
+            try:
+                emp_no = record.get('employee_no')
+                employee_id = self._lookup_employee(emp_map, emp_no)
+                if employee_id is None:
+                    skipped += 1
+                    continue
+
+                raw_year = record.get('year')
+                if raw_year is None:
+                    skipped += 1
+                    continue
+                try:
+                    year = int(float(str(raw_year)))
+                except (ValueError, TypeError):
+                    skipped += 1
+                    continue
+
+                raw_days = record.get('total_days')
+                if raw_days is None:
+                    skipped += 1
+                    continue
+                try:
+                    total_days = float(str(raw_days).strip())
+                except (ValueError, TypeError):
+                    skipped += 1
+                    continue
+
+                leave_type = None
+                raw_leave_type = record.get('leave_type')
+                if raw_leave_type is not None:
+                    lt = str(raw_leave_type).strip()
+                    if lt:
+                        leave_type = lt
+
+                # Upsert on (employee_id, year)
+                existing = self.db.scalar(
+                    select(NonStatutoryLeave).where(
+                        NonStatutoryLeave.employee_id == employee_id,
+                        NonStatutoryLeave.year == year,
+                    )
+                )
+                if existing is not None:
+                    existing.total_days = total_days
+                    existing.leave_type = leave_type
+                    existing.source = 'feishu'
+                    self.db.add(existing)
+                else:
+                    new_record = NonStatutoryLeave(
+                        employee_id=employee_id,
+                        employee_no=emp_no,
+                        year=year,
+                        total_days=total_days,
+                        leave_type=leave_type,
+                        source='feishu',
+                    )
+                    self.db.add(new_record)
+                self.db.flush()
+                synced += 1
+            except Exception:
+                logger.exception('Failed to process non-statutory leave record: emp_no=%s', record.get('employee_no'))
+                failed += 1
+
+        self.db.commit()
+        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+
+    # ------------------------------------------------------------------
+    # Bitable field listing (D-07)
+    # ------------------------------------------------------------------
+
+    def list_bitable_fields(self, *, app_token: str, table_id: str) -> list[dict]:
+        """Fetch all field definitions from a Feishu bitable table."""
+        config = self.get_config()
+        if config is None:
+            raise RuntimeError('No active Feishu config found')
+
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+        token = self._ensure_token(config.app_id, app_secret)
+
+        url = f'{self.FEISHU_BASE_URL}/bitable/v1/apps/{app_token}/tables/{table_id}/fields'
+        headers = {'Authorization': f'Bearer {token}'}
+
+        all_fields: list[dict] = []
+        page_token: str | None = None
+
+        while True:
+            params: dict = {'page_size': 100}
+            if page_token:
+                params['page_token'] = page_token
+
+            self._rate_limiter.wait_and_acquire()
+            resp = httpx.get(url, headers=headers, params=params, timeout=30)
+            data = resp.json()
+
+            if data.get('code') != 0:
+                raise RuntimeError(f'Feishu fields API failed: code={data.get("code")} msg={data.get("msg")}')
+
+            items = data.get('data', {}).get('items', [])
+            for item in items:
+                all_fields.append({
+                    'field_id': item.get('field_id', ''),
+                    'field_name': item.get('field_name', ''),
+                    'type': item.get('type', 0),
+                    'ui_type': item.get('ui_type', ''),
+                })
+
+            has_more = data.get('data', {}).get('has_more', False)
+            page_token = data.get('data', {}).get('page_token')
+            if not has_more or not page_token:
+                break
+
+        return all_fields
+
+    # ------------------------------------------------------------------
+    # Bitable URL parsing
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def parse_bitable_url(url: str) -> Tuple[str, str]:
+        """Parse a Feishu bitable URL into (app_token, table_id).
+
+        Supports:
+        - ``https://xxx.feishu.cn/base/{app_token}?table={table_id}``
+        - ``https://xxx.feishu.cn/base/{app_token}/{table_id}``
+
+        Raises ``ValueError`` if the URL does not match a known pattern.
+        """
+        m = FeishuService._BITABLE_URL_PATTERN_QUERY.search(url)
+        if m:
+            return m.group(1), m.group(2)
+        m = FeishuService._BITABLE_URL_PATTERN_PATH.search(url)
+        if m:
+            return m.group(1), m.group(2)
+        raise ValueError(
+            '无法解析飞书多维表格 URL，请确认格式为 https://xxx.feishu.cn/base/{app_token}?table={table_id}'
+        )
 
     # ------------------------------------------------------------------
     # Retry wrapper

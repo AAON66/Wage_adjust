@@ -1,16 +1,17 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
-import { useTaskPolling } from '../../hooks/useTaskPolling';
+import { FeishuFieldMapper } from './FeishuFieldMapper';
 import {
   parseBitableUrl,
   fetchBitableFields,
   triggerFeishuSync,
+  getSyncStatus,
 } from '../../services/eligibilityImportService';
 import type {
   EligibilityImportType,
   FeishuFieldInfo,
 } from '../../services/eligibilityImportService';
-import { FeishuFieldMapper } from './FeishuFieldMapper';
+import { checkFeishuConfigExists } from '../../services/feishuService';
 
 interface FeishuSyncPanelProps {
   importType: EligibilityImportType;
@@ -18,7 +19,7 @@ interface FeishuSyncPanelProps {
   onResult: (result: unknown) => void;
 }
 
-const SYSTEM_FIELDS: Record<EligibilityImportType, string[]> = {
+const SYSTEM_FIELDS_BY_TYPE: Record<EligibilityImportType, string[]> = {
   performance_grades: ['employee_no', 'year', 'grade'],
   salary_adjustments: ['employee_no', 'adjustment_date', 'adjustment_type', 'amount'],
   hire_info: ['employee_no', 'hire_date'],
@@ -36,57 +37,88 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
   const [tableId, setTableId] = useState<string | null>(null);
   const [feishuFields, setFeishuFields] = useState<FeishuFieldInfo[]>([]);
   const [connections, setConnections] = useState<FieldConnection[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isFetchingFields, setIsFetchingFields] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [progress, setProgress] = useState<{ processed: number; total: number; errors: number } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [configExists, setConfigExists] = useState<boolean | null>(null);
 
-  const taskStatus = useTaskPolling(taskId, {
-    onComplete: (result) => {
-      setTaskId(null);
-      onResult(result);
-    },
-    onError: (errMsg) => {
-      setTaskId(null);
-      setError(errMsg);
-    },
-    onProgress: setProgress,
-  });
+  useEffect(() => {
+    let cancelled = false;
+    checkFeishuConfigExists()
+      .then((exists) => { if (!cancelled) setConfigExists(exists); })
+      .catch(() => { if (!cancelled) setConfigExists(false); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const isPolling = taskId !== null && taskStatus !== null && (taskStatus.status === 'pending' || taskStatus.status === 'running');
+  const systemFields = SYSTEM_FIELDS_BY_TYPE[importType];
+
+  // Poll sync status when taskId is set
+  useEffect(() => {
+    if (!taskId) return;
+    let cancelled = false;
+    const poll = async () => {
+      if (cancelled) return;
+      try {
+        const data = await getSyncStatus(taskId);
+        if (cancelled) return;
+        if (data.status === 'completed') {
+          onResult(data.result);
+          setTaskId(null);
+          setIsSyncing(false);
+        } else if (data.status === 'failed') {
+          setErrorMessage(data.error ?? '同步任务执行失败。');
+          setTaskId(null);
+          setIsSyncing(false);
+        } else {
+          setTimeout(() => { void poll(); }, 2000);
+        }
+      } catch {
+        if (!cancelled) {
+          setErrorMessage('查询同步状态失败。');
+          setTaskId(null);
+          setIsSyncing(false);
+        }
+      }
+    };
+    void poll();
+    return () => { cancelled = true; };
+  }, [taskId, onResult]);
 
   const handleFetchFields = useCallback(async () => {
-    if (!url.trim()) {
-      setError('请输入飞书多维表格 URL');
-      return;
-    }
-    setLoading(true);
-    setError(null);
+    if (!url.trim()) return;
+    setIsFetchingFields(true);
+    setErrorMessage(null);
     setFeishuFields([]);
     setConnections([]);
     setAppToken(null);
     setTableId(null);
 
+    let parsedOk = false;
     try {
-      const parseResp = await parseBitableUrl(url.trim());
-      const { app_token, table_id } = parseResp.data;
-      setAppToken(app_token);
-      setTableId(table_id);
+      const parsed = await parseBitableUrl(url.trim());
+      parsedOk = true;
+      setAppToken(parsed.app_token);
+      setTableId(parsed.table_id);
 
-      const fieldsResp = await fetchBitableFields(app_token, table_id);
-      setFeishuFields(fieldsResp.data.fields);
-    } catch {
-      setError('无法解析多维表格 URL，请检查链接格式是否正确');
+      const fieldsResponse = await fetchBitableFields(parsed.app_token, parsed.table_id);
+      setFeishuFields(fieldsResponse.fields);
+    } catch (err) {
+      if (!parsedOk) {
+        setErrorMessage('无法解析多维表格 URL，请确认链接格式正确。支持格式：https://xxx.feishu.cn/base/{app_token}?table={table_id}');
+      } else {
+        setErrorMessage('获取飞书字段列表失败，请检查多维表格 URL 和飞书应用权限配置。');
+      }
+      void err;
     } finally {
-      setLoading(false);
+      setIsFetchingFields(false);
     }
-  }, [url]);
+  }, [url, feishuFields.length, appToken]);
 
-  const handleSync = useCallback(async () => {
+  const handleStartSync = useCallback(async () => {
     if (!appToken || !tableId || connections.length === 0) return;
-
-    setError(null);
-    setProgress(null);
+    setIsSyncing(true);
+    setErrorMessage(null);
 
     const fieldMapping: Record<string, string> = {};
     for (const conn of connections) {
@@ -94,70 +126,98 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
     }
 
     try {
-      const resp = await triggerFeishuSync(importType, appToken, tableId, fieldMapping);
-      const data = resp.data as { task_id: string };
-      setTaskId(data.task_id);
-    } catch {
-      setError('飞书同步触发失败，请重试');
+      const response = await triggerFeishuSync(importType, appToken, tableId, fieldMapping);
+      setTaskId(response.task_id);
+    } catch (err) {
+      setIsSyncing(false);
+      if (err instanceof Error) {
+        setErrorMessage(err.message);
+      } else {
+        setErrorMessage('触发同步失败，请稍后重试。');
+      }
     }
   }, [appToken, tableId, connections, importType]);
 
-  const systemFields = SYSTEM_FIELDS[importType];
+  const syncDisabled = connections.length === 0 || isSyncing;
 
   return (
-    <div>
+    <section className="surface" style={{ padding: '16px 20px' }}>
       <p className="eyebrow">飞书多维表格同步</p>
-      <h3 className="section-title" style={{ marginBottom: 12 }}>
+      <h2 className="section-title" style={{ marginBottom: 12 }}>
         从飞书多维表格同步{label}数据
-      </h3>
+      </h2>
 
-      {/* URL Input */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+      {/* Config missing banner */}
+      {configExists === false ? (
+        <div
+          style={{
+            marginBottom: 12,
+            padding: '10px 14px',
+            borderRadius: 6,
+            background: 'var(--color-bg-subtle, #fafafa)',
+            border: '1px solid var(--color-border, #e0e0e0)',
+            fontSize: 13,
+            lineHeight: 1.6,
+          }}
+        >
+          <strong>尚未配置飞书应用凭据。</strong>
+          <span style={{ marginLeft: 4 }}>
+            请先前往{' '}
+            <a href="/feishu-config" style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>
+              飞书配置页面
+            </a>{' '}
+            填写 App ID 和 App Secret，然后返回此页面使用同步功能。
+          </span>
+        </div>
+      ) : null}
+
+      {/* URL input */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
         <input
           className="toolbar-input"
           type="text"
-          placeholder="粘贴飞书多维表格链接..."
+          placeholder="请输入飞书多维表格 URL..."
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleFetchFields();
-          }}
           style={{ flex: 1 }}
+          disabled={configExists === false}
         />
         <button
           className="action-secondary"
           type="button"
-          disabled={loading || !url.trim()}
-          onClick={handleFetchFields}
+          disabled={!url.trim() || isFetchingFields || configExists === false}
+          onClick={() => void handleFetchFields()}
         >
-          获取字段
+          {isFetchingFields ? '获取中...' : '获取字段'}
         </button>
       </div>
 
-      {error && (
-        <p style={{ marginBottom: 8, fontSize: 13, color: 'var(--color-danger)' }}>{error}</p>
-      )}
+      {errorMessage ? (
+        <p role="alert" style={{ marginBottom: 12, fontSize: 13, color: 'var(--color-danger)' }}>
+          {errorMessage}
+        </p>
+      ) : null}
 
-      {/* Loading skeleton */}
-      {loading && (
+      {/* Skeleton loading */}
+      {isFetchingFields ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
           {[1, 2, 3].map((i) => (
             <div
               key={i}
               style={{
-                height: 20,
-                borderRadius: 4,
-                background: 'var(--color-border)',
-                opacity: 0.5,
-                animation: 'pulse 1.5s infinite',
+                height: 40,
+                background: 'var(--color-bg-subtle)',
+                borderRadius: 6,
+                width: '60%',
+                animation: 'pulse 1.5s ease-in-out infinite',
               }}
             />
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Field mapper */}
-      {feishuFields.length > 0 && !loading && (
+      {feishuFields.length > 0 && !isFetchingFields ? (
         <div style={{ marginBottom: 12 }}>
           <FeishuFieldMapper
             feishuFields={feishuFields}
@@ -166,36 +226,33 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
             onConnectionsChange={setConnections}
           />
         </div>
-      )}
+      ) : null}
 
-      {/* Progress indicator */}
-      {isPolling && (
-        <p style={{ marginBottom: 8, fontSize: 13, color: 'var(--color-primary)' }}>
-          {progress
-            ? `正在同步飞书数据... 已处理 ${progress.processed}/${progress.total} 条`
-            : '正在同步飞书数据...'}
-        </p>
-      )}
-
-      {/* Sync button */}
-      {feishuFields.length > 0 && !loading && (
+      {/* Sync button + progress */}
+      {feishuFields.length > 0 ? (
         <div>
+          {syncDisabled && connections.length === 0 && !isSyncing ? (
+            <p style={{ fontSize: 13, color: 'var(--color-steel)', marginBottom: 8 }}>
+              请先建立至少一个字段映射关系，再开始同步。
+            </p>
+          ) : null}
+
           <button
             className="action-primary"
             type="button"
-            disabled={connections.length === 0 || isPolling}
-            onClick={handleSync}
-            title={connections.length === 0 ? '请先建立至少一个字段映射关系' : undefined}
+            disabled={syncDisabled}
+            onClick={() => void handleStartSync()}
           >
-            开始同步
+            {isSyncing ? '同步中...' : '开始同步'}
           </button>
-          {connections.length === 0 && (
-            <p style={{ marginTop: 4, fontSize: 12, color: 'var(--color-steel)' }}>
-              请先建立至少一个字段映射关系，将左侧飞书字段拖拽到右侧系统字段
+
+          {isSyncing ? (
+            <p role="status" aria-live="polite" style={{ marginTop: 8, fontSize: 13, color: 'var(--color-steel)' }}>
+              正在同步飞书数据...
             </p>
-          )}
+          ) : null}
         </div>
-      )}
-    </div>
+      ) : null}
+    </section>
   );
 }
