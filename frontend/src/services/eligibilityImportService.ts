@@ -42,6 +42,11 @@ export async function triggerFeishuSync(
   });
 }
 
+export async function getSyncStatus(taskId: string) {
+  const res = await api.get<{ status: string; result?: unknown; error?: string }>(`/tasks/${taskId}`);
+  return res.data;
+}
+
 export function getTemplateUrl(importType: EligibilityImportType): string {
   const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8011/api/v1';
   return `${baseUrl}/eligibility-import/templates/${importType}?format=xlsx`;

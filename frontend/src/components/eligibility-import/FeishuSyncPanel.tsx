@@ -98,11 +98,11 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
     try {
       const parsed = await parseBitableUrl(url.trim());
       parsedOk = true;
-      setAppToken(parsed.app_token);
-      setTableId(parsed.table_id);
+      setAppToken(parsed.data.app_token);
+      setTableId(parsed.data.table_id);
 
-      const fieldsResponse = await fetchBitableFields(parsed.app_token, parsed.table_id);
-      setFeishuFields(fieldsResponse.fields);
+      const fieldsResponse = await fetchBitableFields(parsed.data.app_token, parsed.data.table_id);
+      setFeishuFields(fieldsResponse.data.fields);
     } catch (err) {
       if (!parsedOk) {
         setErrorMessage('无法解析多维表格 URL，请确认链接格式正确。支持格式：https://xxx.feishu.cn/base/{app_token}?table={table_id}');
@@ -127,7 +127,7 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
 
     try {
       const response = await triggerFeishuSync(importType, appToken, tableId, fieldMapping);
-      setTaskId(response.task_id);
+      setTaskId(response.data.task_id);
     } catch (err) {
       setIsSyncing(false);
       if (err instanceof Error) {

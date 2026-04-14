@@ -140,11 +140,11 @@ Plans:
   3. 每个 Tab 支持配置飞书多维表格字段映射并执行同步
   4. 导入完成后显示成功/失败/跳过的统计数字和可展开的错误明细
   5. 飞书 API 调用具备 RPM 限流和指数退避重试，连续请求不触发 429 错误
-**Plans:** 3 plans
+**Plans:** 1/3 plans executed
 Plans:
 - [ ] 23-01-PLAN.md — NonStatutoryLeave 模型 + ImportService 扩展 + 限流器提取 + FeishuService 扩展
 - [ ] 23-02-PLAN.md — Pydantic Schema + API Router + 飞书同步 Celery Task
-- [ ] 23-03-PLAN.md — 前端 6 Tab 页面 + Excel 导入面板 + 飞书拖拽映射 + 同步面板
+- [x] 23-03-PLAN.md — 前端 6 Tab 页面 + Excel 导入面板 + 飞书拖拽映射 + 同步面板
 **UI hint**: yes
 
 ### Phase 24: 生产部署配置
@@ -187,5 +187,5 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 20. 员工所属公司 | v1.2 | 2/2 | Complete    | 2026-04-09 |
 | 21. 共享拒绝清理 | v1.2 | 2/2 | Complete   | 2026-04-09 |
 | 22. 异步迁移 | v1.2 | 3/3 | Complete    | 2026-04-14 |
-| 23. 资格导入管理 | v1.2 | 0/3 | Planned | - |
+| 23. 资格导入管理 | v1.2 | 1/3 | In Progress|  |
 | 24. 生产部署 | v1.2 | 0/0 | Not started | - |
