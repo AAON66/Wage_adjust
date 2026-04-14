@@ -53,11 +53,13 @@ Exceptions:
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 13.5px | 400 | 1.5 |
-| Label / Eyebrow | 11px / 12px | 600 / 500 | 1.5 |
+| Label / Eyebrow | 12px | 600 | 1.5 |
 | Section Title | 15px | 600 | 1.4 |
 | Page Title | 20px | 600 | 1.3 |
 
-Source: Existing CSS classes `.page-title` (20px/600), `.section-title` (15px/600), `.toolbar-input` (13.5px), `.metric-label` (12px/500), `.eyebrow` (11px/600).
+4 sizes (12, 13.5, 15, 20). 2 weights (400, 600).
+
+Source: Existing CSS classes `.page-title` (20px/600), `.section-title` (15px/600), `.toolbar-input` (13.5px), `.metric-label` and `.eyebrow` unified to 12px/600.
 
 ---
 
@@ -188,7 +190,7 @@ Source: D-02 (每个 Tab 内同时提供 Excel 导入和飞书同步), D-09 (Imp
 | SVG overlay: absolute, inset-0, pointer-events-none      |
 | <line> elements: stroke=var(--color-primary), width=2    |
 +----------------------------------------------------------+
-| 已建立 {N} 个映射关系              [清除全部] .chip-button |
+| 已建立 {N} 个映射关系        [清除全部映射] .chip-button    |
 +----------------------------------------------------------+
 ```
 
@@ -255,7 +257,7 @@ File selected state:
 | Progress: syncing | 正在同步飞书数据... 已处理 {processed}/{total} 条 |
 | Progress: importing | 正在导入数据... 已处理 {processed}/{total} 条 |
 | Field mapper status | 已建立 {count} 个映射关系 |
-| Clear mappings | 清除全部 |
+| Clear mappings | 清除全部映射 |
 
 Source: D-09, D-10 (导入结果模式), existing ImportResultPanel copy patterns.
 
