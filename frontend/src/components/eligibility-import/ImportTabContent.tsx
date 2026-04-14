@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import type { ImportRowResult } from '../../types/api';
 import { ImportResultPanel } from '../import/ImportResultPanel';
 import { ExcelImportPanel } from './ExcelImportPanel';
+import { FeishuSyncPanel } from './FeishuSyncPanel';
 import type { EligibilityImportType } from '../../services/eligibilityImportService';
 
 interface ImportTabContentProps {
@@ -47,15 +48,9 @@ export function ImportTabContent({ importType, label }: ImportTabContentProps) {
         <ExcelImportPanel importType={importType} label={label} onResult={handleResult} />
       </section>
 
-      {/* Feishu Sync - placeholder, implemented in Task 2 */}
+      {/* Feishu Sync */}
       <section className="surface" style={{ padding: '16px 20px' }}>
-        <p className="eyebrow">飞书多维表格同步</p>
-        <h3 className="section-title" style={{ marginBottom: 12 }}>
-          从飞书多维表格同步{label}数据
-        </h3>
-        <p style={{ fontSize: 13.5, color: 'var(--color-steel)' }}>
-          飞书同步功能加载中...
-        </p>
+        <FeishuSyncPanel importType={importType} label={label} onResult={handleResult} />
       </section>
 
       {/* Import Result */}
