@@ -126,6 +126,7 @@ export interface EmployeeQuery {
   department?: string;
   job_family?: string;
   status?: string;
+  keyword?: string;
 }
 
 export interface CycleRecord {
