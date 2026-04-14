@@ -88,11 +88,15 @@ def test_import_api_flow() -> None:
 
         template_response = client.get('/api/v1/imports/templates/employees', headers=headers)
         assert template_response.status_code == 200
-        assert 'attachment; filename=employees_template.csv' in template_response.headers['content-disposition']
-        assert '员工工号' in template_response.content.decode('utf-8-sig')
-        assert '身份证号' in template_response.content.decode('utf-8-sig')
+        assert 'attachment; filename=employees_template.xlsx' in template_response.headers['content-disposition']
 
-        export_response = client.get(f'/api/v1/imports/jobs/{job_id}/export', headers=headers)
+        template_csv_response = client.get('/api/v1/imports/templates/employees?format=csv', headers=headers)
+        assert template_csv_response.status_code == 200
+        assert 'attachment; filename=employees_template.csv' in template_csv_response.headers['content-disposition']
+        assert '员工工号' in template_csv_response.content.decode('utf-8-sig')
+        assert '身份证号' in template_csv_response.content.decode('utf-8-sig')
+
+        export_response = client.get(f'/api/v1/imports/jobs/{job_id}/export?format=csv', headers=headers)
         assert export_response.status_code == 200
         assert 'attachment;' in export_response.headers['content-disposition']
         assert '导入成功。' in export_response.text
@@ -104,7 +108,8 @@ def test_import_api_flow() -> None:
         )
         assert xlsx_response.status_code == 201
         assert xlsx_response.json()['status'] == 'failed'
-        assert '暂不支持直接读取 Excel' in xlsx_response.json()['result_summary']['error']
+        error_msg = xlsx_response.json()['result_summary'].get('error', '')
+        assert error_msg  # fake xlsx should fail with some error
 
 
 def test_import_api_supports_delete_and_bulk_delete() -> None:
