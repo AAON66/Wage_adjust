@@ -1,7 +1,7 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active — v1.2 in progress (2026-04-09)
+**Status:** Active — v1.2 in progress (2026-04-14)
 
 ## Current Milestone: v1.2 生产就绪与数据管理完善
 
@@ -189,12 +189,11 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 
 **v1.1 shipped 2026-04-07:** 7 phases, 13 plans, 343 commits. Added eligibility engine with 4 business rules, file sharing workflow, multimodal vision evaluation, account binding with JWT invalidation, and simplified salary display with expandable detail panels.
 
-**Current codebase state:** ~30,800 Python LOC + ~20,000 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis foundation is runtime-verified for worker startup and task execution; employee records now support an optional `company` field across import/manual/detail flows with detail-only UI visibility; business async jobs are still pending migration.
+**Current codebase state:** ~31,000 Python LOC + ~20,500 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis foundation is runtime-verified; AI evaluation and bulk import now execute as Celery background tasks with frontend polling (2s interval, status text + spinner); employee records support optional `company` field with detail-only visibility.
 
 **Known issues / tech debt:**
 - filter-before-paginate for eligibility batch query won't scale beyond ~10k employees — needs server-side cursor pagination
 - Phase 11 nav restructuring code is in the repo but planning artifacts are incomplete (no SUMMARY.md); functionality requires verification
-- Celery task queue foundation is verified, but async evaluation/import jobs are not yet migrated to background execution
 
 ---
 
