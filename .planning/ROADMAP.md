@@ -99,7 +99,10 @@ Plans:
   3. 已绑定 feishu_open_id 的用户再次飞书登录时直接识别，无需重复匹配
   4. OAuth 回调包含 state CSRF 校验，同一 authorization code 不可重复使用
   5. 飞书登录找不到匹配员工时返回中文错误提示"工号未匹配，请联系管理员开通"
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 26-01-PLAN.md — User 模型 + Settings 配置 + Alembic 迁移
+- [ ] 26-02-PLAN.md — FeishuOAuthService 服务 + API 端点 + 单元测试
 
 ### Phase 27: 飞书 OAuth2 前端集成
 **Goal**: 用户可在登录页通过飞书扫码完成登录，前端处理完整的 OAuth 回调流程
@@ -168,7 +171,7 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 → 29
 | 23. 资格导入管理 | v1.2 | 3/3 | Complete | 2026-04-15 |
 | 24. 生产部署 | v1.2 | 2/2 | Complete | 2026-04-16 |
 | 25. 技术债清理 | v1.3 | 1/1 | Complete | 2026-04-16 |
-| 26. 飞书 OAuth2 后端 | v1.3 | 0/? | Not started | - |
+| 26. 飞书 OAuth2 后端 | v1.3 | 0/2 | Not started | - |
 | 27. 飞书 OAuth2 前端 | v1.3 | 0/? | Not started | - |
 | 28. 粒子背景 | v1.3 | 0/? | Not started | - |
 | 29. 登录页重设计 | v1.3 | 0/? | Not started | - |
