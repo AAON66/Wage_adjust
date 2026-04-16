@@ -178,15 +178,15 @@ def change_password(
     current_user: User = Depends(get_current_user),
 ) -> dict[str, str]:
     if not verify_password(payload.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='Current password is incorrect.')
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='当前密码输入错误，请重新输入。')
     if payload.current_password == payload.new_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='New password must be different from the current password.')
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='新密码不能与当前密码相同，请设置一个不同的密码。')
 
     current_user.hashed_password = get_password_hash(payload.new_password)
     current_user.must_change_password = False
     db.add(current_user)
     db.commit()
-    return {'message': 'Password updated successfully.'}
+    return {'message': '密码修改成功。'}
 
 
 @router.get('/self-bind/preview', response_model=SelfBindPreview)

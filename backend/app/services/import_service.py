@@ -202,6 +202,8 @@ class ImportService:
             job.total_rows = len(row_results)
             job.success_rows = sum(1 for item in row_results if item['status'] == 'success')
             job.failed_rows = sum(1 for item in row_results if item['status'] == 'failed')
+            if progress_callback:
+                progress_callback(job.total_rows, job.total_rows, job.failed_rows)
             job.result_summary = {
                 'rows': row_results,
                 'supported_types': sorted(self.SUPPORTED_TYPES),
@@ -382,7 +384,7 @@ class ImportService:
             last_error: Exception | None = None
             for encoding in ('utf-8-sig', 'utf-8', 'gb18030', 'gbk'):
                 try:
-                    return pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding).fillna('')
+                    return pd.read_csv(io.BytesIO(raw_bytes), encoding=encoding, dtype=str).fillna('')
                 except UnicodeDecodeError as exc:
                     last_error = exc
             if last_error is not None:
@@ -390,7 +392,7 @@ class ImportService:
             raise ValueError(self._localize_error_message('CSV 文件读取失败。'))
         if suffix in {'xlsx', 'xls'}:
             # IMP-04: xlsx/xls support via openpyxl
-            return pd.read_excel(io.BytesIO(raw_bytes), engine='openpyxl').fillna('')
+            return pd.read_excel(io.BytesIO(raw_bytes), engine='openpyxl', dtype=str).fillna('')
         raise ValueError(self._localize_error_message('Unsupported file format. Please upload CSV for now.'))
 
     def _dispatch_import(self, import_type: str, dataframe: pd.DataFrame) -> list[dict[str, object]]:

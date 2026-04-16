@@ -41,6 +41,25 @@ class IdentityBindingService:
             raise ValueError('This ID card number is already used by another account.')
         return normalized
 
+    def _find_employee_by_id_card(self, id_card_no: str) -> Employee | None:
+        """Find employee by id_card_no with Python-level matching.
+
+        EncryptedString columns cannot be matched with SQL WHERE because each
+        encryption produces a different ciphertext (random nonce).  We load all
+        employees and compare the decrypted values in Python.
+        """
+        for emp in self.db.scalars(select(Employee).where(Employee.id_card_no.isnot(None))):
+            if self.normalize_id_card_no(emp.id_card_no) == id_card_no:
+                return emp
+        return None
+
+    def _find_user_by_id_card(self, id_card_no: str) -> User | None:
+        """Find user by id_card_no with Python-level matching."""
+        for u in self.db.scalars(select(User).where(User.id_card_no.isnot(None))):
+            if self.normalize_id_card_no(u.id_card_no) == id_card_no:
+                return u
+        return None
+
     def auto_bind_user_and_employee(self, *, user: User | None = None, employee: Employee | None = None) -> bool:
         target_user = user
         target_employee = employee
@@ -49,9 +68,9 @@ class IdentityBindingService:
             return False
 
         if target_user is None:
-            target_user = self.db.scalar(select(User).where(User.id_card_no == id_card_no))
+            target_user = self._find_user_by_id_card(id_card_no)
         if target_employee is None:
-            target_employee = self.db.scalar(select(Employee).where(Employee.id_card_no == id_card_no))
+            target_employee = self._find_employee_by_id_card(id_card_no)
 
         if target_user is None or target_employee is None:
             return False
@@ -76,10 +95,10 @@ class IdentityBindingService:
         id_card_no = self.normalize_id_card_no(user.id_card_no)
         if not id_card_no:
             return None
-        return self.db.scalar(select(Employee).where(Employee.id_card_no == id_card_no))
+        return self._find_employee_by_id_card(id_card_no)
 
     def search_user_for_employee_by_identity(self, *, employee: Employee) -> User | None:
         id_card_no = self.normalize_id_card_no(employee.id_card_no)
         if not id_card_no:
             return None
-        return self.db.scalar(select(User).where(User.id_card_no == id_card_no))
+        return self._find_user_by_id_card(id_card_no)

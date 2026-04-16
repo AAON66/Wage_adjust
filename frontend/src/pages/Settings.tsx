@@ -196,7 +196,7 @@ export function SettingsPage() {
             <div>
               <p className="eyebrow">密码管理</p>
               <h2 className="section-title">修改登录密码</h2>
-              <p className="mt-2 text-sm leading-6 text-steel">仅修改当前账号密码。</p>
+              <p className="mt-2 text-sm leading-6 text-steel">仅修改当前账号密码。密码需至少 8 位，且包含大写字母、小写字母和数字或特殊字符。</p>
             </div>
           </div>
 

@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: 生产就绪与数据管理完善
+milestone: v1.3
+milestone_name: 飞书登录与登录页重设计
 status: executing
-stopped_at: Phase 19 context gathered
-last_updated: "2026-04-14T06:34:19.471Z"
-last_activity: 2026-04-14 -- Phase 23 execution started
+stopped_at: Phase 25 context gathered
+last_updated: "2026-04-16T04:05:20.849Z"
+last_activity: 2026-04-16 -- Phase 25 execution started
 progress:
-  total_phases: 7
-  completed_phases: 1
-  total_plans: 8
-  completed_plans: 5
-  percent: 63
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 1
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -20,17 +20,17 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-07)
 
-**Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Phase 23 — eligibility-import
+**Core value:** HR can run a complete, auditable salary review cycle -- with every decision explainable and traceable
+**Current focus:** Phase 25 — 技术债清理
 
 ## Current Position
 
-Phase: 23 (eligibility-import) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 23
-Last activity: 2026-04-14 -- Phase 23 execution started
+Phase: 25 (技术债清理) — EXECUTING
+Plan: 1 of 1
+Status: Executing Phase 25
+Last activity: 2026-04-16 -- Phase 25 execution started
 
-Progress: [----------] 0% (v1.2: 0/7 phases)
+Progress: [----------] 0% (v1.3: 0/5 phases)
 
 ## Accumulated Context
 

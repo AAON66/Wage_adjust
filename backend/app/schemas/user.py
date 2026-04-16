@@ -12,11 +12,11 @@ from backend.app.schemas.department import DepartmentRead
 def _validate_password_complexity(value: str) -> str:
     """Enforce: >=8 chars, 1+ uppercase, 1+ lowercase, 1+ digit or symbol."""
     if not re.search(r'[A-Z]', value):
-        raise ValueError('Password must contain at least one uppercase letter.')
+        raise ValueError('密码必须包含至少一个大写字母。')
     if not re.search(r'[a-z]', value):
-        raise ValueError('Password must contain at least one lowercase letter.')
+        raise ValueError('密码必须包含至少一个小写字母。')
     if not re.search(r'[0-9!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?`~]', value):
-        raise ValueError('Password must contain at least one digit or special character.')
+        raise ValueError('密码必须包含至少一个数字或特殊字符。')
     return value
 
 
