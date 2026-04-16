@@ -5,8 +5,8 @@ import {
   parseBitableUrl,
   fetchBitableFields,
   triggerFeishuSync,
-  getSyncStatus,
 } from '../../services/eligibilityImportService';
+import { useTaskPolling } from '../../hooks/useTaskPolling';
 import type {
   EligibilityImportType,
   FeishuFieldInfo,
@@ -42,6 +42,7 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
   const [taskId, setTaskId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [configExists, setConfigExists] = useState<boolean | null>(null);
+  const [progress, setProgress] = useState<{ processed: number; total: number; errors: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,37 +54,23 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
 
   const systemFields = SYSTEM_FIELDS_BY_TYPE[importType];
 
-  // Poll sync status when taskId is set
-  useEffect(() => {
-    if (!taskId) return;
-    let cancelled = false;
-    const poll = async () => {
-      if (cancelled) return;
-      try {
-        const data = await getSyncStatus(taskId);
-        if (cancelled) return;
-        if (data.status === 'completed') {
-          onResult(data.result);
-          setTaskId(null);
-          setIsSyncing(false);
-        } else if (data.status === 'failed') {
-          setErrorMessage(data.error ?? '同步任务执行失败。');
-          setTaskId(null);
-          setIsSyncing(false);
-        } else {
-          setTimeout(() => { void poll(); }, 2000);
-        }
-      } catch {
-        if (!cancelled) {
-          setErrorMessage('查询同步状态失败。');
-          setTaskId(null);
-          setIsSyncing(false);
-        }
-      }
-    };
-    void poll();
-    return () => { cancelled = true; };
-  }, [taskId, onResult]);
+  useTaskPolling(taskId, {
+    onComplete: (result) => {
+      onResult(result);
+      setTaskId(null);
+      setIsSyncing(false);
+      setProgress(null);
+    },
+    onError: (error) => {
+      setErrorMessage(error);
+      setTaskId(null);
+      setIsSyncing(false);
+      setProgress(null);
+    },
+    onProgress: (p) => {
+      setProgress(p);
+    },
+  });
 
   const handleFetchFields = useCallback(async () => {
     if (!url.trim()) return;
@@ -247,9 +234,29 @@ export function FeishuSyncPanel({ importType, label, onResult }: FeishuSyncPanel
           </button>
 
           {isSyncing ? (
-            <p role="status" aria-live="polite" style={{ marginTop: 8, fontSize: 13, color: 'var(--color-steel)' }}>
-              正在同步飞书数据...
-            </p>
+            <div role="status" aria-live="polite" style={{ marginTop: 8 }}>
+              {progress ? (
+                <>
+                  <div style={{ marginBottom: 4, height: 6, borderRadius: 3, background: 'var(--color-bg-subtle, #eee)', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        borderRadius: 3,
+                        background: 'var(--color-primary, #4f46e5)',
+                        width: progress.total > 0 ? `${Math.round((progress.processed / progress.total) * 100)}%` : '0%',
+                        transition: 'width 0.3s ease',
+                      }}
+                    />
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>
+                    已处理 {progress.processed}/{progress.total} 条
+                    {progress.errors > 0 ? `，${progress.errors} 条错误` : ''}
+                  </p>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: 'var(--color-steel)' }}>正在同步飞书数据...</p>
+              )}
+            </div>
           ) : null}
         </div>
       ) : null}
