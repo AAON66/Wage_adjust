@@ -67,11 +67,13 @@ class EligibilityService:
 
         hire_date: date | None = employee.hire_date
 
+        # Prioritize employee.last_salary_adjustment_date (synced from Feishu "历史调薪日期")
+        # Fall back to max date from salary_adjustment_records if not set
         last_adj_from_records = self.db.scalar(
             select(func.max(SalaryAdjustmentRecord.adjustment_date))
             .where(SalaryAdjustmentRecord.employee_id == employee_id)
         )
-        last_adjustment_date: date | None = last_adj_from_records or employee.last_salary_adjustment_date
+        last_adjustment_date: date | None = employee.last_salary_adjustment_date or last_adj_from_records
 
         performance_grade: str | None = self.db.scalar(
             select(PerformanceRecord.grade)
@@ -199,7 +201,7 @@ class EligibilityService:
         results: list[dict] = []
         for emp_id in employee_ids:
             emp = emp_map[emp_id]
-            last_adj = adj_map.get(emp_id) or emp.last_salary_adjustment_date
+            last_adj = emp.last_salary_adjustment_date or adj_map.get(emp_id)
             result = engine.evaluate(
                 hire_date=emp.hire_date,
                 last_adjustment_date=last_adj,

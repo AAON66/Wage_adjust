@@ -656,11 +656,12 @@ class FeishuService:
         table_id: str,
         field_mapping: dict[str, str] | None = None,
     ) -> dict:
-        """Sync hire dates from Feishu bitable, updating Employee.hire_date."""
+        """Sync hire dates and last adjustment dates from Feishu bitable, updating Employee fields."""
         if field_mapping is None:
             field_mapping = {
                 '员工工号': 'employee_no',
                 '入职日期': 'hire_date',
+                '历史调薪日期': 'last_salary_adjustment_date',
             }
 
         config = self.get_config()
@@ -688,24 +689,40 @@ class FeishuService:
                     continue
 
                 import pandas as pd
-                raw_date = record.get('hire_date')
-                if raw_date is None:
-                    skipped += 1
-                    continue
-                try:
-                    hire_date = pd.to_datetime(raw_date).date()
-                except Exception:
-                    skipped += 1
-                    continue
 
                 employee = self.db.get(Employee, employee_id)
                 if employee is None:
                     skipped += 1
                     continue
-                employee.hire_date = hire_date
-                self.db.add(employee)
-                self.db.flush()
-                synced += 1
+
+                updated = False
+
+                # Process hire_date
+                raw_hire_date = record.get('hire_date')
+                if raw_hire_date is not None:
+                    try:
+                        hire_date = pd.to_datetime(raw_hire_date).date()
+                        employee.hire_date = hire_date
+                        updated = True
+                    except Exception:
+                        pass
+
+                # Process last_salary_adjustment_date
+                raw_last_adj_date = record.get('last_salary_adjustment_date')
+                if raw_last_adj_date is not None:
+                    try:
+                        last_adj_date = pd.to_datetime(raw_last_adj_date).date()
+                        employee.last_salary_adjustment_date = last_adj_date
+                        updated = True
+                    except Exception:
+                        pass
+
+                if updated:
+                    self.db.add(employee)
+                    self.db.flush()
+                    synced += 1
+                else:
+                    skipped += 1
             except Exception:
                 logger.exception('Failed to process hire info record: emp_no=%s', record.get('employee_no'))
                 failed += 1

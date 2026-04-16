@@ -22,7 +22,7 @@ interface FeishuSyncPanelProps {
 const SYSTEM_FIELDS_BY_TYPE: Record<EligibilityImportType, string[]> = {
   performance_grades: ['employee_no', 'year', 'grade'],
   salary_adjustments: ['employee_no', 'adjustment_date', 'adjustment_type', 'amount'],
-  hire_info: ['employee_no', 'hire_date'],
+  hire_info: ['employee_no', 'hire_date', 'last_salary_adjustment_date'],
   non_statutory_leave: ['employee_no', 'year', 'total_days', 'leave_type'],
 };
 
