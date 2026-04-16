@@ -1,3 +1,5 @@
+# Development environment -- for production deployment use docker-compose.prod.yml
+
 services:
   redis:
     image: redis:7-alpine
