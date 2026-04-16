@@ -62,8 +62,10 @@ def _check_and_increment_failed_login(ip: str, settings) -> None:
         )
     pipe = redis_client.pipeline()
     pipe.incr(key)
-    pipe.expire(key, _FAILED_ATTEMPT_WINDOW_SECONDS, nx=True)
     pipe.execute()
+    # Only set expiry if the key has no TTL yet (compatible with Redis < 7.0)
+    if redis_client.ttl(key) < 0:
+        redis_client.expire(key, _FAILED_ATTEMPT_WINDOW_SECONDS)
 
 
 def _reset_failed_login(ip: str, settings) -> None:
