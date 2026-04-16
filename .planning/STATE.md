@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: 飞书登录与登录页重设计
-status: defining_requirements
-stopped_at: Milestone v1.3 started
-last_updated: "2026-04-16T15:00:00Z"
+status: ready_to_plan
+stopped_at: v1.3 roadmap created, ready to plan Phase 25
+last_updated: "2026-04-16T16:00:00Z"
 last_activity: 2026-04-16
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,17 +20,17 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-04-16)
 
-**Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Defining requirements for v1.3
+**Core value:** HR can run a complete, auditable salary review cycle -- with every decision explainable and traceable
+**Current focus:** Phase 25 - 技术债清理
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-04-16 — Milestone v1.3 started
+Phase: 25 (1 of 5 in v1.3)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-04-16 -- v1.3 roadmap created (5 phases, 15 requirements)
 
-Progress: [----------] 0% (v1.3: 0/0 phases)
+Progress: [░░░░░░░░░░] 0% (v1.3)
 
 ## Accumulated Context
 
@@ -39,25 +39,24 @@ Progress: [----------] 0% (v1.3: 0/0 phases)
 - AES-256-GCM for PII encryption (Phase 01)
 - Alembic is sole migration path (Phase 01)
 - token_version on User for JWT invalidation (Phase 12)
-- Hash-only dedup with oldest-first ordering for SharingRequest (Phase 16)
-- filter-before-paginate for eligibility batch query (revisit at scale)
 - Celery worker_process_init disposes shared engine after fork (Phase 19)
-- Separate docker-compose.prod.yml for production (Phase 24)
+- [v1.3 roadmap]: 飞书平台配置作为外部前置条件而非代码 phase
+- [v1.3 roadmap]: 技术债清理放在 Phase 25 最先执行，消除已知 debt 后再开始新功能
+- [v1.3 roadmap]: 粒子背景与 OAuth 逻辑解耦，串行以保持专注
 
 ### Pending Todos
 
 - Phase 11 (menu/navigation) needs verification pass
 - filter-before-paginate needs cursor-based pagination for production scale
 - boto3 Python 3.9 support ends 2026-04-29 -- plan 3.10+ migration within 6 months
-- llm_service.py duplicate InMemoryRateLimiter should import from core
-- FeishuSyncPanel should use shared useTaskPolling hook
 
 ### Blockers/Concerns
 
-- Pillow 10.4.0 may miss security patches only in 11+ -- acceptable for transitional 3.9 target
+- [Phase 26]: 飞书开放平台配置（App ID/Secret、redirect URI、权限审批）必须在 Phase 26 前完成
+- [Phase 27]: 生产 Nginx CSP 需添加 `frame-src https://open.feishu.cn`
 
 ## Session Continuity
 
-Last session: 2026-04-16T15:00:00Z
-Stopped at: Milestone v1.3 started
-Next step: Define requirements → create roadmap
+Last session: 2026-04-16T16:00:00Z
+Stopped at: v1.3 roadmap created, ready to plan Phase 25
+Next step: `/gsd-plan-phase 25`

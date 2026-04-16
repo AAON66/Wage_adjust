@@ -58,26 +58,27 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FAUTH-01 | — | Pending |
-| FAUTH-02 | — | Pending |
-| FAUTH-03 | — | Pending |
-| FAUTH-04 | — | Pending |
-| FAUTH-05 | — | Pending |
-| FUI-01 | — | Pending |
-| FUI-02 | — | Pending |
-| FUI-03 | — | Pending |
-| FUI-04 | — | Pending |
-| LOGIN-01 | — | Pending |
-| LOGIN-02 | — | Pending |
-| LOGIN-03 | — | Pending |
-| LOGIN-04 | — | Pending |
-| DEBT-01 | — | Pending |
-| DEBT-02 | — | Pending |
+| FAUTH-01 | Phase 26 | Pending |
+| FAUTH-02 | Phase 26 | Pending |
+| FAUTH-03 | Phase 26 | Pending |
+| FAUTH-04 | Phase 26 | Pending |
+| FAUTH-05 | Phase 26 | Pending |
+| FUI-01 | Phase 27 | Pending |
+| FUI-02 | Phase 27 | Pending |
+| FUI-03 | Phase 27 | Pending |
+| FUI-04 | Phase 27 | Pending |
+| LOGIN-01 | Phase 29 | Pending |
+| LOGIN-02 | Phase 28 | Pending |
+| LOGIN-03 | Phase 28 | Pending |
+| LOGIN-04 | Phase 29 | Pending |
+| DEBT-01 | Phase 25 | Pending |
+| DEBT-02 | Phase 25 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 15 total
-- Mapped to phases: 0
-- Unmapped: 15
+- Mapped to phases: 15
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-16*
+*Traceability updated: 2026-04-16*
