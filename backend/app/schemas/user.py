@@ -34,6 +34,7 @@ class UserRead(BaseModel):
     employee_id: Optional[str] = None
     employee_name: Optional[str] = None
     employee_no: Optional[str] = None
+    feishu_open_id: Optional[str] = None
     departments: List[DepartmentRead] = []
     created_at: datetime
 
@@ -148,3 +149,8 @@ class SelfBindPreview(BaseModel):
     employee_no: str
     name: str
     department: str
+
+
+class FeishuCallbackRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=512)
+    state: str = Field(min_length=1, max_length=128)

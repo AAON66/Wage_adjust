@@ -20,6 +20,7 @@ class User(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     must_change_password: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default='0')
     token_version: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default='0')
     employee_id: Mapped[Optional[str]] = mapped_column(ForeignKey('employees.id'), nullable=True, unique=True, index=True)
+    feishu_open_id: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True, index=True)
 
     employee = relationship('Employee', back_populates='bound_user', foreign_keys=[employee_id])
     approval_records = relationship('ApprovalRecord', back_populates='approver')
