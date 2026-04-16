@@ -19,6 +19,7 @@ from backend.app.dependencies import get_app_settings, get_current_user, get_db
 from backend.app.models.user import User
 from backend.app.schemas.user import (
     AuthResponse,
+    FeishuCallbackRequest,
     PasswordChangeRequest,
     SelfBindPreview,
     SelfBindRequest,
@@ -28,6 +29,7 @@ from backend.app.schemas.user import (
     UserLogin,
     UserRead,
 )
+from backend.app.services.feishu_oauth_service import FeishuOAuthService
 from backend.app.services.identity_binding_service import IdentityBindingService
 
 router = APIRouter(prefix='/auth', tags=['auth'])
@@ -262,3 +264,34 @@ def self_bind_confirm(
     db.commit()
     db.refresh(current_user)
     return UserRead.model_validate(current_user)
+
+
+@router.get('/feishu/authorize')
+def feishu_authorize(
+    db: Session = Depends(get_db),
+    settings = Depends(get_app_settings),
+) -> dict[str, str]:
+    """生成飞书 OAuth 授权 URL，返回 authorize_url 和 state。"""
+    service = FeishuOAuthService(db, settings=settings)
+    redis_client = service.require_redis()
+    return service.generate_authorize_url(redis_client)
+
+
+@router.post('/feishu/callback', response_model=AuthResponse)
+def feishu_callback(
+    payload: FeishuCallbackRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    settings = Depends(get_app_settings),
+) -> AuthResponse:
+    """处理飞书 OAuth 回调，验证 state 和 code，返回 JWT token pair。"""
+    service = FeishuOAuthService(db, settings=settings)
+    redis_client = service.require_redis()
+
+    user = service.handle_callback(payload.code, payload.state, redis_client)
+
+    # Clear any failed login attempts for this IP on successful OAuth login
+    client_ip = request.client.host if request.client else 'unknown'
+    _reset_failed_login(client_ip, settings)
+
+    return _build_auth_response(user, settings)
