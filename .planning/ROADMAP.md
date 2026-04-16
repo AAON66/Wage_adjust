@@ -156,7 +156,10 @@ Plans:
   2. `Dockerfile` 构建成功，容器内后端服务可正常响应请求
   3. `docker-compose up` 一键启动后端、前端、Redis、Celery worker 四个服务
   4. 容器间网络通信正常：FastAPI 可连接 Redis，Celery worker 可连接 Redis 和数据库
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 24-01-PLAN.md — 后端部署基础：requirements-prod.txt + Dockerfile 升级 + .dockerignore + .env.production.example
+- [ ] 24-02-PLAN.md — 前端 Nginx 容器 + docker-compose.prod.yml 生产编排 + 人工验证
 
 ## Progress
 
@@ -188,4 +191,4 @@ Phases execute in numeric order: 18 → 19 → 20 → 21 → 22 → 23 → 24
 | 21. 共享拒绝清理 | v1.2 | 2/2 | Complete   | 2026-04-09 |
 | 22. 异步迁移 | v1.2 | 3/3 | Complete    | 2026-04-14 |
 | 23. 资格导入管理 | v1.2 | 1/3 | In Progress|  |
-| 24. 生产部署 | v1.2 | 0/0 | Not started | - |
+| 24. 生产部署 | v1.2 | 0/2 | Not started | - |
