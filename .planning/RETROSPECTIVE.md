@@ -48,75 +48,19 @@
 
 ---
 
-## Milestone: v1.2 — 生产就绪与数据管理完善
-
-**Shipped:** 2026-04-16
-**Phases:** 7 | **Plans:** 18 | **Tasks:** 34
-**Duration:** 9 days (2026-04-07 → 2026-04-16)
-**Commits:** 144 | **Files changed:** 227 (+22,544 / -2,096)
-
-### What Was Built
-
-- Python 3.9 full compatibility: 440+ PEP 604/585 annotation downgrades across 37 files, numpy/Pillow version pins, SQLite FK pragma
-- Celery+Redis async infrastructure: app module, worker DB lifecycle fix, health endpoint, Docker compose, runtime proof
-- AI evaluation and bulk import async migration: Celery tasks, polling endpoint, useTaskPolling hook, frontend progress display
-- Unified eligibility data import: 6-tab management page, 4 new data types, Excel drag-drop upload + Feishu bitable field mapper with SVG connection lines
-- File sharing rejection/timeout cleanup: atomic copy deletion, history-safe FK with snapshots, pending badge, no-revoke terminal state
-- Employee company field: model + migration + import semantics + admin form + detail-only visibility
-- Production deployment: gunicorn+uvicorn Dockerfile, Nginx frontend multi-stage build, docker-compose.prod.yml 4-service orchestration
-
-### What Worked
-
-- **Celery DB lifecycle fix in Phase 19** (worker_process_init disposing shared engine) prevented a subtle bug that would have caused stale connections in all async tasks — catching this early in infrastructure phase saved significant debugging later
-- **Reusing run_import_task for Phase 23 Excel imports** — the Phase 22 Celery task infrastructure was well-abstracted enough that Phase 23 needed zero new Celery code for Excel imports
-- **Phase verification reports** caught real gaps: Phase 23 initially had gaps_found (ImportService missing 2 new types), closed before milestone completion
-- **Separate docker-compose.prod.yml** kept dev workflow untouched while adding full production orchestration
-- **History-safe FK migration** (Phase 21) with requester snapshot fields preserved audit trail even after copy deletion
-
-### What Was Inefficient
-
-- **REQUIREMENTS.md traceability not updated during phases** — same v1.1 problem repeated; 15/19 requirements still marked "Pending" despite being satisfied
-- **Phase 23 ROADMAP not updated** — ROADMAP showed 1/3 plans despite all 3 SUMMARYs existing on disk, causing confusion in pre-flight check
-- **FeishuSyncPanel custom polling** — diverged from the shared useTaskPolling pattern established in Phase 22; should have been caught during Phase 23 plan review
-- **llm_service.py InMemoryRateLimiter duplication** — Plan 23-01 claimed it would add a re-export for backwards compatibility, but never did
-
-### Patterns Established
-
-- `useTaskPolling` hook as the standard frontend async pattern — 3 out of 4 async operations use it consistently
-- `docker-compose.prod.yml` separate from dev compose — clean production/development separation
-- `core/rate_limiter.py` as shared rate limiting module — available for any service needing RPM control
-- Celery task pattern: `SessionLocal()` + `try/finally: db.close()` for independent DB sessions
-- `.env.production.example` as comprehensive production config template with Chinese section comments
-
-### Key Lessons
-
-- REQUIREMENTS.md traceability MUST be updated at phase completion, not deferred — this is the third milestone with the same gap
-- When establishing a shared hook/pattern (useTaskPolling), plan review should explicitly check that all consumers use it
-- Phase 23's ROADMAP discrepancy (1/3 vs 3/3) suggests the SUMMARY creation step isn't always updating ROADMAP checkboxes — needs workflow enforcement
-- Runtime verification items (Python 3.9 env, Docker builds) should be scheduled early in milestone, not left as human_needed items at completion
-
-### Cost Observations
-- Sessions: ~15-20 across milestone
-- Notable: Phase 18 (type annotations) was high-volume mechanical work; Phase 19 (Celery) required the most debugging iterations
-
----
-
 ## Cross-Milestone Trends
 
-| Metric | v1.0 | v1.1 | v1.2 |
-|--------|------|------|------|
-| Phases | 10 | 7 | 7 |
-| Plans | 35 | 13 | 18 |
-| Duration | ~5 days | 7 days | 9 days |
-| Avg plans/phase | 3.5 | 1.9 | 2.6 |
-| Commits | — | 343 | 144 |
-| Python LOC (cumulative) | ~22,000 | ~30,800 | ~33,164 |
-| TypeScript LOC (cumulative) | ~14,000 | ~20,000 | ~21,398 |
-| Requirements | — | — | 19/19 satisfied |
+| Metric | v1.0 | v1.1 |
+|--------|------|------|
+| Phases | 10 | 7 |
+| Plans | 35 | 13 |
+| Duration | ~5 days | 7 days |
+| Avg plans/phase | 3.5 | 1.9 |
+| Fix commits (estimate) | ~20 | ~15 |
+| Python LOC (cumulative) | ~22,000 | ~30,800 |
+| TypeScript LOC (cumulative) | ~14,000 | ~20,000 |
 
 **Trends:**
-- Phase count stable at 7; plan depth rebounded to 2.6 (infrastructure phases needed more plans)
-- Commit count dropped sharply (343 → 144) — less rework, more deliberate execution
-- LOC growth slowing (~2.3k Python + ~1.4k TS) — more infrastructure/config work, less feature code
-- REQUIREMENTS.md traceability gap persists across all 3 milestones — systemic issue needing workflow fix
-- Phase verification catching real gaps (Phase 23 re-verified after ImportService fix) — validates the verify step
+- Phase count decreasing, plan depth per phase stabilizing around 2
+- Fix commit ratio improving — better upfront design in v1.1
+- Codebase growing at ~8k Python + ~6k TS per milestone

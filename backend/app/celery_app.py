@@ -16,7 +16,6 @@ celery_app = Celery(
         'backend.app.tasks.test_tasks',
         'backend.app.tasks.evaluation_tasks',
         'backend.app.tasks.import_tasks',
-        'backend.app.tasks.feishu_sync_tasks',
     ],
 )
 
@@ -36,9 +35,6 @@ celery_app.conf.update(
 
 @worker_process_init.connect
 def dispose_db_engine_on_worker_init(**_: object) -> None:
-    # Load all model modules so SQLAlchemy mapper registry is complete in worker processes.
-    from backend.app.models import load_model_modules
-    load_model_modules()
     # Celery prefork workers must drop the actual task DB bind after fork.
     session_bind = SessionLocal.kw.get('bind') or engine
     session_bind.dispose()
@@ -49,4 +45,3 @@ def dispose_db_engine_on_worker_init(**_: object) -> None:
 from backend.app.tasks import test_tasks as _test_tasks  # noqa: F401,E402
 from backend.app.tasks import evaluation_tasks as _evaluation_tasks  # noqa: F401,E402
 from backend.app.tasks import import_tasks as _import_tasks  # noqa: F401,E402
-from backend.app.tasks import feishu_sync_tasks as _feishu_sync_tasks  # noqa: F401,E402

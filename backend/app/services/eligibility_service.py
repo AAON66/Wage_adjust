@@ -15,7 +15,7 @@ from backend.app.engines.eligibility_engine import (
     EligibilityThresholds,
     RuleResult,
 )
-from backend.app.models.non_statutory_leave import NonStatutoryLeave
+from backend.app.models.attendance_record import AttendanceRecord
 from backend.app.models.eligibility_override import EligibilityOverride
 from backend.app.models.employee import Employee
 from backend.app.models.performance_record import PerformanceRecord
@@ -59,7 +59,7 @@ class EligibilityService:
         if reference_date is None:
             reference_date = date.today()
         if year is None:
-            year = reference_date.year
+            year = reference_date.year - 1
 
         employee = self.db.get(Employee, employee_id)
         if employee is None:
@@ -82,10 +82,10 @@ class EligibilityService:
         )
 
         non_statutory_leave_days: float | None = self.db.scalar(
-            select(func.sum(NonStatutoryLeave.total_days))
+            select(func.sum(AttendanceRecord.non_statutory_leave_days))
             .where(
-                NonStatutoryLeave.employee_id == employee_id,
-                NonStatutoryLeave.year == year,
+                AttendanceRecord.employee_id == employee_id,
+                AttendanceRecord.period.like(f'{year}%'),
             )
         )
 
@@ -130,14 +130,14 @@ class EligibilityService:
         # Leave totals
         leave_rows = self.db.execute(
             select(
-                NonStatutoryLeave.employee_id,
-                func.sum(NonStatutoryLeave.total_days),
+                AttendanceRecord.employee_id,
+                func.sum(AttendanceRecord.non_statutory_leave_days),
             )
             .where(
-                NonStatutoryLeave.employee_id.in_(employee_ids),
-                NonStatutoryLeave.year == year,
+                AttendanceRecord.employee_id.in_(employee_ids),
+                AttendanceRecord.period.like(f'{year}%'),
             )
-            .group_by(NonStatutoryLeave.employee_id)
+            .group_by(AttendanceRecord.employee_id)
         ).all()
         leave_map: dict[str, float | None] = {row[0]: row[1] for row in leave_rows}
 
@@ -164,7 +164,7 @@ class EligibilityService:
         if reference_date is None:
             reference_date = date.today()
         if year is None:
-            year = reference_date.year
+            year = reference_date.year - 1
 
         # Step (a): DB-level filters
         query = select(Employee).where(Employee.status == 'active')
@@ -310,7 +310,7 @@ class EligibilityService:
         if reference_date is None:
             reference_date = date.today()
         if year is None:
-            year = reference_date.year
+            year = reference_date.year - 1
 
         # (b) Validate requester role: only manager or hrbp (NOT admin, per D-03)
         if requester.role not in ('manager', 'hrbp'):

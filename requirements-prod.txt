@@ -1,5 +1,0 @@
-# Production dependencies — extends base requirements
--r requirements.txt
-
-# ASGI production server (per DEPLOY-03)
-gunicorn==23.0.0

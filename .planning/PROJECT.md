@@ -1,18 +1,18 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active — v1.3 in progress (2026-04-16)
+**Status:** Active — v1.2 in progress (2026-04-14)
 
-## Current Milestone: v1.3 飞书登录与登录页重设计
+## Current Milestone: v1.2 生产就绪与数据管理完善
 
-**Goal:** 支持飞书扫码/网页授权登录并自动绑定员工账号，同时重新设计登录页面为左右分栏（左侧账号密码 + 右侧飞书登录）加粒子动态背景。
+**Goal:** 使系统兼容 Python 3.9 并优化部署，启用 Celery+Redis 异步任务架构，完善调薪资格数据导入管理，修复文件共享拒绝后的显示问题，增加员工所属公司字段。
 
 **Target features:**
-- 飞书 OAuth2 集成（扫码登录 + 网页授权两种方式）
-- 飞书登录后按工号自动匹配绑定系统账号
-- 登录页重设计：左侧账号密码表单，右侧飞书扫码/授权面板
-- Canvas 粒子动态背景（参考智慧树风格）
-- 保持现有账号密码登录功能不变
+- Celery+Redis 异步任务架构启用（跨应用 API 调用基础）
+- 员工档案增加所属公司字段（仅档案详情可见）
+- Python 3.9 兼容 + 服务器部署优化
+- 文件共享拒绝后自动删除 + 待审批状态标签
+- 调薪资格数据统一导入管理（飞书多维表格 + 本地 Excel）
 
 ---
 
@@ -20,7 +20,7 @@
 
 An internal enterprise platform for HR-driven talent assessment and salary adjustment decisions. The system uses AI (DeepSeek) to evaluate employees' AI capability across five dimensions, produces structured salary recommendations with traceability, routes them through a manager/HR approval workflow, and exposes the results to HR systems via a public REST API.
 
-As of v1.2, the platform includes: Python 3.9 compatibility for production deployment, Celery+Redis async infrastructure for AI evaluation and bulk import tasks, unified eligibility data import management (4 data types via Excel/Feishu sync), employee company field, file sharing rejection/timeout cleanup with pending badges, and Docker-based production deployment (gunicorn + Nginx + 4-service compose).
+As of v1.1, the platform includes: account-employee binding with JWT invalidation, automated 4-rule salary eligibility checks (tenure/interval/performance/leave), role-gated eligibility visibility with exception overrides, multimodal vision evaluation for PPT images and standalone photos, file sharing workflow with duplicate detection and contribution ratios, and a simplified salary display with summary/detail panels and eligibility badge.
 
 ---
 
@@ -73,22 +73,16 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ Multimodal vision evaluation: PPT image extraction + standalone image scoring + structured output — v1.1
 - ✓ File sharing workflow: duplicate warning + sharing request + approve/reject + contribution ratio + 72h timeout — v1.1
 - ✓ Salary display simplification: summary panel, expandable detail, eligibility badge with rule drill-down — v1.1
-- ✓ Python 3.9 compatibility: 440+ PEP 604/585 annotation downgrades, numpy/Pillow version pins, SQLite FK pragma — v1.2
-- ✓ Celery+Redis async foundation: shared worker DB lifecycle, health endpoint, Docker-backed runtime proof — v1.2
-- ✓ Employee company field: import overwrite-clear-preserve semantics, admin form, detail-only visibility — v1.2
-- ✓ File sharing rejection/timeout cleanup: atomic copy deletion, history-safe FK, pending badge — v1.2
-- ✓ AI evaluation + bulk import async migration: Celery tasks, useTaskPolling hook, frontend progress display — v1.2
-- ✓ Eligibility data unified import: 6-tab page, 4 data types, Excel upload + Feishu bitable sync with rate limiting — v1.2
-- ✓ Production deployment: gunicorn+uvicorn Dockerfile, Nginx frontend, docker-compose.prod.yml 4-service orchestration — v1.2
+- ✓ Celery+Redis async foundation: shared worker DB lifecycle, health endpoint, Docker-backed runtime proof, requirements closure — v1.2 Phase 19
+- ✓ Employee company field: shared backend/frontend contract, import overwrite-clear-preserve semantics, admin form editing, detail-only visibility — validated in Phase 20
 
 ### Active (Next Milestone)
 
 - [ ] Menu & navigation restructuring: grouped sidebar, collapsible, role-filtered (NAV-01/02/03 — deferred from v1.1)
 - [ ] Performance full cycle: currently only grade import is supported; full review workflow not built
 - [ ] Real-time notifications: currently polling on page load; WebSocket push for approval events
-- [ ] PostgreSQL production migration: connection pool tuning, read/write split
+- [ ] Production deployment hardening: PostgreSQL migration, Redis cluster, MinIO/S3 config
 - [ ] E2E integration test suite: key user journeys automated
-- [ ] MinIO/S3 object storage activation: replace local filesystem storage
 
 ### Out of Scope
 
@@ -99,8 +93,6 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - Full performance management module — only grade import is needed for eligibility check
 - Auto-approve sharing requests — manual approval preserves intent
 - Employee-visible eligibility status — HR/manager-only is a deliberate access control decision
-- K8s orchestration — Docker Compose is sufficient for current deployment scale
-- Celery Beat scheduled tasks — only on-demand async tasks needed currently
 
 ---
 
@@ -137,13 +129,11 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 ## Tech Stack
 
 - **Frontend:** React 18 + TypeScript, React Router v7, Tailwind CSS, Recharts
-- **Backend:** Python 3.9+, FastAPI 0.115, SQLAlchemy 2.0, SQLite (dev) / PostgreSQL (prod)
-- **Async:** Celery 5.5.1 + Redis (evaluation tasks, bulk import, Feishu sync)
+- **Backend:** Python 3.11+, FastAPI 0.115, SQLAlchemy 2.0, SQLite (dev) / PostgreSQL (prod)
 - **AI:** DeepSeek API (LLM for text evaluation + vision model for image evaluation)
 - **Auth:** JWT (python-jose), bcrypt, token_version for forced invalidation on bind/unbind
-- **File parsing:** python-pptx (with image extraction), Pillow 10.4.0 (with compression), pypdf, python-docx
+- **File parsing:** python-pptx (with image extraction), Pillow (with compression), pypdf, python-docx
 - **Storage:** Local filesystem (dev), MinIO/S3 (prod path wired but not activated)
-- **Deploy:** Docker (gunicorn+uvicorn backend, Nginx frontend), docker-compose.prod.yml
 - **Dev tools:** Vite 6, pytest, Alembic (sole migration path)
 
 ---
@@ -189,11 +179,7 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 | filter-before-paginate for batch eligibility query (SQLite limitation) | ⚠️ Revisit — will need server-side pagination for large datasets | v1.1 |
 | Role-step binding for override approval (HRBP then admin) | ✓ Good — matches existing approval pattern | v1.1 |
 | Employee `company` stays on the shared contract but is rendered only on detail surfaces | ✓ Good — avoids API split while preserving visibility boundaries | v1.2 |
-| NAV restructuring deferred (Phase 11 implemented but not fully verified) | — Pending — carry to next milestone | v1.1 |
-| Celery worker_process_init disposes shared engine after fork | ✓ Good — prevents stale DB connections in forked workers | v1.2 |
-| Separate docker-compose.prod.yml instead of modifying dev compose | ✓ Good — dev/prod separation, no risk of breaking local workflow | v1.2 |
-| FeishuService uses shared InMemoryRateLimiter from core | ✓ Good — centralized rate limiting; llm_service still has local copy (tech debt) | v1.2 |
-| useTaskPolling shared hook for all async operations | ⚠️ Revisit — FeishuSyncPanel uses custom polling, misses progress display | v1.2 |
+| NAV restructuring deferred (Phase 11 implemented but not fully verified) | — Pending — carry to v1.2 | v1.1 |
 
 ---
 
@@ -203,16 +189,11 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 
 **v1.1 shipped 2026-04-07:** 7 phases, 13 plans, 343 commits. Added eligibility engine with 4 business rules, file sharing workflow, multimodal vision evaluation, account binding with JWT invalidation, and simplified salary display with expandable detail panels.
 
-**v1.2 shipped 2026-04-16:** 7 phases, 18 plans, 144 commits. Python 3.9 compatibility (440+ annotation downgrades), Celery+Redis async infrastructure with AI evaluation and bulk import migration, unified eligibility data import management (4 types via Excel/Feishu), file sharing rejection cleanup, employee company field, and Docker production deployment.
-
-**Current codebase state:** ~33,164 Python LOC + ~21,398 TypeScript LOC. SQLite in dev (wage_adjust.db), PostgreSQL in prod. Celery+Redis for async tasks (evaluation, import, Feishu sync). Docker-based production deployment with gunicorn+uvicorn backend, Nginx frontend, 4-service docker-compose.
+**Current codebase state:** ~31,000 Python LOC + ~20,500 TypeScript LOC. SQLite in dev (wage_adjust.db). Celery/Redis foundation is runtime-verified; AI evaluation and bulk import now execute as Celery background tasks with frontend polling (2s interval, status text + spinner); employee records support optional `company` field with detail-only visibility.
 
 **Known issues / tech debt:**
 - filter-before-paginate for eligibility batch query won't scale beyond ~10k employees — needs server-side cursor pagination
-- Phase 11 nav restructuring code is in the repo but planning artifacts are incomplete; functionality requires verification
-- llm_service.py has local duplicate of InMemoryRateLimiter (should import from core/rate_limiter.py)
-- FeishuSyncPanel uses custom polling instead of shared useTaskPolling hook (no progress display during sync)
-- boto3 Python 3.9 support ends 2026-04-29 — plan 3.10+ migration within 6 months
+- Phase 11 nav restructuring code is in the repo but planning artifacts are incomplete (no SUMMARY.md); functionality requires verification
 
 ---
 
@@ -234,4 +215,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after v1.3 milestone start*
+*Last updated: 2026-04-09 after Phase 20 completion*

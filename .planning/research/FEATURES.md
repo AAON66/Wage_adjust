@@ -1,218 +1,380 @@
-# Feature Research
+# Feature Landscape
 
-**Domain:** 企业 SSO 登录 — 飞书 OAuth2 登录 + 登录页重设计 (v1.3)
-**Researched:** 2026-04-16
-**Confidence:** HIGH (飞书官方文档 + 已有代码库核实)
-
----
-
-## 背景与现有状态
-
-本次研究聚焦 v1.3 里程碑新增功能，现有系统已完成：
-
-- JWT 邮箱/密码登录（`LoginForm.tsx` + `useAuth` hook）
-- 登录页：左侧角色说明卡 + 右侧登录表单（`Login.tsx` 两栏布局）
-- `token_version` JWT 强制失效机制（绑定/解绑触发）
-- `User.employee_id` FK 绑定 `Employee`；`employee_no` 通过 `user.employee.employee_no` 读取
-- `FeishuService` 管理 `tenant_access_token` + bitable 考勤/绩效同步，**不处理用户 OAuth 登录**
-
-新功能必须叠加在此基础上，不得破坏现有账号密码流程。
+**Domain:** 企业调薪平台 v1.2 — 生产就绪与数据管理完善
+**Researched:** 2026-04-07
+**Confidence:** HIGH (基于已有代码库深度分析 + 行业最佳实践)
 
 ---
 
-## 飞书 OAuth2 两种登录模式说明
+## Table Stakes
 
-飞书提供两套完全不同机制，适用于不同运行环境：
+用户/运维人员期待的功能。缺失 = 系统无法进入生产环境或数据管理体验不完整。
 
-| 模式 | 运行环境 | 机制 | 依赖条件 |
-|------|----------|------|----------|
-| **扫码登录（QR Code）** | 普通浏览器（PC/外部 H5） | 飞书 QR SDK 嵌入二维码 → 用户用飞书 App 扫码 → 返回 `tmp_code` → 后端换 `user_access_token` | App ID、Redirect URI 预注册、QR SDK CDN |
-| **网页授权免登（SSO）** | 飞书 App 内嵌 WebView（工作台） | `tt.requestAccess()` 自动获取授权码 → 后端换 `user_access_token` | App ID、可信域名配置、飞书客户端环境、JSSDK |
-
-**本项目 v1.3 选用扫码登录。** 系统以独立浏览器 PC 端为主，不作为飞书工作台应用发布；扫码登录不依赖飞书客户端环境，兼容性更好。网页授权免登留作 v2 可选增强。
+| Feature | Why Expected | Complexity | Depends On |
+|---------|--------------|------------|------------|
+| Celery+Redis 异步任务基础架构 | 已有 celery==5.4.0, redis==5.2.1 依赖但未激活；生产环境长任务（AI评估、批量导入、飞书同步）会阻塞 API 请求，必须异步化 | Med | Redis 可用 |
+| Python 3.9 兼容性 | 服务器部署环境为 Python 3.9；当前代码大量使用 `X \| None` 语法（PEP 604）需要 `from __future__ import annotations`（已有），但 `match` 语句（3.10+）、`tomllib`（3.11+）需排查 | Med | 无 |
+| 员工所属公司字段 | 多公司集团场景下区分员工归属是基本的人事数据需求 | Low | Employee 模型 |
+| 文件共享拒绝后清理 + 状态标签 | 当前拒绝后文件仍保留在申请方文件列表中，用户困惑；outgoing 方向缺少 "待同意"/"已拒绝" 状态标签 | Low | SharingRequest, FileService |
+| 调薪资格数据统一导入管理页 | 当前 4 类资格数据（入职年限/调薪历史/假期记录/绩效等级）导入入口分散在不同页面，HR 操作效率低 | High | FeishuService, EligibilityService, 现有 bitable 集成模式 |
 
 ---
 
-## 飞书 OAuth2 完整后端流程（HIGH confidence — 官方文档核实）
+## Feature 1: Celery+Redis 异步任务架构
+
+### 期望行为
+
+**核心模式：** FastAPI 接收请求 -> 立即返回 task_id -> Celery worker 在后台执行 -> 前端轮询/回调获取结果。
+
+**具体 UX 流程：**
+
+1. **API 调用方发起请求** -> 后端立即返回 `{ task_id: "xxx", status: "queued" }`
+2. **前端/调用方轮询** `GET /api/v1/tasks/{task_id}` -> 返回 `{ status: "running" | "success" | "failed", result: ... }`
+3. **跨应用调用模式：** 外部系统通过 Public API 触发评估任务 -> 拿到 task_id -> 轮询直到完成
+
+**应适用的场景（按现有代码分析）：**
+
+| 场景 | 当前实现 | 改为 Celery 任务 |
+|------|---------|-----------------|
+| AI 评估（LLM 调用） | 同步 httpx 调用，120s 超时 | `evaluation.run_evaluation.delay(evaluation_id)` |
+| 飞书数据同步 | 同步 `sync_attendance()`，阻塞请求 | `feishu.sync_attendance.delay(mode, triggered_by)` |
+| 批量导入 | 同步处理，大文件会超时 | `import.process_batch.delay(job_id)` |
+| 文件解析 | 同步，多文件串行 | `parse.parse_file.delay(file_id)` |
+
+**Celery 配置建议（基于已有依赖版本）：**
+
+```python
+# backend/app/core/celery_app.py
+from celery import Celery
+
+celery_app = Celery('wage_adjust')
+celery_app.config_from_object({
+    'broker_url': settings.redis_url,           # redis://localhost:6379/0
+    'result_backend': settings.redis_url,
+    'task_serializer': 'json',
+    'result_serializer': 'json',
+    'accept_content': ['json'],
+    'timezone': 'UTC',
+    'enable_utc': True,
+    'task_time_limit': 1800,          # 30 分钟硬限制
+    'task_soft_time_limit': 1500,     # 25 分钟软限制
+    'result_expires': 3600,           # 结果保留 1 小时
+    'task_routes': {
+        'backend.app.tasks.evaluation.*': {'queue': 'evaluation'},
+        'backend.app.tasks.sync.*': {'queue': 'sync'},
+        'backend.app.tasks.import.*': {'queue': 'default'},
+    },
+})
+```
+
+**任务状态 API 设计：**
 
 ```
-1. 前端构造授权 URL，通过 QR SDK 渲染二维码
-   GET https://accounts.feishu.cn/open-apis/authen/v1/authorize
-       ?client_id=APP_ID
-       &redirect_uri=REDIRECT_URI        # 必须在飞书后台安全设置预注册，完全匹配
-       &response_type=code
-       &state=RANDOM_CSRF_TOKEN          # 存入 sessionStorage 用于回调验证
-
-2. 用户用飞书 App 扫码确认授权
-   → 飞书回调 redirect_uri?code=XXX&state=YYY
-   （code 有效期 5 分钟，单次使用）
-
-3. 后端验证 state 防 CSRF，用 code 换 user_access_token
-   POST https://open.feishu.cn/open-apis/authen/v2/oauth/token
-   Body: { client_id, client_secret, code, grant_type: "authorization_code", redirect_uri }
-   返回: { access_token, expires_in, refresh_token, ... }
-
-4. 后端用 user_access_token 获取用户信息
-   GET https://passport.feishu.cn/suite/passport/oauth/userinfo
-   Authorization: Bearer {user_access_token}
-   返回: { open_id, union_id, user_id, name, email, mobile, employee_no, avatar_url, ... }
-   （employee_no 需飞书应用申请"获取用户受雇信息"权限）
-
-5. 按 employee_no 匹配系统 Employee 记录 → 找到绑定的 User → 签发系统 JWT
-   与现有账号密码登录共用相同的 JWT 生成逻辑（token_version 一致）
-
-6. 前端收到系统 JWT，走与现有登录相同的 token 存储、角色跳转逻辑
+GET /api/v1/tasks/{task_id}
+Response: {
+  "task_id": "abc-123",
+  "status": "pending" | "running" | "success" | "failed" | "retry",
+  "progress": 0.75,        // 可选，百分比
+  "result": { ... },       // status=success 时
+  "error": "...",           // status=failed 时
+  "created_at": "...",
+  "updated_at": "..."
+}
 ```
 
-**关键约束：** `user_access_token` 仅用于登录时换取用户信息，之后丢弃。不持久化存储，不与现有 `FeishuService` 的 `tenant_access_token` 混用。
+**跨应用 API 调用模式：**
+
+外部系统发起评估 -> Public API 立即返回 task_id -> 外部系统按 task_id 轮询结果。这是 v1.2 "跨应用 API 调用基础" 的核心含义。
+
+**关键实现要点：**
+
+- Celery task 内部需要独立的 DB Session（不共享 FastAPI 的请求级 session）
+- 使用 `bind=True` + `max_retries=3` + 指数退避
+- 任务幂等性：同一 evaluation_id 不应并发执行两次
+- 保留 fallback 路径：Redis 不可用时回退到 FastAPI BackgroundTasks（开发环境）
+
+### Complexity: MEDIUM
+
+已有依赖；主要工作在于：(1) 创建 celery_app 配置 (2) 将同步服务方法拆为 task (3) 添加 task 状态查询 API (4) DB Session 在 worker 中的生命周期管理。
 
 ---
 
-## Feature Landscape
+## Feature 2: 员工所属公司字段
 
-### Table Stakes（用户期望存在，缺失则感觉残缺）
+### 期望行为
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| 飞书扫码登录区域（QR SDK 嵌入） | 企业内部系统标配入口；员工期望不用记密码直接扫码进入 | MEDIUM | 引入飞书 QR SDK（`LarkSSOSDKWebQRCode-1.0.3.js` CDN），在 `<div id="feishu-qr-container">` 渲染二维码；监听 `window.message` 事件获取 `tmp_code` |
-| OAuth 回调处理路由 `/auth/feishu/callback` | 飞书扫码后跳转到此，必须有前端路由处理 code → 系统 JWT 转换 | LOW | 新 React 路由页：从 URL 解析 `?code=&state=`，验证 state，POST 后端，成功后按角色跳转；失败显示中文错误 |
-| 后端 OAuth callback 接口 `POST /api/v1/auth/feishu/callback` | 前后端协议边界 | MEDIUM | 接收 `{code, state}`，验证 state，换 `user_access_token`，调用飞书 userinfo，按 `employee_no` 匹配 `Employee`→`User`，签发系统 JWT |
-| 按 employee_no 自动匹配绑定 | 企业员工 `employee_no` 唯一且系统内已存在，无需额外人工绑定步骤 | LOW | 查 `Employee.employee_no`→`User.employee_id`；匹配失败返回明确错误"飞书账号未与系统账号绑定，请联系管理员" |
-| CSRF state 参数校验 | OAuth 2.0 基础安全要求，防授权码劫持 | LOW | 前端生成随机 state 存 `sessionStorage`，回调时比对；后端不需要额外存储 |
-| 登录页双栏重设计（左侧账号密码 + 右侧飞书扫码） | v1.3 明确目标；与同类企业系统视觉预期一致 | LOW | 重写 `Login.tsx`；左侧保留现有 `LoginForm` 组件；右侧新增飞书扫码面板 |
-| Canvas 粒子动态背景 | 登录页视觉现代感；避免空白背景感；产品定位为技术型企业平台 | LOW | 原生 Canvas + `requestAnimationFrame`；不引入 `particles.js` 外部库；参数硬编码即可（粒子数约 80，连线距离 150px） |
-| 登录失败分类错误提示 | 飞书登录失败原因多样，笼统提示"登录失败"是高频体验痛点 | LOW | 三类错误：(1) `employee_no` 未匹配：提示"飞书账号未绑定系统账号"；(2) 飞书授权失败（`error=access_denied`）：提示"授权被取消"；(3) 网络/超时：提示"网络错误，请重试" |
-| 保持现有邮箱/密码登录不变 | 管理员和初始化账号可能无飞书账号；不能断掉现有入口 | LOW | `LoginForm.tsx` 不改动；仅调整在页面中的布局位置 |
+- Employee 模型增加 `company: Mapped[str | None]` 字段
+- 仅在员工档案详情页可见（不在列表、不在搜索筛选）
+- 批量导入 Excel 支持该字段（可选列）
+- 对外 API 包含该字段
 
-### Differentiators（加分项，非必须但有价值）
+**UX：** 管理员/HR 在员工详情页看到 "所属公司" 一行，显示为只读文本。无需前端编辑入口。
+
+### Complexity: LOW
+
+一个 Alembic migration + 模型字段 + schema 字段 + 前端详情页一行展示。
+
+---
+
+## Feature 3: Python 3.9 兼容 + 服务器部署优化
+
+### 期望行为
+
+**兼容性修复：**
+
+| 语法/特性 | Python 3.9 状态 | 解决方案 |
+|-----------|-----------------|---------|
+| `X \| None` 类型注解 | 需要 `from __future__ import annotations`（已全量使用） | 已兼容，无需改动 |
+| `match/case` 语句 | 3.10+ 才有 | 排查并替换为 if/elif |
+| `tomllib` | 3.11+ 才有 | 如有使用，改用 `tomli` 包 |
+| `str.removeprefix()` / `str.removesuffix()` | 3.9+ 已有 | 已兼容 |
+| `dict \| dict` 合并运算符 | 3.9+ 已有 | 已兼容 |
+| `typing.TypeAlias` | 3.10+ | 如有使用，改为普通赋值 |
+| SQLAlchemy `Mapped[T]` | 需要 SQLAlchemy 2.0+（已有） + `from __future__ import annotations` | 已兼容 |
+
+**部署优化：**
+
+- uvicorn 启动参数优化（workers 数量、host 绑定）
+- Gunicorn + Uvicorn worker 模式（生产推荐）
+- 静态文件服务分离（Nginx 代理前端静态资源）
+- 环境变量标准化（区分 dev/staging/prod）
+- 健康检查端点 `/health`
+
+### Complexity: MEDIUM
+
+排查全代码库兼容性 + 部署脚本/配置编写。需逐文件扫描，但不涉及逻辑改动。
+
+---
+
+## Feature 4: 文件共享拒绝后处理
+
+### 期望行为
+
+**当前问题（根据代码分析）：**
+
+1. `SharingService.reject_request()` 只设置 `status='rejected'` + `resolved_at`，但 **不删除** requester 方上传的文件副本
+2. 前端 `SharingRequestCard` 已有 "已拒绝" 标签样式（`STATUS_STYLES.rejected`），但 **outgoing 方向不显示操作状态标签**——申请发出方看到的状态列只显示最终比例或 "-"
+3. 拒绝后，requester 的文件列表中仍然保留那个被拒绝的文件，用户以为文件可用但实际无效
+
+**目标 UX：**
+
+| 视角 | 当前行为 | 目标行为 |
+|------|---------|---------|
+| 原上传者（incoming） | 可以"拒绝"，状态显示"已拒绝" | 不变，保持现状 |
+| 申请方（outgoing） | 状态列只显示"-"或最终比例 | 显示 "待同意" / "已拒绝" 状态标签 |
+| 申请方文件列表 | 拒绝后文件仍在列表中 | 拒绝后自动软删除 requester_file，文件从列表消失 |
+
+**具体改动点：**
+
+1. **后端 `reject_request()` 增加文件清理逻辑：**
+   - 拒绝时对 `requester_file` 执行软删除（标记 `is_deleted=True`）或硬删除
+   - 同时删除磁盘上的物理文件（通过 `LocalStorageService`）
+   - 推荐软删除 + 定期清理，避免误操作不可恢复
+
+2. **前端 outgoing 方向状态显示：**
+   - 当前 `SharingRequestCard` 在 outgoing 时最后一列只展示 `finalRatio` 或 "-"
+   - 改为：outgoing 方向也展示 `statusPill`（待审批/已审批/已拒绝/已超时）
+   - 特别是 "待同意" (pending) 和 "已拒绝" (rejected) 要醒目
+
+3. **文件列表过滤：**
+   - `EvaluationDetail` 页面的文件列表查询需过滤掉 `is_deleted` 的文件
+   - 或在前端过滤掉关联的 sharing_request 状态为 rejected 的文件
+
+### Complexity: LOW
+
+后端改动约 10-20 行（reject 时清理文件）；前端改动约 5-10 行（outgoing 展示 statusPill）。
+
+---
+
+## Feature 5: 调薪资格数据统一导入管理页
+
+### 期望行为
+
+**核心问题：** 当前调薪资格检查依赖 4 类数据，但导入入口分散：
+
+| 数据类型 | 当前入口 | 对应模型 |
+|---------|---------|---------|
+| 入职年限（tenure） | Employee.hire_date，批量导入员工时携带 | Employee |
+| 调薪历史 | 无独立入口，零散在 eligibility API | SalaryAdjustmentRecord |
+| 假期记录 | 飞书考勤同步页面 | AttendanceRecord |
+| 绩效等级 | `FeishuService.sync_performance_records()` 或手动单条创建 | PerformanceRecord |
+
+**目标 UX — 统一管理页：**
+
+```
+页面标题：调薪资格数据管理
+
++-----------------------------------------------------+
+|  [入职年限]  [调薪历史]  [假期记录]  [绩效等级]     |  <- Tab 切换
++-----------------------------------------------------+
+|                                                     |
+|  当前数据概览                                        |
+|  +----------------------------------------------+   |
+|  | 已导入: 352 条  |  最近更新: 2026-04-01       |   |
+|  | 覆盖率: 89%（352/396 名活跃员工）              |   |
+|  +----------------------------------------------+   |
+|                                                     |
+|  导入方式                                            |
+|  +--------------+  +------------------+             |
+|  |  飞书导入     |  |  Excel 上传      |             |
+|  |  (推荐)      |  |                  |              |
+|  +--------------+  +------------------+             |
+|                                                     |
+|  [飞书导入] 展开：                                    |
+|  +----------------------------------------------+   |
+|  | 多维表格 App Token: [____________]             |   |
+|  | 数据表 Table ID:    [____________]             |   |
+|  |                                               |   |
+|  | 字段映射:                                      |   |
+|  | +--------------+----------------+             |   |
+|  | | 飞书字段名   | 系统字段        |             |   |
+|  | +--------------+----------------+             |   |
+|  | | 员工工号     | employee_no    |             |   |
+|  | | 绩效等级     | grade          |             |   |
+|  | | 年度         | year           |             |   |
+|  | +--------------+----------------+             |   |
+|  | [+ 添加映射]                                   |   |
+|  |                                               |   |
+|  | [开始同步]                                     |   |
+|  +----------------------------------------------+   |
+|                                                     |
+|  [Excel 上传] 展开：                                  |
+|  +----------------------------------------------+   |
+|  | [下载模板]  [选择文件]  [开始导入]              |   |
+|  +----------------------------------------------+   |
+|                                                     |
+|  导入历史记录                                        |
+|  +------+--------+-------+------+----------+       |
+|  | 时间 | 方式   | 总数  | 成功 | 失败/跳过 |       |
+|  +------+--------+-------+------+----------+       |
+|  | 4/1  | 飞书   | 352   | 340  | 12       |       |
+|  | 3/15 | Excel  | 50    | 50   | 0        |       |
+|  +------+--------+-------+------+----------+       |
++-----------------------------------------------------+
+```
+
+**每个 Tab 的具体数据与映射：**
+
+| Tab | 飞书默认字段映射 | Excel 模板列 | 目标模型 | Upsert 键 |
+|-----|----------------|-------------|---------|-----------|
+| 入职年限 | 员工工号->employee_no, 入职日期->hire_date | 工号, 入职日期 | Employee.hire_date | employee_no |
+| 调薪历史 | 员工工号->employee_no, 调薪日期->adjustment_date, 调薪类型->adjustment_type, 金额->amount | 工号, 调薪日期, 类型, 金额 | SalaryAdjustmentRecord | employee_no + adjustment_date |
+| 假期记录 | 员工工号->employee_no, 月份->period, 非法定假天数->non_statutory_leave_days | 工号, 月份, 非法定假天数 | AttendanceRecord.non_statutory_leave_days | employee_no + period |
+| 绩效等级 | 员工工号->employee_no, 年度->year, 等级->grade | 工号, 年度, 等级 | PerformanceRecord | employee_no + year |
+
+**飞书多维表格映射 UX 关键设计（复用现有模式）：**
+
+当前 `FieldMappingTable` 组件已有成熟的映射 UX：
+- 左列输入飞书字段名（文本输入）
+- 右列选择系统字段（下拉选择）
+- 支持添加/删除行
+- employee_no 为必填校验
+
+v1.2 需要做的是：**让 FieldMappingTable 组件可配置不同的 SYSTEM_FIELDS 列表**，每个 Tab 对应不同的系统字段选项。
+
+当前组件硬编码了考勤字段（`attendance_rate`, `absence_days` 等），需要改为通过 props 传入可用字段列表。
+
+**飞书配置复用：** 所有 Tab 共享同一个飞书 App 配置（app_id/app_secret），但 bitable_app_token 和 table_id 可以不同（不同数据在不同表中）。因此每个数据类型需要独立的 bitable 连接配置。
+
+**Excel 导入行为：**
+
+- 提供每种数据类型的 Excel 模板下载
+- 上传后后端解析、校验、upsert
+- 返回处理结果摘要：成功数/失败数/跳过数 + 错误详情
+- 复用现有 `import_service.py` 的批量导入模式
+
+**导入历史：**
+
+- 统一的 ImportLog 表，记录每次导入的方式、数据类型、结果统计
+- 现有 `FeishuSyncLog` 模式可扩展为通用导入日志
+
+### Complexity: HIGH
+
+- 前端：新页面 + Tab 组件 + 4 套字段映射配置 + Excel 上传 + 导入历史表格
+- 后端：4 种数据类型的 Feishu sync 方法 + 4 种 Excel 解析器 + 通用 ImportLog 模型
+- 需要泛化 `FieldMappingTable` 组件 + 泛化 `FeishuService` 的同步方法
+
+---
+
+## Differentiators
+
+不是用户期待的，但提供后会显著提升体验的功能。
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| 二维码自动刷新（过期重新生成） | 飞书 QR 码有效期约 3 分钟；页面长时间停留后不刷新用户会困惑 | LOW | 前端设 3 分钟 timer 重新初始化 QR SDK；QR SDK 自身可能内置刷新（需验证） |
-| 粒子背景鼠标跟随交互（连线/排斥） | 提升视觉品质感，增加科技感 | LOW | Canvas `mousemove` 监听 + 粒子引力/斥力算法；纯原生实现约 50 行 |
-| `feishu_open_id` 存储到 User 模型 | 飞书登录后记录 `open_id`，后续可通过 `open_id` 快速识别而无需每次查 `employee_no` | LOW | `User` 模型加 `feishu_open_id: Mapped[str | None]` 字段；Alembic migration；P2 优先级，v1.3 可跳过 |
-| 登录页暗色模式适配 | 与系统整体 CSS 变量体系一致 | LOW | 粒子背景颜色使用 CSS 变量而非硬编码；无需额外工作量 |
+| Celery 任务进度条 | 批量导入/同步时前端显示实时进度百分比 | Med | 通过 Redis pub/sub 或轮询 task meta |
+| 导入数据预览 + 确认 | Excel/飞书导入前先展示将要导入的数据预览，用户确认后再执行 | Med | 防止误操作，但增加交互复杂度 |
+| 导入冲突检测 | 导入前检测与现有数据的冲突，显示 "将更新 X 条 / 新增 Y 条 / 跳过 Z 条" | Low | 用户体验显著提升 |
+| Flower 任务监控面板 | 独立的 Celery 监控 Web UI | Low | 仅运维可见，`pip install flower` 即可 |
+| 数据覆盖率告警 | 导入后自动检测覆盖率，低于阈值时告警 HR | Low | 防止遗漏数据 |
 
-### Anti-Features（看似合理但应明确不做）
+---
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| 飞书工作台免登（`tt.requestAccess`） | "从飞书工作台点进去不用扫码" | 依赖飞书客户端 WebView 环境和 JSSDK 鉴权；需要配置可信域名；应用需上架飞书工作台；当前系统不作为工作台应用发布，实现复杂度与优先级不匹配 | 扫码登录已覆盖主要场景；工作台集成可作独立 v2 里程碑 |
-| 首次飞书登录自动创建系统账号 | "扫码就能用，不需要管理员预建账号" | 新建账号无角色、无员工绑定，进不了任何功能页面；绕过现有角色分配和 RBAC 流程；引入"飞书存在但系统无角色"的灰色状态 | 保持"管理员预建账号 + employee_no 绑定"流程；飞书登录匹配失败时显示"请联系管理员开通账号" |
-| 扫码/密码同一面板 Tab 切换 | 视觉上更紧凑 | Tab 切换时 QR SDK 容器销毁/重建会触发二维码闪烁；行业标准（企业微信、钉钉登录页）均采用双栏或并列而非 Tab | 左右分栏：左侧账号密码，右侧飞书扫码，两种方式视觉并列 |
-| 后端持久化存储飞书 `user_access_token` | "后续可直接调用飞书用户 API" | 飞书 token 有效期短（2h），存储带来安全风险；本系统登录后不需要持续调用飞书用户 API；`tenant_access_token`（机器人权限）已由 `FeishuService` 管理 | 仅用于登录时换取用户信息后丢弃；如需标识可存 `feishu_open_id`（字符串，无安全风险） |
-| 引入 `particles.js` / `tsparticles` 库 | "成熟库效果更好" | 压缩后仍约 50KB+，登录页是首次加载性能最关键的页面；外部 CDN 引入增加故障点；原生 Canvas 200 行以内可实现相同效果 | 原生 Canvas + `requestAnimationFrame` 实现，零外部依赖 |
-| 飞书扫码状态实时轮询（已扫码/确认中） | "扫码后让用户知道状态" | 需要后端维护扫码状态或 SSE 连接，复杂度高；飞书 QR SDK 的 `message` 事件本身就是确认信号，确认后立即发起 OAuth 回调即可 | 扫码成功 → 立即重定向回调页，回调页展示"登录中..."loading 状态即可 |
+## Anti-Features
+
+明确不应构建的功能。
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| 飞书字段自动发现（从 bitable API 拉取字段列表） | 增加 API 权限要求和调用复杂度；当前手动输入字段名已够用 | 保持手动输入飞书字段名 + 文档说明 |
+| WebSocket 实时任务推送 | 过度工程化；Celery 任务轮询已满足需求，WebSocket 增加连接管理复杂度 | 前端 3-5 秒轮询 task 状态端点 |
+| 动态数据类型配置（让 HR 自定义新的资格数据类型） | 4 种数据类型已覆盖业务需求；动态类型需要 schema-on-read 模型，过度复杂 | 固定 4 种数据类型 + 可配置阈值 |
+| 共享拒绝后的申诉流程 | 增加审批链条复杂度；已有"撤销拒绝"机制 | 保持现有的撤销拒绝功能 |
+| 自动文件回收站（带恢复） | 拒绝后的文件只是副本（requester 上传的副本），无业务数据价值 | 直接软删除，不提供恢复 UI |
+| Celery Beat 定时任务调度 | 当前飞书同步已有 sync_hour/sync_minute 配置但通过 cron/手动触发；引入 Beat 增加部署组件 | 使用系统 cron 或 supervisord 触发 |
 
 ---
 
 ## Feature Dependencies
 
 ```
-飞书 QR SDK 扫码区域（前端）
-    └──requires──> 飞书开放平台应用（App ID + App Secret）[外部依赖，需人工配置]
-    └──requires──> Redirect URI 在飞书后台安全设置中预注册（完全字符串匹配）
-    └──requires──> QR SDK 脚本加载（CDN script tag 在 public/index.html）
-    └──triggers──> 前端 OAuth 回调路由
+Feature 1 (Celery) --- 无前置依赖，但为 Feature 5 提供异步基础
+                    +-- Feature 5 的飞书同步可选通过 Celery task 执行
 
-前端 OAuth 回调路由 /auth/feishu/callback
-    └──requires──> 后端 OAuth callback 接口
-    └──requires──> sessionStorage 中的 state 值（CSRF 验证）
-    └──on-success──> 走与现有账号密码登录相同的 JWT 存储 + 角色跳转逻辑
+Feature 2 (Company) --- 无依赖
+Feature 3 (Py3.9)  --- 无依赖，但应最先完成（确保后续开发在兼容环境下验证）
 
-后端 OAuth callback 接口 POST /api/v1/auth/feishu/callback
-    └──requires──> 飞书 userinfo API（外部调用）
-    └──requires──> Employee.employee_no 索引（数据库）
-    └──requires──> Employee 已绑定 User（employee_id FK，v1.1 已建立）
-    └──reuses──> 现有 create_access_token() / create_refresh_token() 函数
+Feature 4 (Sharing) --- 依赖现有 SharingService, FileService
+                    +-- 不依赖 Celery（同步操作，无需异步）
 
-登录页双栏重设计
-    └──requires──> 飞书扫码区域组件（右侧面板）
-    └──reuses──> 现有 LoginForm 组件（左侧面板，不改动）
-    └──replaces──> 现有 Login.tsx 布局（原角色介绍卡压缩为背景层文字）
-
-Canvas 粒子背景
-    └──requires──> 新版登录页组件（作为全屏背景层）
-    └──independent-of──> 飞书 OAuth2 逻辑（纯视觉）
+Feature 5 (Import)  --- 依赖现有 FeishuService, EligibilityService
+                    +-- 复用 FieldMappingTable 组件（需泛化）
+                    +-- 复用 FeishuConfig 的 app_id/app_secret（共享凭证）
+                    +-- 可选依赖 Feature 1（大批量导入通过 Celery 异步执行）
 ```
 
-### Dependency Notes
-
-- **飞书 OAuth2 requires employee_no 绑定已建立：** v1.1 账号绑定流程已完成此依赖。`User.employee_no` 通过 `user.employee.employee_no` 属性读取，无需改 User 模型。
-- **飞书 OAuth2 requires 外部配置（硬性阻塞）：** `FEISHU_APP_ID`、`FEISHU_APP_SECRET`、`FEISHU_REDIRECT_URI` 必须在 `.env` 中配置；`FEISHU_REDIRECT_URI` 必须与飞书后台安全设置完全一致（含协议、域名、路径）。缺失则整条链路无法工作。
-- **QR SDK 与现有 FeishuService 完全分离：** 现有 `FeishuService` 管理 `tenant_access_token`（机器人权限），OAuth2 用户登录走 `user_access_token`（用户权限）。两个 token 体系不同，不共用服务类，需新建 `FeishuAuthService` 或在 `auth.py` 内联实现。
-- **前端 QR SDK 加载方式：** 官方 SDK 通过 `<script>` 标签引入，暴露全局 `window.QRLogin`。在 React+TypeScript 项目中需在 `public/index.html` 中加 CDN script，在 TypeScript 组件中声明 `declare global { interface Window { QRLogin: ... } }`。
-
 ---
 
-## MVP Definition
+## MVP Recommendation
 
-### Launch With (v1.3 — 必须交付)
+### Phase 1 — 优先完成（无阻塞、低风险）
 
-- [ ] 飞书 QR SDK 嵌入 — 右侧面板渲染扫码二维码，监听 `window.message` 授权结果
-- [ ] 后端 OAuth callback 接口 — code 换 token、取用户信息、按 `employee_no` 匹配 User、签发 JWT
-- [ ] 前端 OAuth 回调路由 `/auth/feishu/callback` — 解析 code/state，调用后端，成功跳转，失败显示分类中文错误
-- [ ] 登录页双栏重设计 — 左侧账号密码，右侧飞书扫码
-- [ ] Canvas 粒子动态背景 — 全屏背景层，原生 Canvas 实现
-- [ ] CSRF state 参数校验 — `sessionStorage` 存储 + 回调验证
+1. **Python 3.9 兼容性**（Feature 3） — 最先完成，确保后续所有开发在目标环境兼容
+2. **员工所属公司字段**（Feature 2） — 改动最小，一个 migration + 几行代码
+3. **文件共享拒绝处理**（Feature 4） — 改动小，直接修复用户困惑点
 
-### Add After Validation (v1.x — 验证后补充)
+### Phase 2 — 核心基础设施
 
-- [ ] `feishu_open_id` 存储到 User 模型 — 首次飞书登录写入，加快后续识别（P2）
-- [ ] 二维码自动刷新 timer — 3 分钟重新初始化 QR SDK（验证 SDK 是否内置后决定）
+4. **Celery+Redis 异步任务架构**（Feature 1） — 为后续异步场景打基础
 
-### Future Consideration (v2+)
+### Phase 3 — 大功能交付
 
-- [ ] 飞书工作台免登（`tt.requestAccess`）— 需要应用正式上架工作台后才有价值；另立里程碑
+5. **统一导入管理页**（Feature 5） — 工作量最大，依赖前端新页面 + 后端 4 种数据类型泛化
 
----
+### Defer（本期可不做的差异化功能）
 
-## Feature Prioritization Matrix
-
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| 飞书 QR SDK 扫码区域 | HIGH | MEDIUM | P1 |
-| 后端 OAuth callback 接口 | HIGH | MEDIUM | P1 |
-| 前端 OAuth 回调路由页 | HIGH | LOW | P1 |
-| `employee_no` 自动匹配绑定 | HIGH | LOW（现有绑定体系已就绪）| P1 |
-| CSRF state 校验 | HIGH | LOW | P1 |
-| 登录失败分类错误提示 | MEDIUM | LOW | P1 |
-| 登录页双栏重设计 | MEDIUM | LOW | P1 |
-| Canvas 粒子背景 | MEDIUM | LOW | P1 |
-| `feishu_open_id` 存储到 User | LOW | LOW | P2 |
-| 二维码自动刷新 | LOW | LOW | P2 |
-| 飞书工作台免登 | LOW | HIGH | P3 |
-
----
-
-## Existing Code Impact Analysis
-
-| 现有文件 | 操作 | 说明 |
-|----------|------|------|
-| `frontend/src/pages/Login.tsx` | **重写** | 整体布局改为双栏 + Canvas 粒子背景；左侧保留 `LoginForm`，右侧新增飞书扫码面板 |
-| `frontend/src/components/auth/LoginForm.tsx` | **不改** | 现有邮箱密码表单完整复用，仅移入左侧面板 |
-| `frontend/src/App.tsx` | **小改** | 注册 `/auth/feishu/callback` 路由（无需鉴权的 public 路由） |
-| `backend/app/services/feishu_service.py` | **不改** | 现有服务仅处理 bitable/考勤同步，OAuth 用户登录是独立能力 |
-| `backend/app/api/v1/auth.py`（或新文件） | **扩展** | 新增 `POST /api/v1/auth/feishu/callback` endpoint；可新建 `feishu_auth.py` 保持清晰 |
-| `backend/app/models/user.py` | **可选小改** | 如存储 `feishu_open_id` 需加字段（P2 功能，v1.3 可跳过） |
-| `frontend/src/services/authService.ts` | **扩展** | 新增 `feishuOAuthCallback(code: string, state: string)` 函数 |
-| `public/index.html` | **小改** | 添加飞书 QR SDK CDN script tag |
+- 任务进度条 — 可以后续 milestone 补充
+- 导入数据预览 — 先做导入，后续加预览
+- Flower 监控 — 运维工具，按需部署
 
 ---
 
 ## Sources
 
-- [飞书开放平台 — 获取 OAuth 授权码](https://open.feishu.cn/document/authentication-management/access-token/obtain-oauth-code) — HIGH confidence
-- [飞书开放平台 — 获取 user_access_token](https://open.feishu.cn/document/authentication-management/access-token/get-user-access-token) — HIGH confidence
-- [飞书扫码登录解决方案 + QR SDK](https://open.feishu.cn/solutions/detail/qrcode) — HIGH confidence
-- [飞书 Web 应用 SSO 登录概览](https://open.feishu.cn/document/common-capabilities/sso/web-application-sso/web-app-overview) — HIGH confidence
-- 飞书 userinfo 接口返回 `employee_no` 字段（多篇独立文章印证）— HIGH confidence
-- 扫码登录 vs 网页授权免登 vs JSSDK 三种模式区别整理 — MEDIUM confidence（社区文章）
-- [通过飞书登录 Web 应用开发实战指南](https://open.feishu.cn/community/articles/7317091221654224898) — MEDIUM confidence
-- [Enterprise SSO UI/UX Best Practices](https://www.scalekit.com/blog/ui-ux-considerations-for-streamlining-sso-in-b2b-applications) — MEDIUM confidence
-- [Canvas Particle Background 实现参考](https://techhub.iodigital.com/articles/particle-background-effect-with-canvas) — MEDIUM confidence
-- 项目现有代码核实（`Login.tsx`, `LoginForm.tsx`, `user.py`, `feishu_service.py`）— HIGH confidence
-
----
-*Feature research for: 飞书 OAuth2 登录 + 登录页重设计 (v1.3 milestone)*
-*Researched: 2026-04-16*
+- 项目代码库深度分析：`backend/app/services/sharing_service.py`, `eligibility_service.py`, `feishu_service.py`, `file_service.py`
+- 前端组件分析：`SharingRequestCard.tsx`, `SharingRequests.tsx`, `FieldMappingTable.tsx`, `FeishuConfig.tsx`
+- 数据模型分析：`Employee`, `SharingRequest`, `FeishuConfig`, `PerformanceRecord`, `SalaryAdjustmentRecord`, `AttendanceRecord`
+- [Celery + FastAPI 集成最佳实践 2025](https://medium.com/@dewasheesh.rana/celery-redis-fastapi-the-ultimate-2025-production-guide-broker-vs-backend-explained-5b84ef508fa7)
+- [FastAPI + Celery 入门指南](https://derlin.github.io/introduction-to-fastapi-and-celery/03-celery/)
+- [Feishu Bitable API 概览](https://open.feishu.cn/document/ukTMukTMukTM/uUDN04SN0QjL1QDN/bitable-overview)
+- [Feishu 字段编辑开发指南](https://open.feishu.cn/document/server-docs/docs/bitable-v1/app-table-field/guide)

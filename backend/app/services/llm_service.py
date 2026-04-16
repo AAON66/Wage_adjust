@@ -8,7 +8,6 @@ import logging
 import random
 import re
 import time
-from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +16,7 @@ from typing import Any
 import httpx
 
 from backend.app.core.config import Settings
+from backend.app.core.rate_limiter import InMemoryRateLimiter
 from backend.app.parsers.base_parser import ParsedDocument
 from backend.app.utils.helpers import compact_dict
 from backend.app.utils.prompt_hash import compute_prompt_hash
@@ -69,21 +69,6 @@ class RedisRateLimiter:
         if count > self.limit:
             raise RuntimeError(f'DeepSeek Redis rate limit reached ({count}/{self.limit} rpm).')
 
-
-class InMemoryRateLimiter:
-    def __init__(self, limit: int, *, window_seconds: int = 60, clock: Callable[[], float] | None = None) -> None:
-        self.limit = max(limit, 1)
-        self.window_seconds = window_seconds
-        self.clock = clock or time.monotonic
-        self.events: deque[float] = deque()
-
-    def acquire(self) -> None:
-        now = self.clock()
-        while self.events and now - self.events[0] >= self.window_seconds:
-            self.events.popleft()
-        if len(self.events) >= self.limit:
-            raise RuntimeError('DeepSeek rate limit reached for the current minute window.')
-        self.events.append(now)
 
 
 class DeepSeekPromptLibrary:

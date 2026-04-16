@@ -213,7 +213,8 @@ def test_retry_backoff_429_respects_retry_after():
 
 def test_redis_rate_limiter_fallback():
     """DeepSeekService initializes without exception when Redis is unavailable."""
-    from backend.app.services.llm_service import DeepSeekService, InMemoryRateLimiter
+    from backend.app.core.rate_limiter import InMemoryRateLimiter
+    from backend.app.services.llm_service import DeepSeekService
 
     settings = build_test_settings(deepseek_api_key='real-key', redis_url='redis://127.0.0.1:19999/0')
 
