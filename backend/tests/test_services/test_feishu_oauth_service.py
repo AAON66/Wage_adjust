@@ -14,8 +14,11 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from backend.app.core.config import Settings
 from backend.app.core.database import Base
+from backend.app.models import load_model_modules
 from backend.app.models.employee import Employee
 from backend.app.models.user import User
+
+load_model_modules()
 
 
 # ---------------------------------------------------------------------------
@@ -383,7 +386,11 @@ class TestFeishuApiErrorMapping:
 class TestRedisUnavailable:
     def test_redis_unavailable_returns_503(self, db, settings):
         """Redis 不可用时 OAuth 操作返回 503。"""
-        service = _make_service(db, settings)
+        # Use a port that is guaranteed unreachable
+        bad_settings = Settings(
+            **{**settings.model_dump(), 'redis_url': 'redis://127.0.0.1:19999/0'},
+        )
+        service = _make_service(db, bad_settings)
         with pytest.raises(HTTPException) as exc_info:
             service.require_redis()
         assert exc_info.value.status_code == 503
