@@ -36,6 +36,9 @@ celery_app.conf.update(
 
 @worker_process_init.connect
 def dispose_db_engine_on_worker_init(**_: object) -> None:
+    # Load all model modules so SQLAlchemy mapper registry is complete in worker processes.
+    from backend.app.models import load_model_modules
+    load_model_modules()
     # Celery prefork workers must drop the actual task DB bind after fork.
     session_bind = SessionLocal.kw.get('bind') or engine
     session_bind.dispose()
