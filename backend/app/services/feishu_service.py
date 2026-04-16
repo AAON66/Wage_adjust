@@ -607,7 +607,11 @@ class FeishuService:
                     skipped += 1
                     continue
                 try:
-                    adjustment_date = pd.to_datetime(raw_date).date()
+                    # Support both timestamp (ms) and date string formats
+                    if isinstance(raw_date, (int, float)):
+                        adjustment_date = pd.to_datetime(raw_date, unit='ms').date()
+                    else:
+                        adjustment_date = pd.to_datetime(raw_date).date()
                 except Exception:
                     skipped += 1
                     continue
@@ -701,7 +705,10 @@ class FeishuService:
                 raw_hire_date = record.get('hire_date')
                 if raw_hire_date is not None:
                     try:
-                        hire_date = pd.to_datetime(raw_hire_date).date()
+                        if isinstance(raw_hire_date, (int, float)):
+                            hire_date = pd.to_datetime(raw_hire_date, unit='ms').date()
+                        else:
+                            hire_date = pd.to_datetime(raw_hire_date).date()
                         employee.hire_date = hire_date
                         updated = True
                     except Exception:
@@ -711,7 +718,10 @@ class FeishuService:
                 raw_last_adj_date = record.get('last_salary_adjustment_date')
                 if raw_last_adj_date is not None:
                     try:
-                        last_adj_date = pd.to_datetime(raw_last_adj_date).date()
+                        if isinstance(raw_last_adj_date, (int, float)):
+                            last_adj_date = pd.to_datetime(raw_last_adj_date, unit='ms').date()
+                        else:
+                            last_adj_date = pd.to_datetime(raw_last_adj_date).date()
                         employee.last_salary_adjustment_date = last_adj_date
                         updated = True
                     except Exception:

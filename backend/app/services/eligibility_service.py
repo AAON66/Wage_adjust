@@ -59,7 +59,7 @@ class EligibilityService:
         if reference_date is None:
             reference_date = date.today()
         if year is None:
-            year = reference_date.year - 1
+            year = reference_date.year
 
         employee = self.db.get(Employee, employee_id)
         if employee is None:
@@ -166,7 +166,7 @@ class EligibilityService:
         if reference_date is None:
             reference_date = date.today()
         if year is None:
-            year = reference_date.year - 1
+            year = reference_date.year
 
         # Step (a): DB-level filters
         query = select(Employee).where(Employee.status == 'active')
@@ -312,7 +312,7 @@ class EligibilityService:
         if reference_date is None:
             reference_date = date.today()
         if year is None:
-            year = reference_date.year - 1
+            year = reference_date.year
 
         # (b) Validate requester role: only manager or hrbp (NOT admin, per D-03)
         if requester.role not in ('manager', 'hrbp'):
