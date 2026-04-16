@@ -1,64 +1,56 @@
-# Requirements: Milestone v1.2 生产就绪与数据管理完善
+# Requirements: Milestone v1.3 飞书登录与登录页重设计
 
-**Created:** 2026-04-08
-**Milestone:** v1.2
+**Created:** 2026-04-16
+**Milestone:** v1.3
+**Core Value:** HR can run a complete, auditable salary review cycle — with every decision explainable and traceable
 
 ---
 
-## 部署兼容 (DEPLOY)
+## 飞书 OAuth2 认证 (FAUTH)
 
-- [ ] **DEPLOY-01**: 系统可在 Python 3.9 环境下正常启动和运行（Mapped[str|None] 替换为 Optional, 依赖版本兼容）
-- [ ] **DEPLOY-02**: numpy 降级至 2.0.2、Pillow 降级至 10.4.0，且现有功能（pandas 导入、图片处理）正常工作
-- [ ] **DEPLOY-03**: 生产环境使用 gunicorn+uvicorn worker 启动，配置在 requirements-prod.txt 和启动脚本中
-- [ ] **DEPLOY-04**: 提供 Dockerfile 和 docker-compose.yml，支持一键部署后端+前端+Redis
-- [ ] **DEPLOY-05**: SQLite 启用 PRAGMA foreign_keys=ON，修复 cascade delete 静默失败问题
+- [ ] **FAUTH-01**: 后端 OAuth callback 端点接收飞书授权码，换取 user_access_token 并获取用户信息
+- [ ] **FAUTH-02**: 飞书用户的 employee_no 与系统 Employee 记录自动匹配，匹配成功后绑定对应 User 账号并签发 JWT
+- [ ] **FAUTH-03**: OAuth 回调包含 state 参数 CSRF 校验，authorization code 一次性使用防重放
+- [ ] **FAUTH-04**: User 模型新增 feishu_open_id 字段（唯一约束），已绑定用户后续登录直接识别无需重复匹配
+- [ ] **FAUTH-05**: 飞书登录找不到匹配员工时返回中文错误提示"工号未匹配，请联系管理员开通"
 
-## 异步任务 (ASYNC)
+## 飞书前端集成 (FUI)
 
-- [x] **ASYNC-01**: Celery app 配置完成（升级至 5.5.1），worker 可正常启动并执行 task
-- [ ] **ASYNC-02**: AI 评估调用（LLM 文本评估 + 视觉评估）迁移到 Celery task，API 返回 task_id 供前端轮询结果
-- [ ] **ASYNC-03**: 批量导入（Excel/飞书）通过 Celery task 后台执行，前端可查看导入进度
-- [x] **ASYNC-04**: Celery worker 健康检查端点可用，docker-compose 中包含 worker 服务
+- [ ] **FUI-01**: 登录页嵌入飞书 QR SDK 扫码面板，用户扫码后自动触发 OAuth 授权流程
+- [ ] **FUI-02**: 前端 /auth/feishu/callback 路由处理 OAuth 回调，解析 code/state 后调用后端接口完成登录
+- [ ] **FUI-03**: QR 二维码支持 3 分钟自动刷新，过期后显示刷新提示
+- [ ] **FUI-04**: 飞书登录失败时显示分类中文错误提示（授权取消、工号未匹配、网络错误等）
 
-## 员工档案 (EMP)
+## 登录页重设计 (LOGIN)
 
-- [x] **EMP-01**: Employee 模型新增 company（所属公司）字段，支持通过批量导入和管理端手动设置
-- [x] **EMP-02**: 所属公司仅在员工档案详情页展示，不出现在员工列表等其他页面
+- [ ] **LOGIN-01**: 登录页重设计为左右双栏布局，左侧账号密码登录表单，右侧飞书扫码/授权面板
+- [ ] **LOGIN-02**: 登录页添加全屏 Canvas 粒子动态背景，参考智慧树风格
+- [ ] **LOGIN-03**: 粒子背景支持鼠标跟随交互、HiDPI 适配和 prefers-reduced-motion 响应
+- [ ] **LOGIN-04**: 现有邮箱/密码登录功能完整保留，不受飞书登录集成影响
 
-## 文件共享 (SHARE)
+## 技术债清理 (DEBT)
 
-- [ ] **SHARE-06**: 共享申请被拒绝后，申请者上传的副本文件自动从系统中删除（物理文件+数据库记录）
-- [ ] **SHARE-07**: 未审批的共享作品在列表中显示"待同意"状态标签
-- [ ] **SHARE-08**: 72h 超时的共享申请触发时，申请者上传的副本文件也自动删除
-
-## 调薪资格导入 (ELIGIMP)
-
-- [ ] **ELIGIMP-01**: 提供统一的"调薪资格管理"页面，通过 Tab 切换管理 4 种数据类型的导入设置
-- [ ] **ELIGIMP-02**: 支持通过本地 Excel 文件导入绩效等级、调薪历史、入职信息、非法定假期数据
-- [ ] **ELIGIMP-03**: 支持通过飞书多维表格字段映射同步绩效等级、调薪历史、入职信息、非法定假期数据
-- [ ] **ELIGIMP-04**: 每种数据类型的导入结果有明确的成功/失败/跳过统计和错误明细
-
-## 飞书集成 (FEISHU)
-
-- [ ] **FEISHU-01**: FeishuService 添加请求限流（RPM 限制）和指数退避重试，防止 429 错误
+- [ ] **DEBT-01**: llm_service.py 中重复的 InMemoryRateLimiter 改为从 core/rate_limiter.py 导入
+- [ ] **DEBT-02**: FeishuSyncPanel 改用共享 useTaskPolling hook 替代手写 setTimeout 轮询，显示同步进度
 
 ---
 
 ## Future Requirements (deferred)
 
+- 飞书工作台免登（tt.requestAccess）— 需应用上架工作台，独立里程碑
 - 菜单导航重构（NAV-01/02/03，从 v1.1 延期）
 - 实时 WebSocket 通知
 - E2E 集成测试套件
-- PostgreSQL 专用优化（连接池、读写分离）
+- PostgreSQL 连接池优化
 - MinIO/S3 对象存储激活
 
 ## Out of Scope
 
-- 动态资格规则配置 UI — 4 条规则 + 可配置阈值已满足需求
-- 完整绩效管理模块 — 仅导入绩效等级
+- 首次飞书登录自动创建系统账号 — 绕过 RBAC，产生无角色灰色状态
+- 扫码/密码 Tab 切换模式 — QR SDK 容器销毁重建会闪烁，行业标准为并列
+- 持久化存储飞书 user_access_token — 不必要的安全风险，用后即弃
+- 飞书内嵌 WebView 免登 — 需要工作台上架，独立里程碑
 - K8s 编排 — Docker Compose 已满足当前部署需求
-- Celery 定时任务（Beat）— v1.2 仅做按需异步，不做定时调度
-- Python 3.10+ 升级 — v1.2 目标是 3.9 兼容，后续再考虑升级
 
 ---
 
@@ -66,31 +58,26 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEPLOY-01 | Phase 18 | Pending |
-| DEPLOY-02 | Phase 18 | Pending |
-| DEPLOY-03 | Phase 24 | Pending |
-| DEPLOY-04 | Phase 24 | Pending |
-| DEPLOY-05 | Phase 18 | Pending |
-| ASYNC-01 | Phase 19 | Complete |
-| ASYNC-02 | Phase 22 | Pending |
-| ASYNC-03 | Phase 22 | Pending |
-| ASYNC-04 | Phase 19 | Complete |
-| EMP-01 | Phase 20 | Complete |
-| EMP-02 | Phase 20 | Complete |
-| SHARE-06 | Phase 21 | Pending |
-| SHARE-07 | Phase 21 | Pending |
-| SHARE-08 | Phase 21 | Pending |
-| ELIGIMP-01 | Phase 23 | Pending |
-| ELIGIMP-02 | Phase 23 | Pending |
-| ELIGIMP-03 | Phase 23 | Pending |
-| ELIGIMP-04 | Phase 23 | Pending |
-| FEISHU-01 | Phase 23 | Pending |
+| FAUTH-01 | — | Pending |
+| FAUTH-02 | — | Pending |
+| FAUTH-03 | — | Pending |
+| FAUTH-04 | — | Pending |
+| FAUTH-05 | — | Pending |
+| FUI-01 | — | Pending |
+| FUI-02 | — | Pending |
+| FUI-03 | — | Pending |
+| FUI-04 | — | Pending |
+| LOGIN-01 | — | Pending |
+| LOGIN-02 | — | Pending |
+| LOGIN-03 | — | Pending |
+| LOGIN-04 | — | Pending |
+| DEBT-01 | — | Pending |
+| DEBT-02 | — | Pending |
 
 **Coverage:**
-- v1.2 requirements: 19 total
-- Mapped to phases: 19
-- Unmapped: 0
+- v1.3 requirements: 15 total
+- Mapped to phases: 0
+- Unmapped: 15
 
 ---
-*Requirements defined: 2026-04-08*
-*Traceability updated: 2026-04-09 (Phase 20 verified)*
+*Requirements defined: 2026-04-16*
