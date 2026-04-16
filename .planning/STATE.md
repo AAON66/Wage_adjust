@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: 生产就绪与数据管理完善
-status: completed
-stopped_at: Milestone v1.2 archived
-last_updated: "2026-04-16T14:30:00Z"
+milestone: v1.3
+milestone_name: 飞书登录与登录页重设计
+status: defining_requirements
+stopped_at: Milestone v1.3 started
+last_updated: "2026-04-16T15:00:00Z"
 last_activity: 2026-04-16
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- from employee evidence submission to AI evaluation to approved salary adjustment -- with every decision explainable and traceable
-**Current focus:** Planning next milestone
+**Current focus:** Defining requirements for v1.3
 
 ## Current Position
 
-Phase: (none -- milestone complete)
-Plan: (none)
-Status: v1.2 milestone shipped, awaiting next milestone
-Last activity: 2026-04-16
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-04-16 — Milestone v1.3 started
 
-Progress: [##########] 100% (v1.2: 7/7 phases)
+Progress: [----------] 0% (v1.3: 0/0 phases)
 
 ## Accumulated Context
 
@@ -58,6 +58,6 @@ Progress: [##########] 100% (v1.2: 7/7 phases)
 
 ## Session Continuity
 
-Last session: 2026-04-16T14:30:00Z
-Stopped at: Milestone v1.2 archived
-Next step: /gsd-new-milestone
+Last session: 2026-04-16T15:00:00Z
+Stopped at: Milestone v1.3 started
+Next step: Define requirements → create roadmap

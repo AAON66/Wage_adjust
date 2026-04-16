@@ -1,7 +1,18 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active — v1.2 shipped (2026-04-16), planning next milestone
+**Status:** Active — v1.3 in progress (2026-04-16)
+
+## Current Milestone: v1.3 飞书登录与登录页重设计
+
+**Goal:** 支持飞书扫码/网页授权登录并自动绑定员工账号，同时重新设计登录页面为左右分栏（左侧账号密码 + 右侧飞书登录）加粒子动态背景。
+
+**Target features:**
+- 飞书 OAuth2 集成（扫码登录 + 网页授权两种方式）
+- 飞书登录后按工号自动匹配绑定系统账号
+- 登录页重设计：左侧账号密码表单，右侧飞书扫码/授权面板
+- Canvas 粒子动态背景（参考智慧树风格）
+- 保持现有账号密码登录功能不变
 
 ---
 
@@ -223,4 +234,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after v1.2 milestone*
+*Last updated: 2026-04-16 after v1.3 milestone start*
