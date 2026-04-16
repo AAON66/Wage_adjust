@@ -85,7 +85,9 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
   1. llm_service.py 中不存在本地 InMemoryRateLimiter 类定义，改为从 core/rate_limiter.py 导入
   2. FeishuSyncPanel 使用 useTaskPolling hook 进行轮询，同步过程中显示进度信息
   3. 现有 AI 评估和飞书同步功能正常运行，无回归
-**Plans**: TBD
+**Plans**: 1 plan
+Plans:
+- [ ] 25-01-PLAN.md — RateLimiter 去重 + FeishuSyncPanel 轮询重构
 
 ### Phase 26: 飞书 OAuth2 后端接入
 **Goal**: 后端完整支持飞书授权码登录流程，包括安全校验、用户匹配绑定和 JWT 签发
@@ -165,7 +167,7 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 → 29
 | 22. 异步迁移 | v1.2 | 3/3 | Complete | 2026-04-12 |
 | 23. 资格导入管理 | v1.2 | 3/3 | Complete | 2026-04-15 |
 | 24. 生产部署 | v1.2 | 2/2 | Complete | 2026-04-16 |
-| 25. 技术债清理 | v1.3 | 0/? | Not started | - |
+| 25. 技术债清理 | v1.3 | 0/1 | Not started | - |
 | 26. 飞书 OAuth2 后端 | v1.3 | 0/? | Not started | - |
 | 27. 飞书 OAuth2 前端 | v1.3 | 0/? | Not started | - |
 | 28. 粒子背景 | v1.3 | 0/? | Not started | - |
