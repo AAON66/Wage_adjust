@@ -566,7 +566,7 @@ class FeishuService:
         table_id: str,
         field_mapping: dict[str, str] | None = None,
     ) -> dict:
-        """Sync salary adjustment records from Feishu bitable."""
+        """Sync salary adjustment records from Feishu bitable with upsert on (employee_id, adjustment_date, adjustment_type)."""
         if field_mapping is None:
             field_mapping = {
                 '员工工号': 'employee_no',
@@ -587,6 +587,7 @@ class FeishuService:
         emp_map = self._build_employee_map()
 
         synced = 0
+        updated = 0
         skipped = 0
         failed = 0
         total = len(records)
@@ -631,15 +632,29 @@ class FeishuService:
                     except InvalidOperation:
                         pass
 
-                new_record = SalaryAdjustmentRecord(
-                    employee_id=employee_id,
-                    employee_no=emp_no,
-                    adjustment_date=adjustment_date,
-                    adjustment_type=adj_type,
-                    amount=amount,
-                    source='feishu',
+                # Idempotent upsert on (employee_id, adjustment_date, adjustment_type)
+                existing = self.db.scalar(
+                    select(SalaryAdjustmentRecord).where(
+                        SalaryAdjustmentRecord.employee_id == employee_id,
+                        SalaryAdjustmentRecord.adjustment_date == adjustment_date,
+                        SalaryAdjustmentRecord.adjustment_type == adj_type,
+                    )
                 )
-                self.db.add(new_record)
+                if existing is not None:
+                    existing.amount = amount
+                    existing.source = 'feishu'
+                    self.db.add(existing)
+                    updated += 1
+                else:
+                    new_record = SalaryAdjustmentRecord(
+                        employee_id=employee_id,
+                        employee_no=emp_no,
+                        adjustment_date=adjustment_date,
+                        adjustment_type=adj_type,
+                        amount=amount,
+                        source='feishu',
+                    )
+                    self.db.add(new_record)
                 self.db.flush()
                 synced += 1
             except Exception:
@@ -647,7 +662,7 @@ class FeishuService:
                 failed += 1
 
         self.db.commit()
-        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+        return {'synced': synced, 'updated': updated, 'skipped': skipped, 'failed': failed, 'total': total}
 
     # ------------------------------------------------------------------
     # Hire info sync (ELIGIMP-02)

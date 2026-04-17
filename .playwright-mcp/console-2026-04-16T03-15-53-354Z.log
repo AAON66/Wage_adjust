@@ -1,0 +1,21 @@
+[    2102ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/evaluations/by-submission/e37ad03e-ec5b-4194-aca9-563bc1a810a2:0
+[  118051ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/evaluations/by-submission/e37ad03e-ec5b-4194-aca9-563bc1a810a2:0
+[  123229ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/evaluations/by-submission/e37ad03e-ec5b-4194-aca9-563bc1a810a2:0
+[  570312ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/login:0
+[  581814ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[  581814ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[  581814ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[  615151ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[  615151ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[  615151ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[  624517ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/auth/self-bind/preview?id_card_no=440307200311044115:0
+[  712600ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/auth/self-bind/preview?id_card_no=440307200311044115:0
+[  812378ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/auth/self-bind/preview?id_card_no=440307200311044115:0
+[ 1006873ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/auth/self-bind/preview?id_card_no=440307200311044115:0
+[ 1156341ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/evaluations/by-submission/240ccc49-13c1-4e65-976d-8c7e7747e3b2:0
+[ 1205241ms] [ERROR] Failed to load resource: the server responded with a status of 400 (Bad Request) @ http://139.199.192.190:8080/api/v1/submissions/240ccc49-13c1-4e65-976d-8c7e7747e3b2/github-import:0
+[ 1244671ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://139.199.192.190:8080/api/v1/submissions/240ccc49-13c1-4e65-976d-8c7e7747e3b2/github-import:0
+[ 1443518ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/evaluations/by-submission/240ccc49-13c1-4e65-976d-8c7e7747e3b2:0
+[ 1714515ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[ 1714515ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0
+[ 1714515ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://139.199.192.190:8080/settings:0

@@ -1,0 +1,251 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "API Key 管理" [ref=e81] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e82]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e84] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e85]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e88] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e89]
+          - text: 账号设置
+      - generic [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]: A
+          - generic [ref=e95]:
+            - generic [ref=e96]: admin@wage-adjust.com
+            - generic [ref=e97]: 管理员
+        - generic [ref=e98]:
+          - link "首页" [ref=e99] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e100] [cursor=pointer]
+    - generic [ref=e101]:
+      - generic [ref=e103]:
+        - generic [ref=e104]:
+          - paragraph [ref=e105]: 管理员工作区
+          - heading "员工评估详情" [level=1] [ref=e106]
+          - paragraph [ref=e107]: 按模块处理材料、证据、复核和调薪。
+        - generic [ref=e108]:
+          - link "返回工作台" [ref=e109] [cursor=pointer]:
+            - /url: /workspace
+          - link "审批中心" [ref=e110] [cursor=pointer]:
+            - /url: /approvals
+      - generic [ref=e111]:
+        - paragraph [ref=e352]: 材料已上传，系统正在自动解析。
+        - generic [ref=e112]:
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]:
+                - heading "俞红" [level=2] [ref=e117]
+                - generic [ref=e118]: 启用
+              - paragraph [ref=e119]: 员工编号 148
+              - paragraph [ref=e120]: 按当前周期处理评估流程。
+            - generic [ref=e121]:
+              - paragraph [ref=e122]: 当前模块
+              - paragraph [ref=e123]: 材料解析
+              - paragraph [ref=e124]: 0/1 已完成
+          - generic [ref=e125]:
+            - generic [ref=e126]:
+              - generic [ref=e127]:
+                - paragraph [ref=e128]: 部门
+                - paragraph [ref=e129]: 健康美学行业群
+              - generic [ref=e130]:
+                - paragraph [ref=e131]: 所属公司
+                - paragraph [ref=e132]: 未设置
+              - generic [ref=e133]:
+                - paragraph [ref=e134]: 岗位族
+                - paragraph [ref=e135]: 项目运营总监
+              - generic [ref=e136]:
+                - paragraph [ref=e137]: 岗位级别
+                - paragraph [ref=e138]: P7
+              - generic [ref=e139]:
+                - text: 当前周期
+                - combobox "当前周期" [ref=e140]:
+                  - option "test" [selected]
+            - generic [ref=e141]:
+              - generic [ref=e142]:
+                - paragraph [ref=e144]: 模块切换
+                - generic [ref=e146]: "?"
+              - generic [ref=e147]:
+                - button "概览 test" [ref=e148] [cursor=pointer]:
+                  - generic [ref=e149]: 概览
+                  - generic [ref=e150]: test
+                - button "材料解析 0/1 已完成" [ref=e353] [cursor=pointer]:
+                  - generic [ref=e152]: 材料解析
+                  - generic [ref=e153]: 0/1 已完成
+                - button "证据卡片 暂无证据" [ref=e154] [cursor=pointer]:
+                  - generic [ref=e155]: 证据卡片
+                  - generic [ref=e156]: 暂无证据
+                - button "人工复核 未生成" [ref=e157] [cursor=pointer]:
+                  - generic [ref=e158]: 人工复核
+                  - generic [ref=e159]: 未生成
+                - button "调薪建议 未生成" [ref=e160] [cursor=pointer]:
+                  - generic [ref=e161]: 调薪建议
+                  - generic [ref=e162]: 未生成
+        - generic [ref=e163]:
+          - generic [ref=e268]:
+            - generic [ref=e270]:
+              - generic [ref=e271]:
+                - generic [ref=e272]:
+                  - paragraph [ref=e273]: 材料上传
+                  - heading "上传员工材料" [level=3] [ref=e274]
+                  - paragraph [ref=e275]: 支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除，当前单文件上限为 200MB。
+                - generic [ref=e276] [cursor=pointer]: 选择文件
+              - button "选择文件" [active] [ref=e277]
+              - generic [ref=e354]: 无法检查文件重复状态，请稍后重试。您也可以直接上传。
+              - generic [ref=e279]:
+                - generic [ref=e280]:
+                  - paragraph [ref=e281]: 协作者分配
+                  - button "+ 添加协作者" [ref=e282] [cursor=pointer]
+                - generic [ref=e283]: "剩余比例（您的份额）: 100%"
+              - generic [ref=e284]:
+                - textbox "粘贴 GitHub 链接，例如仓库、目录或文件地址" [ref=e285]
+                - button "导入 GitHub 链接" [disabled] [ref=e286]
+              - generic [ref=e287]:
+                - generic [ref=e288] [cursor=pointer]: PPT
+                - generic [ref=e289] [cursor=pointer]: PDF
+                - generic [ref=e290] [cursor=pointer]: DOCX
+                - generic [ref=e291] [cursor=pointer]: PNG
+                - generic [ref=e292] [cursor=pointer]: JPG
+                - generic [ref=e293] [cursor=pointer]: ZIP
+                - generic [ref=e294] [cursor=pointer]: Markdown
+                - generic [ref=e295] [cursor=pointer]: Excel
+                - generic [ref=e296] [cursor=pointer]: 代码
+                - generic [ref=e297] [cursor=pointer]: GitHub 仓库/目录/文件
+              - paragraph [ref=e298]: 如果仍然提示超限，请先压缩图片、精简导出页数，或把大型项目材料拆分成多个文件上传。
+            - generic [ref=e300]:
+              - generic [ref=e301]:
+                - generic [ref=e302]:
+                  - paragraph [ref=e303]: 材料列表
+                  - heading "上传文件" [level=3] [ref=e304]
+                - generic [ref=e355]: 1 个文件
+              - article [ref=e357]:
+                - generic [ref=e358]:
+                  - generic [ref=e359]:
+                    - heading "test_upload.txt" [level=4] [ref=e360]
+                    - paragraph [ref=e361]: TXT
+                  - generic [ref=e363]: 解析中
+                - generic [ref=e364]:
+                  - generic [ref=e365] [cursor=pointer]: 替换文件
+                  - button "替换文件" [ref=e366]
+                  - button "重新解析" [ref=e367] [cursor=pointer]
+                  - button "移除" [ref=e368] [cursor=pointer]
+          - generic [ref=e306]:
+            - generic [ref=e308]:
+              - generic [ref=e309]:
+                - paragraph [ref=e310]: 材料解析
+                - heading "材料解析进行中" [level=2] [ref=e369]
+                - paragraph [ref=e312]: 可先查看已完成内容。
+              - generic [ref=e313]:
+                - paragraph [ref=e314]: 完成度
+                - paragraph [ref=e315]: 40%
+                - paragraph [ref=e316]: 0/1 份材料已完成解析
+            - generic [ref=e317]:
+              - generic [ref=e319]:
+                - generic [ref=e320]:
+                  - paragraph [ref=e321]: 已完成
+                  - paragraph [ref=e322]: "0"
+                - generic [ref=e323]:
+                  - paragraph [ref=e324]: 进行中
+                  - paragraph [ref=e325]: "1"
+                - generic [ref=e326]:
+                  - paragraph [ref=e327]: 待处理
+                  - paragraph [ref=e328]: "0"
+                - generic [ref=e329]:
+                  - paragraph [ref=e330]: 失败
+                  - paragraph [ref=e331]: "0"
+              - generic [ref=e332]:
+                - generic [ref=e333]:
+                  - paragraph [ref=e334]: 材料快照
+                  - generic [ref=e335]:
+                    - generic [ref=e336]:
+                      - generic [ref=e337]: 当前周期
+                      - generic [ref=e338]: test
+                    - generic [ref=e339]:
+                      - generic [ref=e340]: 最近材料
+                      - generic [ref=e341]: test_upload.txt
+                    - generic [ref=e342]:
+                      - generic [ref=e343]: 最近状态
+                      - generic [ref=e344]: 解析中
+                    - generic [ref=e345]:
+                      - generic [ref=e346]: 风险证据
+                      - generic [ref=e347]: 0 条
+                - generic [ref=e348]:
+                  - paragraph [ref=e349]: 处理建议
+                  - paragraph [ref=e350]: 上传新材料后系统会自动解析；如果某个文件失败，优先替换或重试，再继续生成 AI 评分。
+                  - button "重新批量解析" [ref=e351] [cursor=pointer]

@@ -1,0 +1,34 @@
+#!/usr/bin/expect -f
+# 通用远程执行脚本
+# 用法: expect rssh.exp "cmd" 或 expect rssh.exp scp local remote
+log_user 1
+set timeout 600
+set mode [lindex $argv 0]
+
+if {$mode eq "scp"} {
+    set local [lindex $argv 1]
+    set remote [lindex $argv 2]
+    spawn scp -r -o StrictHostKeyChecking=no $local root@10.0.0.60:$remote
+} elseif {$mode eq "scpdir"} {
+    set local [lindex $argv 1]
+    set remote [lindex $argv 2]
+    spawn scp -r -o StrictHostKeyChecking=no $local root@10.0.0.60:$remote
+} else {
+    set cmd [lindex $argv 0]
+    spawn ssh -o StrictHostKeyChecking=no root@10.0.0.60 $cmd
+}
+
+expect {
+    -re "password:" {
+        send "gQJwgfG9obG57p\r"
+        exp_continue
+    }
+    timeout {
+        puts "\nTIMEOUT"
+        exit 1
+    }
+    eof
+}
+
+foreach {pid spawnid os_error value} [wait] break
+exit $value

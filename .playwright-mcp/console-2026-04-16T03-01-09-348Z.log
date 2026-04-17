@@ -1,0 +1,7 @@
+[    1201ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://139.199.192.190:8080/api/v1/employees?page=1&page_size=1000:0
+[  181769ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://139.199.192.190:8080/api/v1/cycles:0
+[  181932ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://139.199.192.190:8080/api/v1/departments:0
+[  194350ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://139.199.192.190:8080/api/v1/employees?page=1&page_size=1000:0
+[  197698ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://139.199.192.190:8080/api/v1/employees?page=1&page_size=1000:0
+[  202690ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://139.199.192.190:8080/api/v1/evaluations/by-submission/240ccc49-13c1-4e65-976d-8c7e7747e3b2:0
+[  204795ms] [ERROR] Failed to load resource: the server responded with a status of 422 (Unprocessable Entity) @ http://139.199.192.190:8080/api/v1/employees?page=1&page_size=1000:0
