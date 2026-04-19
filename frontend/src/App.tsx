@@ -15,6 +15,7 @@ import { EmployeesPage } from "./pages/Employees";
 import { EmployeeAdminPage } from "./pages/EmployeeAdmin";
 import { EligibilityManagementPage } from "./pages/EligibilityManagementPage";
 import { EvaluationDetailPage } from "./pages/EvaluationDetail";
+import { FeishuCallbackPage } from "./pages/FeishuCallbackPage";
 import { FeishuConfigPage } from "./pages/FeishuConfig";
 import { ImportCenterPage } from "./pages/ImportCenter";
 import { LoginPage } from "./pages/Login";
@@ -420,6 +421,7 @@ export default function App() {
           <Route element={<HomePage />} path="/" />
           <Route element={<ApiDocsPage />} path="/api-docs" />
           <Route element={<LoginPage />} path="/login" />
+          <Route element={<FeishuCallbackPage />} path="/auth/feishu/callback" />
           <Route element={<Navigate replace to="/login" />} path="/register" />
 
           <Route element={<ProtectedRoute allowedRoles={["admin", "hrbp", "manager"]} />}>
