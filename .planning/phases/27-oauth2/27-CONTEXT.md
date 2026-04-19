@@ -6,17 +6,19 @@
 <domain>
 ## Phase Boundary
 
-前端集成飞书 OAuth2 扫码登录：在登录页嵌入飞书 QR 扫码面板，新增 `/auth/feishu/callback` 路由处理 OAuth 回调并签发 JWT，实现二维码 3 分钟过期刷新与分类中文错误提示。不做粒子动态背景（Phase 28）与登录页完整双栏重设计（Phase 29），现有邮箱密码登录流程保持不变。
+前端集成飞书 OAuth2 登录：在登录页嵌入飞书账号授权入口，新增 `/auth/feishu/callback` 路由处理 OAuth 回调并签发 JWT，分类中文错误提示。不做粒子动态背景（Phase 28）与登录页完整双栏重设计（Phase 29），现有邮箱密码登录流程保持不变。
+
+**D-17 AMENDMENT (2026-04-19, UAT final decision):** 原计划包含的「QR 扫码」链路因飞书应用「网页扫码登录」能力需要独立申请 + 审批（不属于当前应用类型默认能力），用户决定移除 QR，**仅保留整页跳转授权**。D-01/02/03/08/09/10 的 QR-SDK 相关决策全部作废（代码已简化）。下面 decision 区块里仍保留这些决策的历史记录，但标注「OBSOLETE」。
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
 
-### QR SDK 加载与初始化
-- **D-01:** 飞书 QR SDK 通过官方 CDN 脚本动态注入加载（`useEffect` 内 `document.createElement('script')` 指向 `https://lf-package-cn.feishucdn.com/...QRLogin.js`，onload 后调用 `window.QRLogin(...)`）；不使用 npm 包，不自实现二维码获取与轮询。
-- **D-02:** `authorize_url` 与 `state` 在 `FeishuLoginPanel` 组件挂载时调用后端 `GET /api/v1/auth/feishu/authorize` 一次获取，作为 `goto` 传入 `QRLogin` 配置。不做延迟懒加载，不做定时器预拉取，与后端 state Redis TTL 300s 匹配。
-- **D-03:** 脚本注入要处理 onerror / CSP 阻塞：脚本加载失败时显示错误状态（见 D-11），并在下一次重试或刷新时重新注入。组件卸载时不必移除已加载的全局脚本（单例模式）。
+### QR SDK 加载与初始化 ~~OBSOLETE (D-17)~~
+- ~~**D-01:** 飞书 QR SDK 通过官方 CDN 脚本动态注入加载...~~ **OBSOLETE** — QR 链路已移除
+- ~~**D-02:** `authorize_url` 与 `state` 在 `FeishuLoginPanel` 组件挂载时调用后端...~~ **仍有效（但不再用于 QRLogin）** — `authorize_url` 现用于整页跳转
+- ~~**D-03:** 脚本注入要处理 onerror / CSP 阻塞...~~ **OBSOLETE** — 已移除脚本注入
 
 ### 回调路由形态
 - **D-04:** 新增独立路由 `/auth/feishu/callback` 对应独立组件 `FeishuCallbackPage`，路由在 `App.tsx` 中注册为公开路由（不包 ProtectedRoute）。
@@ -24,11 +26,10 @@
 - **D-06:** 回调页可见 UI 分三种状态：(1) 处理中 → 显示 `surface` 风格骨架卡片「正在完成飞书登录…」；(2) 成功 → 短暂停留立即跳转；(3) 失败 → 居中错误卡片 + 「返回登录」按钮（跳 `/login`）。
 - **D-07:** `useAuth` 新增 `loginWithFeishu(code: string, state: string): Promise<UserProfile>` 方法，内部调用 `auth service` 新增的 `feishuCallback(code, state)`，返回 `AuthResponse`（与 Phase 26 后端契约一致），随后调 `storeAuthSession` 写入 localStorage 并更新 context state，签名语义与现有 `login(payload)` 保持一致。
 
-### 二维码过期与刷新
-- **D-08:** 前端启动本地 180s 倒计时（setTimeout，不显示可见倒计时数字，保持界面简洁）。到期后在 QR 画布上覆盖毛玻璃蒙层 + 「二维码已过期，点击刷新」按钮。
-- **D-09:** 用户点击刷新时：重新调用 `/auth/feishu/authorize` 获取新 `state` + `authorize_url` → 销毁旧 `QRLogin` 实例（`iframe.remove()` 或容器清空）→ 重建 `QRLogin` 实例 → 重置 180s 倒计时。不做后台静默自动刷新，避免无人操作时浪费 Redis TTL。
-- **D-10:** 扫码过程中的状态完全依赖飞书 SDK 的 `onSuccess` / `onReady` / `onErr` 回调。`onSuccess` 由 SDK 自动触发浏览器重定向到 `goto`（即 `/auth/feishu/callback`），无需前端手动处理。**不额外轮询后端检查扫码状态**（Phase 26 未提供此端点）。
-  - **D-10 AMENDMENT (2026-04-19, post-research):** 研究阶段（27-RESEARCH.md）确认飞书 QRLogin SDK 1.0.3 实际上**没有** `onSuccess / onReady / onErr` 回调接口。正确的集成方式为：前端 `window.addEventListener('message', handler)`，并用 SDK 实例提供的 `instance.matchOrigin(event.origin)` + `instance.matchData(event.data)` 校验后，读取 `event.data.tmp_code`，手动执行 `window.location.href = goto + '&tmp_code=' + encodeURIComponent(tmp_code)` 完成重定向。D-10 的结论"不轮询后端"仍成立——postMessage 是 SDK 唯一的状态通道，前端不需要额外的后端轮询。
+### 二维码过期与刷新 ~~OBSOLETE (D-17)~~
+- ~~**D-08:** 180s 倒计时 + 过期蒙层 + 点击刷新~~ **OBSOLETE** — 无 QR 即无过期
+- ~~**D-09:** 刷新时销毁重建 QRLogin 实例~~ **OBSOLETE**
+- ~~**D-10:** postMessage + matchOrigin/matchData + 手动 window.location.href 跳转~~ **OBSOLETE** — 无 QR SDK 即无 postMessage 通道
 
 ### 错误分类与展示
 - **D-11:** 新建 `frontend/src/utils/feishuErrors.ts` 集中映射中文文案，覆盖至少这些分类：
@@ -47,9 +48,10 @@
 - **D-13:** 新增独立组件 `frontend/src/components/auth/FeishuLoginPanel.tsx`，放在现有 `Login.tsx` 右侧「访问入口」section 内部（`LoginForm` 下方，通过 `gap` 分隔）。保持现有左右双 section 结构不变，现有邮箱密码登录 100% 保留（验证 LOGIN-04 保留约束）。
 - **D-14:** `FeishuLoginPanel` 完全自洽 / 无副作用：内部管理 authorize 请求、SDK 脚本注入、`QRLogin` 实例生命周期、倒计时、刷新、错误展示；对外 props 最小化（可选 `onSuccess?: () => void` 覆盖默认跳转，默认走 `window.location.href = authorize_url` 或 SDK 自动重定向）。Phase 29 重设计时只需把 `<FeishuLoginPanel />` 搬到新布局，不需要重写任何 QR 逻辑。
 
-### 扫码 + 直接授权并存（Phase 27 amendment）
-- **D-15 (2026-04-19, UAT discovery):** `FeishuLoginPanel` 在二维码下方新增「使用飞书账号直接授权 →」按钮（分隔线「或」），点击后整页 `window.location.href = authorize_url` 跳转。浏览器已登录飞书时飞书直接显示「同意授权」；未登录时进入飞书自己的登录页。回流走同一个 `/auth/feishu/callback` 路由、复用 `FeishuCallbackPage` 三态 UI 和 `loginWithFeishu`。不增加后端接口。
+### 飞书账号授权登录（最终方案）
+- **D-15 (2026-04-19, UAT discovery):** `FeishuLoginPanel` 提供「使用飞书账号登录」按钮，点击后整页 `window.location.href = authorize_url` 跳转。浏览器已登录飞书时飞书直接显示「同意授权」；未登录时进入飞书自己的登录页（含飞书自己的扫码入口）。回流走同一个 `/auth/feishu/callback` 路由、复用 `FeishuCallbackPage` 三态 UI 和 `loginWithFeishu`。不增加后端接口。
 - **D-16 (2026-04-19, UAT discovery, Phase 26 gap fix):** 后端 `generate_authorize_url` 在查询参数中加入 `scope=contact:user.employee_id:readonly`。Phase 26 集成测试 mock 了飞书 API 所以未发现此缺陷；真实飞书环境缺 scope 一律返回 4401。这是 Phase 26 的 bug，在 Phase 27 UAT 中修复。
+- **D-17 (2026-04-19, UAT final decision):** 移除 QR 扫码链路。`FeishuLoginPanel` 简化为「单一主按钮 + 加载/错误/重试状态」。触发原因：飞书「网页扫码登录」能力需要独立能力申请 + 发版审批，当前应用类型不支持，实测多次 4401。用户评估后决定放弃 QR，仅保留整页跳转授权（D-15）。影响：FUI-01 语义从「QR SDK 扫码面板」改为「飞书账号授权登录入口」；FUI-03（3 分钟二维码刷新）移到 Deferred（依赖 QR 可用）。飞书自己的登录页仍然包含扫码入口，用户体验上「扫码」仍可用，只是不是嵌在我们页面里。
 
 ### Claude's Discretion
 - CDN 脚本的具体 URL 与版本（跟随飞书官方最新稳定版，必要时写入常量）
@@ -127,10 +129,11 @@
 <deferred>
 ## Deferred Ideas
 
+- **嵌入式 QR 扫码面板（FUI-01 原语义 + FUI-03 的 3 分钟刷新）→ 未来里程碑**（由 D-17 移除于 Phase 27 UAT）。需要先在飞书开放平台给应用加「网页扫码登录」能力并走完发版审批流程；而且当前应用类型不一定支持。用户决定先用整页跳转授权（包含飞书自家登录页里的扫码入口），不值得在本 Phase 继续折腾。
 - 粒子动态背景（LOGIN-02, LOGIN-03）→ Phase 28
 - 登录页完整左右双栏重设计（LOGIN-01）→ Phase 29（FeishuLoginPanel 将被平移到新布局）
 - 飞书工作台免登（`tt.requestAccess`）→ 未来里程碑，需应用上架飞书工作台（REQUIREMENTS.md Out of Scope 已注明）
-- 扫码 ↔ 密码 Tab 切换模式 — REQUIREMENTS.md Out of Scope 明确禁止（QR SDK 容器销毁重建会闪烁）
+- 扫码 ↔ 密码 Tab 切换模式 — REQUIREMENTS.md Out of Scope 明确禁止
 - 持久化飞书 `user_access_token` — REQUIREMENTS.md Out of Scope 明确禁止（不必要的安全风险）
 - E2E 集成测试套件 — REQUIREMENTS.md deferred，Phase 27 仅要求单元 + 手动测试
 

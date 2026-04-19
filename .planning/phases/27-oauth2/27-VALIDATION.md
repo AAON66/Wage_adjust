@@ -54,13 +54,15 @@ created: 2026-04-19
 
 ## Manual-Only Verifications
 
+> **D-17 amendment (2026-04-19)**：QR 链路已从 Phase 27 移除，相关 manual test 项（原 QR 扫码流程、3 分钟过期刷新、SDK 加载失败 smoke test）已删除。剩余项均围绕整页跳转授权。
+
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| QR 扫码登录完整流程 | FUI-01 | 依赖飞书开放平台真实授权，无法在单元测试里复现 | 登录页加载 → QR 渲染 → 手机飞书扫码 → 授权 → 浏览器自动跳 `/auth/feishu/callback` → 进入角色首页 |
+| 整页跳转授权登录完整流程 | FUI-01 (post D-17) | 依赖飞书开放平台真实授权 | 登录页加载 → 右侧面板显示「使用飞书账号登录」按钮 → 点击 → 跳飞书授权页 → 同意 → 回 `/auth/feishu/callback` → 进入角色首页 |
 | `/auth/feishu/callback` 三态 UI | FUI-02 | 骨架/成功/错误涉及真实重定向与 localStorage | 触发成功路径；制造 `state` 不匹配触发失败；观察 loading 骨架与错误卡片 |
-| 3 分钟过期刷新 | FUI-03 | 依赖本地 180s setTimeout 真实走完 | 打开登录页保持 3 分钟；观察蒙层 + 「点击刷新」按钮；点击后 QR 重建且 state 刷新 |
 | 错误分类中文文案 | FUI-04 | 需手动触发：取消授权 / 使用未匹配工号 / 断网 / 手动篡改 state | 逐类触发并断言文案与 `feishuErrors.ts` 映射一致 |
 | 现有邮箱密码登录 100% 保留 | LOGIN-04 | 回归验证 | 登录 admin/hrbp/manager/employee 四个角色，确认无 UI 或行为变化 |
+| `must_change_password` 分支 | FAUTH | 飞书登录成功后若后端返回 `must_change_password=true`，应跳 `/settings` 而不是角色首页 | 用 must_change_password=true 的已绑定账号走飞书授权流程 |
 
 ---
 
