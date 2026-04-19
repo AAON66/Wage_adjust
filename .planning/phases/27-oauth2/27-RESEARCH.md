@@ -688,24 +688,19 @@ async function handleLoginWithFeishu(code: string, state: string): Promise<UserP
 
 **如表为空：** 不适用 — 共 7 条 assumption 需要在实施前或实施中验证。A4 和 A5 在 planner 的 Wave 0 / Task 0 中**必须**验证，否则实现会在真实环境走不通。
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **飞书应用的 `FEISHU_REDIRECT_URI` 实际配置值是什么？**
-   - 我们已知：Phase 26 通过 `.env` 注入 `FEISHU_REDIRECT_URI`，后端 `_exchange_code_for_token` 会把它发给飞书换 token。
-   - 我们不知道：飞书开放平台后台登记的 redirect_uri 是指向**前端**（`https://app.example.com/auth/feishu/callback`）还是**后端**（`https://api.example.com/api/v1/auth/feishu/callback`）？
-   - 影响：CONTEXT.md D-04/D-05 假定是**前端** URL（`/auth/feishu/callback`）。如果实际是后端 URL，Phase 27 的整个流程必须改为"后端接飞书 → 302 回前端 → 前端再 POST 到后端"，与 D-05 冲突。
-   - 建议：Planner 创建 Wave 0 / Task 0 验证此配置，或在 Task 描述里明确"假设 `FEISHU_REDIRECT_URI` 指向前端 callback 路由，若不成立则阻塞"。
+1. **飞书应用的 `FEISHU_REDIRECT_URI` 实际配置值是什么？** — **RESOLVED**
+   - `.env.example:61` 确认 `FEISHU_REDIRECT_URI=http://localhost:5174/auth/feishu/callback` 指向前端路由，与 D-04/D-05 一致。
+   - Plan 01 frontmatter 已记录该验证；若部署环境 `.env` 实际值不符，Plan 01 约定 executor BLOCK 并汇报。
 
-2. **后端 exception handler 是否改写 FastAPI 默认 `{detail}` 格式？**
-   - 我们已知：`App.tsx:51` 现有代码同时兜底 `detail` 和 `message` 两个字段，说明历史上出现过格式不一致。
-   - 我们不知道：当前 `backend/app/main.py` 的 `@app.exception_handler(HTTPException)` 实际输出格式。
-   - 建议：Planner 在第一个 Task 先 `grep exception_handler backend/app/main.py` 确认。然后 `resolveFeishuError.classifyBackend` 按实际格式写。
+2. **后端 exception handler 是否改写 FastAPI 默认 `{detail}` 格式？** — **RESOLVED**
+   - `backend/app/main.py:132-142` 确认 `@app.exception_handler(HTTPException)` 经 `build_error_response` 改写为 `{error: 'http_error', message: <detail>}`。
+   - Plan 01 Task 2 的 `resolveFeishuError.classifyBackend` 优先读 `message`，并对 `detail` 兜底（与 App.tsx:51 现有防御同款）。
 
-3. **Vite dev server 会不会代理 `/api/v1/...` 到后端？**
-   - 我们已知：`vite.config.ts` 只配了 `server.host/port`，**没**配 proxy。
-   - 我们已知：`api.ts` baseURL 用 `VITE_API_BASE_URL` 或 fallback `http://127.0.0.1:8011/api/v1` — 所以前端直接请求后端绝对地址，不走代理。
-   - 我们不知道：飞书 redirect_uri 回到前端 dev 域名（`http://127.0.0.1:5174/auth/feishu/callback`）时是否会被飞书接受？飞书通常要求 redirect_uri 域名 HTTPS 或 localhost。
-   - 建议：开发期需要用 `localhost` 或 `127.0.0.1` + 飞书 app 后台登记对应 URI；手动验证时至少要能本地跑一次完整流程。可能需要 ngrok 做 HTTPS 隧道（如果飞书拒绝 http://127.0.0.1 的话）。Phase 27 Plan 不必解决，但**应在 Manual Test Plan 里标记为前置条件**。
+3. **Vite dev server 会不会代理 `/api/v1/...` 到后端？飞书 redirect_uri 是否接受本地 dev 域名？** — **RESOLVED (deferred to Manual Test Plan)**
+   - `vite.config.ts` 无 proxy 配置；前端用 `VITE_API_BASE_URL` 绝对地址直连后端 — 不需要代理。
+   - 飞书 redirect_uri 对 `http://localhost:5174` 的接受取决于飞书应用后台登记，属运行环境前置条件。本 Phase 不解决；Manual Test Plan 中标记为前置条件（必要时用 ngrok HTTPS 隧道）。
 
 ## Environment Availability
 
@@ -904,11 +899,11 @@ async function handleLoginWithFeishu(code: string, state: string): Promise<UserP
 | Testing 可行路径 | HIGH | 直接验证前端无测试框架 |
 | StrictMode / Timer cleanup | HIGH | React 官方 + 项目既有模式 |
 
-### Open Questions (Planner 必须处理)
-1. **A5 – `FEISHU_REDIRECT_URI` 实际配置指向前端还是后端？** — 若后端，CONTEXT.md D-04/D-05 整个回调流程需重新设计。**Task 0 必须验证。**
-2. **A4 – main.py exception_handler 是否改写 `{detail}` 格式？** — 影响 `resolveFeishuError.classifyBackend` 实现。**Task 0 必须验证。**
-3. **Vitest 是否引入？** — 建议不引入；Planner 在 PLAN.md 锁定并说明理由。
-4. **Dev 环境飞书是否接受 `http://127.0.0.1:5174/auth/feishu/callback` 作为 redirect_uri？** — 可能需 ngrok；标记为 Manual Test Plan 前置条件。
+### Open Questions (RESOLVED)
+1. **A5 – `FEISHU_REDIRECT_URI` 实际配置指向前端还是后端？** — **RESOLVED** `.env.example:61` 指向前端 `/auth/feishu/callback`；Plan 01 frontmatter 已记录验证，部署环境不符时 executor BLOCK。
+2. **A4 – main.py exception_handler 是否改写 `{detail}` 格式？** — **RESOLVED** `backend/app/main.py:132-142` 改写为 `{error, message}`；Plan 01 Task 2 的 `resolveFeishuError.classifyBackend` 已按此格式实现并对 `detail` 兜底。
+3. **Vitest 是否引入？** — **RESOLVED** 不引入；27-VALIDATION.md:20 锁定为 `tsc --noEmit` + Manual Test Plan + 后端 pytest 回归。
+4. **Dev 环境飞书是否接受 `http://127.0.0.1:5174/auth/feishu/callback` 作为 redirect_uri？** — **RESOLVED (deferred)** 属运行环境前置条件，Manual Test Plan 中标记（必要时用 ngrok HTTPS 隧道），Phase 27 不解决。
 
 ### Ready for Planning
 研究完成。Planner 可基于本文档创建 PLAN.md。建议 plan 结构：

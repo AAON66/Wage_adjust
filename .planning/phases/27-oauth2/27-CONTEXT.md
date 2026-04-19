@@ -28,6 +28,7 @@
 - **D-08:** 前端启动本地 180s 倒计时（setTimeout，不显示可见倒计时数字，保持界面简洁）。到期后在 QR 画布上覆盖毛玻璃蒙层 + 「二维码已过期，点击刷新」按钮。
 - **D-09:** 用户点击刷新时：重新调用 `/auth/feishu/authorize` 获取新 `state` + `authorize_url` → 销毁旧 `QRLogin` 实例（`iframe.remove()` 或容器清空）→ 重建 `QRLogin` 实例 → 重置 180s 倒计时。不做后台静默自动刷新，避免无人操作时浪费 Redis TTL。
 - **D-10:** 扫码过程中的状态完全依赖飞书 SDK 的 `onSuccess` / `onReady` / `onErr` 回调。`onSuccess` 由 SDK 自动触发浏览器重定向到 `goto`（即 `/auth/feishu/callback`），无需前端手动处理。**不额外轮询后端检查扫码状态**（Phase 26 未提供此端点）。
+  - **D-10 AMENDMENT (2026-04-19, post-research):** 研究阶段（27-RESEARCH.md）确认飞书 QRLogin SDK 1.0.3 实际上**没有** `onSuccess / onReady / onErr` 回调接口。正确的集成方式为：前端 `window.addEventListener('message', handler)`，并用 SDK 实例提供的 `instance.matchOrigin(event.origin)` + `instance.matchData(event.data)` 校验后，读取 `event.data.tmp_code`，手动执行 `window.location.href = goto + '&tmp_code=' + encodeURIComponent(tmp_code)` 完成重定向。D-10 的结论"不轮询后端"仍成立——postMessage 是 SDK 唯一的状态通道，前端不需要额外的后端轮询。
 
 ### 错误分类与展示
 - **D-11:** 新建 `frontend/src/utils/feishuErrors.ts` 集中映射中文文案，覆盖至少这些分类：
