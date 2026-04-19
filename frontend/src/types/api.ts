@@ -13,6 +13,7 @@ export interface UserProfile {
   employee_id: string | null;
   employee_name: string | null;
   employee_no: string | null;
+  feishu_open_id: string | null;
   departments: DepartmentRecord[];
   created_at: string;
 }
@@ -52,6 +53,16 @@ export interface TokenPair {
 export interface AuthResponse {
   user: UserProfile;
   tokens: TokenPair;
+}
+
+export interface FeishuAuthorizeResponse {
+  authorize_url: string;
+  state: string;
+}
+
+export interface FeishuCallbackPayload {
+  code: string;
+  state: string;
 }
 
 export interface LoginPayload {
