@@ -1,5 +1,5 @@
 ﻿import api from './api';
-import type { AuthResponse, ChangePasswordPayload, LoginPayload, RegisterPayload, SelfBindPreviewResult, TokenPair, UserProfile } from '../types/api';
+import type { AuthResponse, ChangePasswordPayload, FeishuAuthorizeResponse, FeishuCallbackPayload, LoginPayload, RegisterPayload, SelfBindPreviewResult, TokenPair, UserProfile } from '../types/api';
 
 const ACCESS_TOKEN_KEY = 'wage_adjust.access_token';
 const REFRESH_TOKEN_KEY = 'wage_adjust.refresh_token';
@@ -98,5 +98,16 @@ export async function selfBindPreview(idCardNo: string): Promise<SelfBindPreview
 
 export async function selfBindConfirm(idCardNo: string): Promise<UserProfile> {
   const response = await api.post<UserProfile>('/auth/self-bind', { id_card_no: idCardNo });
+  return response.data;
+}
+
+export async function authorizeFeishu(): Promise<FeishuAuthorizeResponse> {
+  const response = await api.get<FeishuAuthorizeResponse>('/auth/feishu/authorize');
+  return response.data;
+}
+
+export async function feishuCallback(code: string, state: string): Promise<AuthResponse> {
+  const payload: FeishuCallbackPayload = { code, state };
+  const response = await api.post<AuthResponse>('/auth/feishu/callback', payload);
   return response.data;
 }
