@@ -32,6 +32,8 @@ class FeishuOAuthService:
     FEISHU_AUTHORIZE_URL = 'https://accounts.feishu.cn/open-apis/authen/v1/authorize'
     FEISHU_TOKEN_URL = 'https://open.feishu.cn/open-apis/authen/v2/oauth/token'
     FEISHU_USER_INFO_URL = 'https://open.feishu.cn/open-apis/authen/v1/user_info'
+    # Required OAuth scope — flash authorize returns 4401 without this in real Feishu env.
+    FEISHU_AUTHORIZE_SCOPE = 'contact:user.employee_id:readonly'
 
     def __init__(self, db: Session, settings: Settings | None = None) -> None:
         self.db = db
@@ -51,6 +53,7 @@ class FeishuOAuthService:
             'response_type': 'code',
             'redirect_uri': self._settings.feishu_redirect_uri,
             'state': state,
+            'scope': self.FEISHU_AUTHORIZE_SCOPE,
         })
         authorize_url = f'{self.FEISHU_AUTHORIZE_URL}?{params}'
         return {'authorize_url': authorize_url, 'state': state}
