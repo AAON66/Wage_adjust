@@ -113,7 +113,11 @@ Plans:
   2. 前端 /auth/feishu/callback 路由正确解析 code/state 并调用后端接口完成登录跳转
   3. 二维码过期后（3 分钟）自动刷新并显示刷新提示
   4. 飞书登录失败时显示分类中文错误提示（授权取消、工号未匹配、网络错误等场景均覆盖）
-**Plans**: TBD
+**Plans:** 0/3 plans complete
+Plans:
+- [ ] 27-01-PLAN.md — 类型契约 + auth service 飞书封装 + feishuErrors 错误映射（FUI-04 基础）
+- [ ] 27-02-PLAN.md — useAuth.loginWithFeishu + FeishuCallbackPage + /auth/feishu/callback 公开路由（FUI-02、FUI-04 回调场景）
+- [ ] 27-03-PLAN.md — FeishuLoginPanel（SDK + postMessage + 180s 过期刷新 + 错误 banner）+ Login.tsx 集成（FUI-01、FUI-03、FUI-04 面板场景）
 **UI hint**: yes
 
 ### Phase 28: 登录页粒子背景
@@ -172,6 +176,6 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 → 29
 | 24. 生产部署 | v1.2 | 2/2 | Complete | 2026-04-16 |
 | 25. 技术债清理 | v1.3 | 1/1 | Complete | 2026-04-16 |
 | 26. 飞书 OAuth2 后端 | v1.3 | 2/2 | Complete    | 2026-04-16 |
-| 27. 飞书 OAuth2 前端 | v1.3 | 0/? | Not started | - |
+| 27. 飞书 OAuth2 前端 | v1.3 | 0/3 | Not started | - |
 | 28. 粒子背景 | v1.3 | 0/? | Not started | - |
 | 29. 登录页重设计 | v1.3 | 0/? | Not started | - |
