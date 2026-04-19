@@ -193,6 +193,13 @@ export function FeishuLoginPanel() {
     setRefreshKey((n) => n + 1);
   }, [retrySdk]);
 
+  // D-15 (Phase 27 amendment): 直接授权入口 — 整页跳转到飞书授权页。
+  // 浏览器已登录飞书时会直接显示"同意授权"；未登录时进入飞书自己的登录页。
+  const handleDirectAuthorize = useCallback(() => {
+    if (!authorizeUrl) return;
+    window.location.href = authorizeUrl;
+  }, [authorizeUrl]);
+
   // SDK 加载失败优先级高于 authorize 失败
   const displayError: FeishuError | null = sdkError
     ? resolveFeishuError('sdk', sdkError)
@@ -297,6 +304,44 @@ export function FeishuLoginPanel() {
           ) : null}
         </div>
       )}
+
+      {/* D-15: 直接授权登录 — 浏览器已登录飞书时一键授权，无需扫码。 */}
+      {!displayError && authorizeUrl ? (
+        <div style={{ marginTop: 16 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              margin: '4px 0 10px',
+              fontSize: 12,
+              color: 'var(--color-steel)',
+            }}
+          >
+            <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
+            <span>或</span>
+            <span style={{ flex: 1, height: 1, background: 'var(--color-border)' }} />
+          </div>
+          <button
+            className="action-secondary"
+            onClick={handleDirectAuthorize}
+            type="button"
+            style={{ width: '100%' }}
+          >
+            使用飞书账号直接授权 →
+          </button>
+          <p
+            style={{
+              marginTop: 6,
+              fontSize: 12,
+              color: 'var(--color-steel)',
+              textAlign: 'center',
+            }}
+          >
+            浏览器已登录飞书时一键授权
+          </p>
+        </div>
+      ) : null}
     </section>
   );
 }

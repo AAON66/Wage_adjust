@@ -47,6 +47,10 @@
 - **D-13:** 新增独立组件 `frontend/src/components/auth/FeishuLoginPanel.tsx`，放在现有 `Login.tsx` 右侧「访问入口」section 内部（`LoginForm` 下方，通过 `gap` 分隔）。保持现有左右双 section 结构不变，现有邮箱密码登录 100% 保留（验证 LOGIN-04 保留约束）。
 - **D-14:** `FeishuLoginPanel` 完全自洽 / 无副作用：内部管理 authorize 请求、SDK 脚本注入、`QRLogin` 实例生命周期、倒计时、刷新、错误展示；对外 props 最小化（可选 `onSuccess?: () => void` 覆盖默认跳转，默认走 `window.location.href = authorize_url` 或 SDK 自动重定向）。Phase 29 重设计时只需把 `<FeishuLoginPanel />` 搬到新布局，不需要重写任何 QR 逻辑。
 
+### 扫码 + 直接授权并存（Phase 27 amendment）
+- **D-15 (2026-04-19, UAT discovery):** `FeishuLoginPanel` 在二维码下方新增「使用飞书账号直接授权 →」按钮（分隔线「或」），点击后整页 `window.location.href = authorize_url` 跳转。浏览器已登录飞书时飞书直接显示「同意授权」；未登录时进入飞书自己的登录页。回流走同一个 `/auth/feishu/callback` 路由、复用 `FeishuCallbackPage` 三态 UI 和 `loginWithFeishu`。不增加后端接口。
+- **D-16 (2026-04-19, UAT discovery, Phase 26 gap fix):** 后端 `generate_authorize_url` 在查询参数中加入 `scope=contact:user.employee_id:readonly`。Phase 26 集成测试 mock 了飞书 API 所以未发现此缺陷；真实飞书环境缺 scope 一律返回 4401。这是 Phase 26 的 bug，在 Phase 27 UAT 中修复。
+
 ### Claude's Discretion
 - CDN 脚本的具体 URL 与版本（跟随飞书官方最新稳定版，必要时写入常量）
 - `QRLogin` 配置项细节（`width` / `height` / `style` / `iframeStyle` 等视觉参数）
