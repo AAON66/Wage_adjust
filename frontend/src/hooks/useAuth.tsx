@@ -4,6 +4,7 @@ import type { LoginPayload, RegisterPayload, UserProfile } from '../types/api';
 import {
   AUTH_SESSION_EVENT,
   clearAuthStorage,
+  feishuCallback as feishuCallbackRequest,
   fetchCurrentUser,
   getStoredAccessToken,
   getStoredRefreshToken,
@@ -22,6 +23,7 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isBootstrapping: boolean;
   login: (payload: LoginPayload) => Promise<UserProfile>;
+  loginWithFeishu: (code: string, state: string) => Promise<UserProfile>;
   register: (payload: RegisterPayload) => Promise<UserProfile>;
   refreshProfile: () => Promise<UserProfile | null>;
   logout: () => void;
@@ -118,6 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return profile;
   }
 
+  async function handleLoginWithFeishu(code: string, state: string): Promise<UserProfile> {
+    const response = await feishuCallbackRequest(code, state);
+    storeAuthSession(response);
+    setUser(response.user);
+    setAccessToken(response.tokens.access_token);
+    return response.user;
+  }
+
   async function refreshProfile(): Promise<UserProfile | null> {
     const token = accessToken ?? getStoredAccessToken();
     if (!token) {
@@ -142,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: Boolean(user && accessToken),
       isBootstrapping,
       login: handleLogin,
+      loginWithFeishu: handleLoginWithFeishu,
       register: handleRegister,
       refreshProfile,
       logout,
