@@ -2,6 +2,7 @@ import axios from 'axios';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 
+import { FeishuLoginPanel } from '../components/auth/FeishuLoginPanel';
 import { LoginForm } from '../components/auth/LoginForm';
 import { useAuth } from '../hooks/useAuth';
 import { getRoleHomePath } from '../utils/roleAccess';
@@ -73,6 +74,7 @@ export function LoginPage() {
           <div style={{ marginTop: 20 }}>
             <LoginForm errorMessage={errorMessage} isSubmitting={isSubmitting} onSubmit={handleLogin} />
           </div>
+          <FeishuLoginPanel />
           <div style={{ marginTop: 16, background: 'var(--color-bg-subtle)', border: '1px solid var(--color-border)', borderRadius: 6, padding: '10px 14px', fontSize: 13, lineHeight: 1.6, color: 'var(--color-steel)' }}>
             账号由管理员开通。首次登录需先改密。
           </div>
