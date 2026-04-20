@@ -184,17 +184,22 @@ class FeishuOAuthService:
         if user.employee_id is None or user.employee is None:
             raise HTTPException(status_code=400, detail='当前账号未关联员工信息，请联系管理员')
 
-        # D-06: Feishu employee_no must match user.employee.employee_no (leading-zero tolerant)
-        current_emp_no = user.employee.employee_no or ''
-        emp_map: dict[str, str] = {current_emp_no: user.employee_id}
-        stripped = current_emp_no.lstrip('0') or '0'
-        if stripped not in emp_map:
-            emp_map[stripped] = user.employee_id
-        if FeishuService._lookup_employee(emp_map, feishu_employee_no) is None:
-            raise HTTPException(
-                status_code=400,
-                detail='飞书工号与当前账号绑定的工号不一致，无法绑定',
-            )
+        # D-06 AMENDMENT (D-18): Feishu employee_no check is OPTIONAL — only enforced when
+        # Feishu actually returns a non-empty employee_no. Feishu's /authen/v1/user_info omits
+        # this field when the Feishu admin hasn't filled it on the user's profile, so requiring
+        # a match would block most real-world binds. When Feishu does return it, we still verify
+        # consistency (leading-zero tolerant).
+        if feishu_employee_no:
+            current_emp_no = user.employee.employee_no or ''
+            emp_map: dict[str, str] = {current_emp_no: user.employee_id}
+            stripped = current_emp_no.lstrip('0') or '0'
+            if stripped not in emp_map:
+                emp_map[stripped] = user.employee_id
+            if FeishuService._lookup_employee(emp_map, feishu_employee_no) is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail='飞书工号与当前账号绑定的工号不一致，无法绑定',
+                )
 
         # D-05: open_id must not be occupied by another user
         if not open_id:

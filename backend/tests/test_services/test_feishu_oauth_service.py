@@ -504,6 +504,18 @@ class TestHandleBindCallback:
         assert exc.value.status_code == 400
         assert '飞书工号与当前账号绑定的工号不一致' in str(exc.value.detail)
 
+    def test_handle_bind_callback_allows_empty_employee_no(self, db, settings, mock_redis):
+        """D-18 AMENDMENT: 飞书返回空 employee_no 时放行（飞书资料未填写员工编号的常见场景）。"""
+        settings.feishu_bind_redirect_uri = 'https://ex.com/settings/feishu-bind-callback'
+        user = _make_user_with_employee(db, employee_no='E0001')
+        mock_redis._store['feishu_oauth_state:bind:S_EMPTY'] = '1'
+        svc = _make_service(db, settings)
+        # Feishu returns user_info WITHOUT employee_no key (realistic: admin hasn't filled it).
+        with patch.object(svc, '_exchange_code_for_token_for_bind', return_value={'access_token': 'T'}), \
+             patch.object(svc, '_get_user_info', return_value={'open_id': 'ou_no_empno', 'name': '李旭新'}):
+            result = svc.handle_bind_callback('C_EMPTY', 'S_EMPTY', user, mock_redis)
+        assert result.feishu_open_id == 'ou_no_empno'
+
     def test_handle_bind_callback_user_without_employee_400(self, db, settings, mock_redis):
         """User.employee_id is None → 400。"""
         settings.feishu_bind_redirect_uri = 'https://ex.com/settings/feishu-bind-callback'
