@@ -1,512 +1,611 @@
-# Architecture Patterns: v1.2 Feature Integration
+# Architecture Research — v1.4 Integration Design
 
-**Domain:** Enterprise Salary Adjustment Platform -- v1.2 production readiness and data management
-**Researched:** 2026-04-07
-**Overall confidence:** HIGH (based on direct codebase analysis of 30k+ Python LOC and 20k+ TypeScript LOC)
+**Domain:** Enterprise salary adjustment platform (existing layered monorepo)
+**Researched:** 2026-04-20
+**Confidence:** HIGH (read of all current integration surfaces; no new architectural layers introduced)
 
-## Recommended Architecture
+## Scope and Guiding Principle
 
-All 5 v1.2 features integrate into the existing `api/ -> services/ -> engines/ -> models/` layered architecture. One new package (`tasks/`) is added for Celery task definitions. No structural changes to existing layers.
+v1.4 does NOT change the backend layering (`api/` → `services/` → `engines/` → `models/`) nor the frontend layering (`pages/` → `services/` → `types/api.ts`). Every new feature is either (a) a new vertical slice that follows the existing convention, or (b) a method added to an existing service/engine. No shared abstractions are rewritten.
 
-### Component Map: New vs Modified
-
-```
-NEW FILES:
-  backend/app/core/celery_app.py              -- Celery application factory + config
-  backend/app/tasks/__init__.py               -- Celery task package
-  backend/app/tasks/feishu_tasks.py           -- Feishu sync as Celery tasks
-  alembic/versions/xxxx_add_company_to_employee.py  -- Migration
-
-MODIFIED FILES:
-  backend/app/core/config.py                  -- Celery config settings (broker, backend)
-  backend/app/core/database.py                -- Add SQLite PRAGMA foreign_keys=ON event listener
-  backend/app/main.py                         -- Remove threading.Thread for sync
-  backend/app/models/*.py                     -- Replace Mapped[X | None] with Mapped[Optional[X]] for Python 3.9
-  backend/app/schemas/*.py                    -- Replace X | None with Optional[X] for Python 3.9
-  backend/app/models/employee.py              -- Add company column
-  backend/app/schemas/employee.py             -- Add company to read/write schemas
-  backend/app/services/sharing_service.py     -- reject_request() cascades file deletion
-  backend/app/services/file_service.py        -- Minor: ensure delete_file() is callable from SharingService
-  backend/app/api/v1/feishu.py                -- Replace threading.Thread with celery task.delay()
-  backend/app/api/v1/imports.py               -- Add import_type filter query param
-  frontend/src/pages/EligibilityManagementPage.tsx  -- Add "数据导入" tab
-  frontend/src/pages/ImportCenter.tsx          -- Add eligibility import types to IMPORT_TYPES
-
-PYTHON 3.9 COMPAT (broad changes across codebase):
-  All model files: Mapped[X | None] -> Mapped[Optional[X]] (SQLAlchemy eval() bypass)
-  All schema files: X | None -> Optional[X] (Pydantic eval() bypass)
-  Service/API files: str | None in function sigs OK (deferred by __future__)
-  requirements.txt: numpy==2.0.2, Pillow==10.4.0 (downgrade for 3.9)
-```
-
-### Component Boundaries
-
-| Component | Responsibility | Communicates With |
-|-----------|---------------|-------------------|
-| `core/celery_app.py` (NEW) | Celery app instance, broker/backend config | `core/config.py`, Redis |
-| `tasks/feishu_tasks.py` (NEW) | Celery task wrappers for async operations | `FeishuService`, `SessionLocal` |
-| `SharingService` (MODIFIED) | Rejection now cascades to requester file deletion | `FileService` (new dependency) |
-| `Employee` model (MODIFIED) | Adds nullable `company` field | Alembic migration |
-| `ImportService` (REUSED, unmodified) | Already supports `performance_grades` + `salary_adjustments` types | No changes needed |
-| `FeishuService` (REUSED, unmodified) | `sync_performance_records()` already exists | No changes needed |
-| `EligibilityManagementPage` (MODIFIED) | Adds unified import tab | Reuses `ImportJobTable`, `ImportResultPanel` |
+Quality constraints preserved from existing architecture:
+- AccessScopeService remains the single permission gate for employee resources
+- EligibilityEngine, SalaryEngine, EvaluationEngine stay pure (no DB, no I/O)
+- Alembic stays the sole migration path; batch_alter_table for SQLite compatibility
+- Celery + Redis async tasks remain opt-in; no new hard Redis dependency
 
 ---
 
-## Feature 1: Celery+Redis Async Task Activation
+## Standard Architecture (Unchanged)
 
-### Current State
-
-- `celery==5.4.0` in `requirements.txt` but **zero Celery code exists** -- no `celery_app.py`, no task definitions, no worker config
-- `redis==5.2.1` installed; `core/redis.py` provides working `get_redis()` singleton with `redis_url` from config
-- Feishu sync currently uses `threading.Thread` in `api/v1/feishu.py:_run_sync_in_background()` (line 152-159)
-- APScheduler (`feishu_scheduler.py`) handles periodic Feishu attendance sync
-- `FeishuService.sync_with_retry()` already has retry logic with `[5, 15, 45]` second delays
-
-### Where Celery Fits in the Layer Structure
+### System Overview
 
 ```
-backend/app/
-  core/
-    celery_app.py     <-- NEW: same level as redis.py, config.py (cross-cutting)
-  tasks/
-    __init__.py       <-- NEW: task package (parallel to services/, not inside it)
-    feishu_tasks.py   <-- NEW: wraps FeishuService calls as Celery tasks
+┌─────────────────────────────────────────────────────────────────────┐
+│                       React SPA (frontend/)                          │
+│  pages/        components/       services/        types/api.ts       │
+│       └────────┬─────────┘              │              │             │
+│                ↓                        ↓              │             │
+│          AppShell + ROLE_MODULES        api.ts (Axios) │             │
+└────────────────────────────┬────────────────────────────┬───────────┘
+                             │ HTTP /api/v1/*             │
+                             ↓                            ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                  FastAPI backend (backend/app/)                      │
+│ api/v1/ (routers) → services/ (business logic) → engines/ (compute) │
+│              ↓                    ↓                                  │
+│       dependencies.py       AccessScopeService                       │
+│       require_roles()        ensure_*_access()                       │
+│              ↓                    ↓                                  │
+│                     models/ (SQLAlchemy ORM)                         │
+│                            ↓                                         │
+│              core/database.py (Base, SessionLocal)                   │
+└─────────────────────────────────────────────────────────────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ↓              ↓              ↓
+          SQLite/PG      Redis(opt)    Celery workers
+          (primary)     (rate limit,   (imports + feishu sync)
+                         task broker)
 ```
 
-The `tasks/` package is a **peer of `services/`**, not a child. Tasks invoke service-layer methods with their own database sessions. This follows the exact same pattern as `scheduler/feishu_scheduler.py:run_incremental_sync()` which creates its own `SessionLocal()`.
+### Component Responsibilities (v1.4 additions in **bold**)
 
-**Dependency direction:** `tasks/ -> services/ -> engines/ -> models/` (extends existing chain)
+| Layer | Component | Responsibility | v1.4 Change |
+|-------|-----------|---------------|-------------|
+| api/v1 | `eligibility.py` | Eligibility query + override workflow | **Add `GET /eligibility/me`** (employee self-read) |
+| api/v1 | `eligibility_import.py` | Feishu + Excel eligibility data imports | **Unchanged; bug fixes only** |
+| api/v1 | `employees.py` | Employee CRUD | No change — tier is NOT on this response |
+| api/v1 | `imports.py` | General batch imports | **Unchanged router; add `hire_info` + `non_statutory_leave` types at service layer** |
+| api/v1 | **`performance.py`** *(new)* | Dedicated performance grade management | **New** — thin wrapper listing PerformanceRecord + tier distribution |
+| services | `EligibilityService` | Eligibility computation orchestration | **Add `check_self(user)` method** (resolves user.employee_id, calls `check_employee`) |
+| services | `FeishuService` | Feishu bitable sync | **Extend `sync_performance_records` + `sync_salary_adjustments` + `sync_hire_info` + `sync_non_statutory_leave` to write `FeishuSyncLog` entries** (currently only `sync_attendance` writes sync_log) |
+| services | `ImportService` | Excel/CSV import + templates | **Fix `_map_fields` + verify xlsx dtype preservation + add `hire_info` + `non_statutory_leave` types** |
+| services | **`PerformanceService`** *(new)* | Performance record query + tier distribution | **New** — owns list/filter/summary queries; tier classification delegated to engine |
+| engines | `EligibilityEngine` | 4-rule eligibility computation (pure) | **Unchanged** |
+| engines | **`PerformanceTierEngine`** *(new)* | Rank → 1/2/3 tier with 20/70/10 distribution + <50 sample gate | **New pure engine** — input: sorted list of `(employee_id, grade)`, output: `{employee_id: tier}` or `{}` when sample < threshold |
+| models | `PerformanceRecord` | Annual performance grade A/B/C/D/E | **Unchanged schema** (tier is derived, not stored) |
+| models | `FeishuSyncLog` | Feishu sync run metadata | **Extend:** add `mode` values `performance_grades`, `salary_adjustments`, `hire_info`, `non_statutory_leave` — no schema change, just new valid string values |
 
-### Celery App Configuration
+---
+
+## Integration-Point Map (v1.4 Feature-by-Feature)
+
+### 1. 员工端调薪资格自助可见
+
+**Backend**
+
+| File | Change | Detail |
+|------|--------|--------|
+| `backend/app/api/v1/eligibility.py` | **Add endpoint** `GET /eligibility/me` | Uses `get_current_user` only (no `require_roles` — any authenticated user including `employee`). Resolves `current_user.employee_id`; returns 404 if user is not bound to any employee. Delegates to `EligibilityService.check_employee(employee_id)`. |
+| `backend/app/services/eligibility_service.py` | **Add method** `check_self(user: User)` | Guards: user must have `employee_id` set (via account-binding). Reuses `check_employee()` — zero duplication of rule logic. Reuses `_apply_overrides()` so an approved override is transparent to the employee. |
+| `backend/app/schemas/eligibility.py` | **Reuse `EligibilityResultSchema`** | Same schema as HR/manager view. Internal field `detail` for each rule is already human-readable (e.g. "入职仅 3 个月，需满 6 个月"). No new schema needed. |
+
+**Permission model:** NOT routed through `AccessScopeService` — self-access is fundamentally different (no cross-employee lookup). The existing `AccessScopeService.ensure_employee_access()` is for admin/hrbp/manager accessing OTHER employees. For self-access we use `user.employee_id` directly, which is the same pattern used by `/api/v1/submissions/me` (existing).
+
+**Frontend**
+
+| File | Change | Detail |
+|------|--------|--------|
+| `frontend/src/pages/MyReview.tsx` | **Extend existing page** | Do NOT create `/my-eligibility`. Add a new section/tab "调薪资格" to MyReview — employee self-service is unified on one route. Matches `ROLE_HOME_PATHS['employee'] = '/my-review'` convention. |
+| `frontend/src/components/eligibility/MyEligibilityPanel.tsx` | **New component** | Renders 4 rules with pass/fail badges; failed rules show `detail` and a short "如何补齐" hint. Reuses `RULE_STATUS_BADGE` constants from `EligibilityListTab.tsx` (extract to `eligibility/badgeConfig.ts`). |
+| `frontend/src/services/eligibilityService.ts` | **Add function** `fetchMyEligibility()` | Returns same `EligibilityBatchItem['rules']` shape. |
+
+**Rejected alternatives:**
+- ~~New `/my-eligibility` route~~ — fragments the employee home surface; MyReview already aggregates personal evaluation state
+- ~~Make `EligibilityListTab` role-aware~~ — conflates HR-batch-view and employee-self-view, each has different actions (HR: export, override-request; employee: none)
+
+---
+
+### 2. 绩效档次 + 独立绩效管理页 + 历史绩效展示
+
+**Tier calculation placement decision:** **NEW pure engine `PerformanceTierEngine`**.
+
+Rationale:
+- `EligibilityEngine` stays focused on the 4 salary eligibility rules; tier computation is a separate concern (distribution, not pass/fail)
+- Lives alongside other engines at `backend/app/engines/performance_tier_engine.py`, inherits the "no I/O, no DB" convention
+- Accepts a sorted list of `(employee_id, grade)` and returns `{employee_id: tier (1|2|3) | None}`; `None` when sample < threshold
+
+**Pseudocode:**
 
 ```python
-# backend/app/core/celery_app.py
+# backend/app/engines/performance_tier_engine.py
 from __future__ import annotations
-from celery import Celery
-from backend.app.core.config import get_settings
+from dataclasses import dataclass
 
-def create_celery_app() -> Celery:
-    settings = get_settings()
-    app = Celery(
-        'wage_adjust',
-        broker=settings.celery_broker_url or settings.redis_url,
-        backend=settings.celery_result_backend or settings.redis_url,
-    )
-    app.conf.update(
-        task_serializer='json',
-        accept_content=['json'],
-        result_serializer='json',
-        timezone='Asia/Shanghai',
-        task_track_started=True,
-        task_acks_late=True,
-        worker_prefetch_multiplier=1,
-        task_time_limit=1800,           # 30 min hard limit
-        task_soft_time_limit=1500,      # 25 min soft limit
-        result_expires=3600,            # Results expire after 1 hour
-    )
-    app.autodiscover_tasks(['backend.app.tasks'])
-    return app
+@dataclass(frozen=True)
+class TierThresholds:
+    min_sample_size: int = 50
+    top_pct: float = 0.20   # tier 1
+    mid_pct: float = 0.70   # tier 2
+    # tier 3 = remainder (0.10)
 
-celery_app = create_celery_app()
+class PerformanceTierEngine:
+    def __init__(self, thresholds: TierThresholds | None = None) -> None:
+        self.t = thresholds or TierThresholds()
+
+    def assign(self, ranked: list[tuple[str, str]]) -> dict[str, int | None]:
+        """Input already sorted best→worst. Returns {employee_id: tier|None}.
+        Returns {eid: None} for every id when len < min_sample_size."""
+        if len(ranked) < self.t.min_sample_size:
+            return {eid: None for eid, _ in ranked}
+        n = len(ranked)
+        t1_cut = int(round(n * self.t.top_pct))
+        t2_cut = t1_cut + int(round(n * self.t.mid_pct))
+        return {
+            eid: (1 if idx < t1_cut else 2 if idx < t2_cut else 3)
+            for idx, (eid, _grade) in enumerate(ranked)
+        }
 ```
 
-### Critical: Celery Worker DB Session Isolation
+**Caching strategy:** **NO Redis dependency for v1.4**. Justification:
+- Tier values change only when a new performance import completes — low write frequency
+- Full-company tier map for ~10k employees is a ~200 KB Python dict, computed in <50 ms from indexed `(year, grade)` query
+- Use `functools.lru_cache` at service layer keyed by `year` with a manual `invalidate()` call after performance import finishes
+- If latency becomes a problem later, drop in `cache_service.py` (existing Redis wrapper with in-memory fallback) without changing the engine
 
-Celery workers fork from the parent process. The global `Engine` and `SessionLocal` in `database.py` are inherited but their connections become invalid after fork. Use `worker_process_init` signal:
+**Independent 绩效管理 page — routing, nav, permission:**
 
-```python
-from celery.signals import worker_process_init
+| Aspect | Decision |
+|--------|----------|
+| Backend prefix | `/api/v1/performance` (new router `backend/app/api/v1/performance.py`) |
+| Frontend route | `/performance` |
+| Nav group | `系统管理` (same group as `导入中心` + `飞书配置`) — it's a data-ops surface, not an operational workflow |
+| Roles | admin + hrbp only (matches attendance/feishu-config pattern) |
+| Existing nav overlap | `调薪资格` page already handles performance_grades import via ELIGIBILITY_IMPORT_TYPES — keep that as the *import path* unchanged; new page is a *read/list* surface |
 
-@worker_process_init.connect
-def init_worker_db(**kwargs):
-    """Re-create DB engine in each worker process after fork."""
-    from backend.app.core.database import engine
-    engine.dispose()  # Dispose inherited connections
-```
+**Endpoints on `/api/v1/performance`:**
+- `GET /performance/records` — list with filters (year, department, grade), paginated
+- `GET /performance/tier-summary?year=2025` — returns `{year, sample_size, tier_1_count, tier_2_count, tier_3_count, insufficient_sample: bool}`
+- `GET /performance/me/tier?year=2025` — employee self-read (returns `{tier: 1|2|3|null, year, sample_size, insufficient_sample}`)
 
-Each task must create and close its own session:
+**Rejected: embed `/me/tier` into `GET /employees/me`** — employee identity endpoint should not expand with derived per-year data; year is a query parameter.
 
-```python
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
-def feishu_sync_task(self, mode, triggered_by=None):
-    db = SessionLocal()
-    try:
-        from backend.app.services.feishu_service import FeishuService
-        service = FeishuService(db)
-        service.sync_with_retry(mode=mode, triggered_by=triggered_by)
-    except Exception as exc:
-        raise self.retry(exc=exc)
-    finally:
-        db.close()
-```
+**Evaluation detail / salary recommendation history display:**
 
-### Migration Path from threading.Thread
+| Frontend file | Change |
+|---------------|--------|
+| `frontend/src/pages/EvaluationDetail.tsx` | Insert new `PerformanceHistoryPanel` component between evidence and dimension score sections |
+| `frontend/src/components/salary/` (existing salary recommendation detail component) | Insert same panel above/adjacent to multiplier explanation |
+| `frontend/src/components/performance/PerformanceHistoryPanel.tsx` *(new)* | Fetches `GET /eligibility/{employee_id}/performance-records` (already exists) and renders a 3-year-max table with grade and source |
 
-**Before** (current `api/v1/feishu.py` line 188-195):
-```python
-thread = threading.Thread(
-    target=_run_sync_in_background,
-    args=(data.mode, current_user.id),
-    daemon=True,
-)
-thread.start()
-```
+The backend endpoint `GET /eligibility/{employee_id}/performance-records` **already exists** (`eligibility.py:315`). No new API needed for the history view — only a new frontend component.
 
-**After:**
-```python
-from backend.app.tasks.feishu_tasks import feishu_sync_task
-task = feishu_sync_task.delay(data.mode, current_user.id)
-return SyncTriggerResponse(
-    sync_log_id=task.id,
-    status='running',
-    message='同步已启动',
-)
-```
-
-### APScheduler Coexistence
-
-APScheduler in `scheduler/feishu_scheduler.py` can coexist with Celery. It handles periodic cron scheduling, separate from on-demand async tasks. Migrating to Celery Beat is optional and deferred.
-
-### Redis DB Separation
-
-Use separate Redis databases to avoid key namespace collisions:
-- `redis://localhost:6379/0` -- app cache, rate limiting (existing)
-- `redis://localhost:6379/1` -- Celery broker
-- `redis://localhost:6379/2` -- Celery result backend
-
-**Confidence:** HIGH -- Celery 5.4 with Redis broker is production-proven. The isolated-session pattern already exists in `feishu_scheduler.py`.
+**Employee-end tier display:** surfaces inside `MyReview.tsx` next to the eligibility panel — single round-trip via `/api/v1/performance/me/tier?year={currentCycleYear}`.
 
 ---
 
-## Feature 2: Employee Company Field
+### 3. 工号前导零保留
 
-### Current State
+**Root cause:** `employee_no` is already `String(64)` in the DB model. Leading zeros are lost at three upstream points:
 
-`Employee` model columns: `employee_no`, `name`, `id_card_no`, `department`, `sub_department`, `job_family`, `job_level`, `manager_id`, `status`, `hire_date`, `last_salary_adjustment_date`. No `company` field.
+| Location | Current behavior | Fix |
+|----------|-----------------|-----|
+| `ImportService._load_table` (CSV) | `dtype=str` already set on `pd.read_csv(..., dtype=str)` — correct | ✓ No change |
+| `ImportService._load_table` (xlsx) | `dtype=str` already set on `pd.read_excel(..., engine='openpyxl', dtype=str)` — but openpyxl reads cells by cell-type; numeric cells become float before dtype coercion | **Verify** with test case; if lost, read with `keep_default_na=False` + iterate cells as strings via `str(cell.value)` when cell.data_type == 'n' |
+| `FeishuService._map_fields` (line 240-245) | `if isinstance(value, float) and value == int(value): value = str(int(value))` — **THIS STRIPS LEADING ZEROS** because Feishu number fields are always float (e.g. `02615.0` → `"2615"`) | **Fix:** when the field_mapping target is `employee_no`, always treat the raw cell as text; prefer the Feishu field's `text` sub-property from `_extract_cell_value` over the numeric coercion |
+| Manual create (`EmployeeCreate` schema + `EmployeeService.create_employee`) | Pydantic string field; no coercion issue | ✓ No change, but add Pydantic `field_validator` to **reject** implicit int-to-str |
 
-### Changes Required
+**Storage-side guarantees (already in place):**
+- `Employee.employee_no` is `String(64)` with unique index — preserves zeros
+- `FeishuService._build_employee_map()` already tolerates leading-zero mismatch by indexing both `"02615"` and `"2615"` — a defensive layer that masks upstream bugs but does NOT fix the storage problem
 
-1. **Model** (`backend/app/models/employee.py`):
-   ```python
-   company: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
-   ```
-   Note: Uses `Optional[str]` not `str | None` for Python 3.9 compatibility with SQLAlchemy's `Mapped` eval.
+**Existing-data repair:** Two-step:
+1. **Alembic data migration** `v14_01_restore_employee_no_leading_zeros.py`:
+   - For each `Employee` row where `employee_no` is all-digits and a corresponding Feishu employee row exists with a longer zero-prefixed form, update
+   - Safe because `employee_no` has unique constraint; conflicts are expected to be zero (prod data shouldn't have both forms)
+2. **One-off script** `scripts/repair_employee_no_zeros.py` that dry-runs the migration first, prints diff, requires `--commit` flag to apply
 
-2. **Migration**: `op.add_column('employees', sa.Column('company', sa.String(128), nullable=True))` with `batch_alter_table` for SQLite compat
-
-3. **Schema** (`backend/app/schemas/employee.py`): Add `company: Optional[str] = None` to read schemas
-
-4. **Import** (`backend/app/services/import_service.py`): Add `'所属公司': 'company'` to `COLUMN_ALIASES['employees']`
-
-5. **Frontend**: Display company in employee detail page only (per spec: "仅档案详情可见")
-
-**Impact scope:** Minimal. No engine logic, no eligibility rules, no API contracts affected.
-
-**Confidence:** HIGH
-
----
-
-## Feature 3: Python 3.9 Compatibility
-
-### CRITICAL FINDING: `Mapped[str | None]` Breaks on Python 3.9
-
-**This is the highest-impact change in v1.2.** Initial analysis suggested `from __future__ import annotations` would protect all PEP 604 union syntax. This is WRONG for SQLAlchemy `Mapped` and Pydantic `BaseModel` fields.
-
-**Why `__future__` is insufficient:**
-- `from __future__ import annotations` defers annotation evaluation by the Python interpreter
-- BUT SQLAlchemy 2.0's `DeclarativeBase` explicitly calls `eval()` on `Mapped[T]` type parameters during class initialization to determine column types and nullable attributes
-- Similarly, Pydantic v2's `ModelMetaclass` calls `typing.get_type_hints()` which evaluates annotations at runtime
-- On Python 3.9, `eval("str | None")` raises `TypeError: unsupported operand type(s) for |`
-
-**Scope of changes:**
-- 20+ model files, 80+ occurrences of `Mapped[X | None]`
-- 81 schema files, 361+ occurrences of `X | None` in Pydantic fields
-- Total: ~440 replacements across ~100 files
-
-**What MUST change:**
-```python
-# BEFORE (breaks on 3.9):
-company: Mapped[str | None] = mapped_column(...)
-
-# AFTER (works on 3.9):
-from typing import Optional
-company: Mapped[Optional[str]] = mapped_column(...)
-```
+**Prevention (new Pydantic validator):**
 
 ```python
-# BEFORE (breaks on 3.9 in Pydantic schemas):
-class EmployeeRead(BaseModel):
-    company: str | None = None
+# backend/app/schemas/employee.py (add to EmployeeCreate + EmployeeUpdate)
+from pydantic import field_validator
 
-# AFTER:
-from typing import Optional
-class EmployeeRead(BaseModel):
-    company: Optional[str] = None
+class EmployeeBase(BaseModel):
+    employee_no: str
+    @field_validator('employee_no', mode='before')
+    @classmethod
+    def _preserve_leading_zeros(cls, v):
+        if isinstance(v, (int, float)):
+            raise ValueError('employee_no must be provided as a string to preserve leading zeros.')
+        return str(v).strip()
 ```
 
-**What does NOT need changing:**
-- Regular function signatures: `def foo(x: str | None) -> str | None:` -- these are deferred by `__future__` and never eval'd at runtime
-- Local variable annotations: `result: str | None = None` -- same reason
-
-**Dependency downgrades required:**
-- `numpy==2.2.1` -> `numpy==2.0.2` (2.2+ requires Python 3.10)
-- `Pillow==11.0.0` -> `Pillow==10.4.0` (11+ requires Python 3.10)
-
-**Confidence:** HIGH for the problem identification (verified via SQLAlchemy and Pydantic issue trackers). The fix is mechanical but broad.
-
----
-
-## Feature 4: File Sharing Rejection Auto-Delete
-
-### Current State
-
-`SharingService.reject_request()` (lines 165-185) sets `sr.status = 'rejected'` but does NOT delete the requester's file.
-
-`SharingRequest` model has `ondelete='CASCADE'` on `requester_file_id` FK. **However, SQLite does not enforce `ON DELETE CASCADE` by default** -- `database.py` has no `PRAGMA foreign_keys = ON`.
-
-### Critical Prerequisite: Enable SQLite Foreign Keys
-
-Before implementing auto-delete, fix `database.py` to enable FK enforcement:
+**FeishuService._map_fields fix (load-bearing):**
 
 ```python
-from sqlalchemy import event, Engine
-
-@event.listens_for(Engine, "connect")
-def _set_sqlite_pragma(dbapi_conn, connection_record):
-    if 'sqlite' in str(dbapi_conn.__class__.__module__):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+if system_name == 'employee_no':
+    has_employee_no = True
+    # Always treat as text — NEVER int-coerce.
+    # Raw Feishu number fields come as float (e.g. 2615.0); but Feishu rich-text
+    # fields preserve string form in .text property (handled in _extract_cell_value
+    # when first dict element has 'text' key). For pure numeric bitable cells,
+    # we still need to format without losing zeros.
+    if isinstance(raw_value, (int, float)) or (
+        isinstance(value, float) and value == int(value)
+    ):
+        # FIX: don't use int(value); prefer Feishu "text" subfield if present
+        raw_text = _prefer_text_over_numeric(raw_value)
+        value = raw_text if raw_text is not None else str(value).rstrip('0').rstrip('.') or '0'
+    else:
+        value = str(value).strip()
 ```
 
-### Architecture Decision: Service Composition
-
-**Recommended: Inject FileService into SharingService**
-
-```python
-class SharingService:
-    def __init__(self, db: Session, *, file_service: FileService | None = None, settings: Settings | None = None):
-        self.db = db
-        self.settings = settings or get_settings()
-        self._file_service = file_service
-
-    @property
-    def file_service(self) -> FileService:
-        if self._file_service is None:
-            self._file_service = FileService(self.db, self.settings)
-        return self._file_service
-```
-
-### Modified reject_request Flow
-
-**Order of operations matters** (CASCADE FK consideration):
-
-```python
-def reject_request(self, request_id, *, rejector_employee_id):
-    # ... existing validation ...
-    sr.status = 'rejected'
-    sr.resolved_at = utc_now()
-    self.db.flush()  # Persist rejection status FIRST
-
-    # THEN delete requester's file (may trigger CASCADE)
-    requester_file = self.db.get(UploadedFile, sr.requester_file_id)
-    if requester_file is not None:
-        # Use FileService for full cleanup (storage + evidence + DB)
-        self.file_service.delete_file(requester_file.id)
-
-    return sr
-```
-
-### Expired Request File Cleanup
-
-Do NOT add file deletion to `_expire_stale_requests()` (it runs on every list/count query). Instead, create a separate Celery task for expired file cleanup:
-
-```python
-@celery_app.task
-def cleanup_expired_sharing_files():
-    """Periodic task to delete files from expired sharing requests."""
-    # Run nightly via Celery Beat or cron
-```
-
-**Confidence:** HIGH -- `FileService.delete_file()` is well-tested. FK prerequisite is the main risk.
+The helper `_prefer_text_over_numeric` inspects Feishu's raw cell for a text subfield before falling back to the numeric form. This is the cleanest fix at the mapping layer; no downstream change needed.
 
 ---
 
-## Feature 5: Unified Eligibility Data Import Management
+### 4. 调薪资格导入修复（飞书同步根因 + Excel 模板 + 覆盖更新）
 
-### Current State
+**Root cause of "飞书同步成功但未落库":** `sync_performance_records`, `sync_salary_adjustments`, `sync_hire_info`, `sync_non_statutory_leave` do NOT create `FeishuSyncLog` rows (only `sync_attendance` does — see `feishu_service.py:288-437`). They also do NOT track `unmatched_count`; employees whose `employee_no` doesn't match are silently `skipped` with only a `logger.warning`.
 
-**Backend -- all endpoints exist:**
-- `POST /api/v1/imports/jobs` with `import_type=performance_grades` -- works
-- `POST /api/v1/imports/jobs` with `import_type=salary_adjustments` -- works
-- `FeishuService.sync_performance_records()` exists but has no API endpoint
+**Integration fix:**
 
-**Frontend -- incomplete:**
-- `ImportCenter.tsx` `IMPORT_TYPES` only includes `employees` and `certifications`
-- `EligibilityManagementPage.tsx` has 2 tabs, no import tab
+| Change | Location | Detail |
+|--------|----------|--------|
+| **Wrap all 4 eligibility sync methods with sync-log scaffolding** | `feishu_service.py:461-862` | Extract a private `_with_sync_log(mode, triggered_by, fn)` helper that: (a) creates FeishuSyncLog at start; (b) runs fn which returns counts; (c) updates sync_log + commits in final block; (d) on exception, writes failure log in a fresh session (matching existing `sync_attendance` pattern). Apply to all 4 eligibility sync methods. |
+| **Track unmatched employee_nos** | Same 4 methods | Mirror the `unmatched_nos` list in `sync_attendance` — write top-20 to `sync_log.unmatched_employee_nos`. This is the *primary diagnostic* HR needs when "sync succeeded but data missing." |
+| **Expose sync logs in UI** | `frontend/src/pages/EligibilityManagementPage.tsx` | Add a "同步日志" tab that calls existing `FeishuService.get_sync_logs(limit=20)` — already exists, currently only rendered on attendance page. |
 
-### Architecture: Unified Import Tab
+**Upsert semantics decision — (employee_id, cycle_id) vs (employee_no, cycle_id):**
 
-Add a third tab "数据导入" to `EligibilityManagementPage`:
+`PerformanceRecord` and `SalaryAdjustmentRecord` do NOT have `cycle_id`. They have:
+- `PerformanceRecord`: UNIQUE `(employee_id, year)` — correct; `year` is the natural performance period key
+- `SalaryAdjustmentRecord`: NO unique constraint — multiple adjustments per year are legitimate (probation + annual + special)
 
-1. **Excel import** for `performance_grades` and `salary_adjustments` (reuses `ImportService`)
-2. **Feishu bitable sync** for performance records (reuses `FeishuService`)
-3. **Import history** filtered to eligibility-related types
+**Decision:** Keep employee_id as upsert key (via the existing `emp_map` leading-zero-tolerant lookup). Do NOT introduce `cycle_id` on these tables — salary cycles and performance years are separate concepts. When the UI reports conflict, return:
 
-### Backend Changes
+```json
+{
+  "conflict": {
+    "employee_no": "02615",
+    "year": 2025,
+    "existing_grade": "B",
+    "incoming_grade": "A",
+    "action": "overwrite"
+  }
+}
+```
 
-1. Add `import_type` filter query param to `GET /imports/jobs`
-2. Add `POST /api/v1/feishu/sync-performance` endpoint
-3. Update `ImportCenter.tsx` `IMPORT_TYPES` to include all 4 types
+Current code already does silent overwrite; the v1.4 fix is to **log** each overwrite to the result_summary so HR sees what changed. No schema change needed.
 
-### Frontend Component Reuse
+**Excel 模板下载修复:** Both `GET /api/v1/imports/templates/{import_type}` (`imports.py:96`) and `GET /api/v1/eligibility-import/templates/{import_type}` (`eligibility_import.py:127`) already exist and call `ImportService.build_template_xlsx`.
 
-Reuses existing: `ImportJobTable`, `ImportResultPanel`, `importService.ts` functions.
+**Likely root cause of "模板下载返回非真实文件":** `ELIGIBILITY_IMPORT_TYPES = {'performance_grades', 'salary_adjustments', 'hire_info', 'non_statutory_leave'}` (`eligibility_import.py:6` / `schemas/eligibility_import.py`) but `ImportService.SUPPORTED_TYPES = {'employees', 'certifications', 'performance_grades', 'salary_adjustments'}`. **`hire_info` and `non_statutory_leave` are missing from `ImportService.SUPPORTED_TYPES`**, so the template endpoint at `eligibility_import.py:143-146` would raise `ValueError('Unsupported import type.')` for those two types. Fix: add these to `SUPPORTED_TYPES` + `REQUIRED_COLUMNS` + `COLUMN_ALIASES` + new `_import_hire_info` / `_import_non_statutory_leave` methods in `ImportService` + branch coverage in `build_template_xlsx`.
 
-New in tab: import type selector, Feishu sync trigger, filtered history.
-
-**Confidence:** MEDIUM -- backend ready, frontend needs UX design.
+**Task status feedback:** Existing `Celery taskPolling` mechanism via `taskService.ts` + `TaskTriggerResponse` is reused as-is. No change.
 
 ---
 
-## Data Flow Diagrams
+### 5. Phase 11 导航菜单验证补齐
 
-### Celery Task Flow
+**Inputs:**
+- Current state (per PROJECT.md Known Issues): code in repo, no SUMMARY.md, UAT not run
+- v1.4 introduces new menu entries: `我的资格` (under employee `personal` group — as a tab in /my-review, not a new href) and `绩效管理` (under admin/hrbp `系统管理` group)
+
+**SUMMARY.md补齐 content checklist (targeted at `.planning/milestones/v1.1/phases/phase-11/SUMMARY.md` if that milestone folder still exists, otherwise under v1.4's phase for navigation-restructuring):**
+- Problem statement: what Phase 11 changed in nav structure (ROLE_MODULES restructuring)
+- Before/After: ROLE_MODULES diff
+- UAT checklist: one row per role (admin/hrbp/manager/employee) with click-through evidence
+
+**Nav entries for v1.4:**
+
+| Entry | Role(s) | Path | Group | Icon |
+|-------|---------|------|-------|------|
+| 绩效管理 | admin, hrbp | `/performance` | 系统管理 | `trending-up` |
+| 调薪资格（我的） | employee | (tab within `/my-review`) | personal (no new href) | N/A |
+
+Employee "我的资格" is not a new top-level menu — it is a tab inside MyReview page. Keeps the `employee` role's menu concise (3 items maximum).
+
+---
+
+## Integration Matrix
+
+Files/surfaces touched in v1.4, sorted by risk:
+
+| File | Type | Risk | Change |
+|------|------|------|--------|
+| `backend/app/services/feishu_service.py` | Modified | **HIGH** | `_map_fields` employee_no fix (fragile path); extend 4 sync methods with sync_log scaffolding |
+| `backend/app/services/import_service.py` | Modified | MEDIUM | Add `hire_info` + `non_statutory_leave` to SUPPORTED_TYPES + handlers; dtype verification |
+| `backend/app/services/eligibility_service.py` | Modified | LOW | Add `check_self(user)` — thin wrapper |
+| `backend/app/api/v1/eligibility.py` | Modified | LOW | Add `/me` endpoint |
+| `backend/app/api/v1/performance.py` | **New** | LOW | Thin router delegating to new service |
+| `backend/app/services/performance_service.py` | **New** | LOW | Query + tier assembly, delegates to engine |
+| `backend/app/engines/performance_tier_engine.py` | **New** | LOW | Pure function; fully unit-testable |
+| `backend/app/schemas/employee.py` | Modified | LOW | Add `field_validator` for employee_no |
+| `backend/app/schemas/performance.py` | **New** | LOW | `PerformanceRead`, `TierSummary`, `MyTier` |
+| `alembic/versions/v14_01_restore_employee_no_leading_zeros.py` | **New** | **HIGH** | Data migration; irreversible without backup. Required `--dry-run` first |
+| `frontend/src/pages/MyReview.tsx` | Modified | LOW | Add eligibility + tier panels |
+| `frontend/src/pages/PerformanceManagement.tsx` | **New** | LOW | List + tier summary |
+| `frontend/src/components/performance/PerformanceHistoryPanel.tsx` | **New** | LOW | Reused by EvaluationDetail and SalaryDetail |
+| `frontend/src/components/eligibility/MyEligibilityPanel.tsx` | **New** | LOW | Standalone rendering of 4-rule result |
+| `frontend/src/services/performanceService.ts` | **New** | LOW | API client wrapper |
+| `frontend/src/services/eligibilityService.ts` | Modified | LOW | Add `fetchMyEligibility` |
+| `frontend/src/types/api.ts` | Modified | LOW | New interfaces: `PerformanceTierSummary`, `MyTierResult` |
+| `frontend/src/utils/roleAccess.ts` | Modified | LOW | Add `绩效管理` entry for admin + hrbp |
+| `frontend/src/App.tsx` | Modified | LOW | Add `/performance` route with `allowedRoles=["admin","hrbp"]` |
+
+**No conflicts with existing v1.3 work:** the touchpoints are additive (new files) or on well-bounded methods that have had no churn in the current git working tree (observed: eligibility service last modified during v1.1).
+
+---
+
+## New vs Modified
+
+**All-new files (10):**
+1. `backend/app/api/v1/performance.py`
+2. `backend/app/services/performance_service.py`
+3. `backend/app/engines/performance_tier_engine.py`
+4. `backend/app/schemas/performance.py`
+5. `alembic/versions/v14_01_restore_employee_no_leading_zeros.py`
+6. `scripts/repair_employee_no_zeros.py`
+7. `frontend/src/pages/PerformanceManagement.tsx`
+8. `frontend/src/components/performance/PerformanceHistoryPanel.tsx`
+9. `frontend/src/components/eligibility/MyEligibilityPanel.tsx`
+10. `frontend/src/services/performanceService.ts`
+
+**Modified files (existing methods extended, not redesigned — 12):**
+1. `backend/app/services/feishu_service.py` — sync_log scaffolding + `_map_fields` fix
+2. `backend/app/services/import_service.py` — add 2 import types + dtype verification
+3. `backend/app/services/eligibility_service.py` — `check_self` method
+4. `backend/app/api/v1/eligibility.py` — `/me` endpoint
+5. `backend/app/schemas/employee.py` — validator
+6. `backend/app/schemas/eligibility_import.py` — (verify ELIGIBILITY_IMPORT_TYPES still in sync)
+7. `frontend/src/pages/MyReview.tsx` — add tab / section
+8. `frontend/src/pages/EvaluationDetail.tsx` — insert history panel
+9. `frontend/src/utils/roleAccess.ts` — add menu entry
+10. `frontend/src/App.tsx` — add route
+11. `frontend/src/services/eligibilityService.ts` — add `fetchMyEligibility`
+12. `frontend/src/types/api.ts` — new interfaces
+
+---
+
+## Suggested Build Order
+
+**Rationale:** Data-foundation first, then pure-compute, then read-side features. Put the highest-risk (production data) work first with time to revert.
+
+### Phase A — Data Integrity Foundation (HIGH risk, must ship first)
+
+1. **A1 工号前导零修复 (schema validators + FeishuService._map_fields fix + repair script dry-run)**
+   - Deliverables: Pydantic validator, `_map_fields` fix, dry-run output
+   - Gate: Dry-run shows N employees would be updated; HR confirms list before commit
+2. **A2 Alembic data migration execution**
+   - Gate: Prod DB backup taken; migration runs; verification query confirms no duplicate `employee_no`
+
+**Why first:** Every downstream feature (tier assignment, eligibility query, feishu re-sync) depends on stable employee_no values. Fixing later means re-running all imports.
+
+### Phase B — Import Chain Fixes (MEDIUM risk, unblocks HR)
+
+3. **B1 FeishuSyncLog scaffolding for 4 eligibility sync methods**
+   - Deliverables: `_with_sync_log` helper, 4 methods wrapped, unmatched tracking
+   - Gate: Test sync that intentionally has 3 unmatched employee_nos; verify sync_log shows 3 + employee_nos
+4. **B2 ImportService: add hire_info + non_statutory_leave + template endpoint verification**
+   - Deliverables: SUPPORTED_TYPES expanded, templates download correctly, xlsx dtype verified
+5. **B3 Import result diagnostic (overwrite logging)**
+   - Deliverables: result_summary rows include `action: overwrite` with old/new values for HR to review
+
+**Why before performance features:** B1 diagnoses why v1.3 imports failed silently — without this, product is stuck re-diagnosing every import failure manually.
+
+### Phase C — Performance Tier Foundation (MEDIUM risk, pure compute)
+
+6. **C1 `PerformanceTierEngine` with tests (<50 sample, boundary rounding, tie handling)**
+7. **C2 `PerformanceService` + `/api/v1/performance` router + schemas**
+8. **C3 Alembic migration: none required** — tier is derived, not stored
+
+**Why before employee-end:** tier API must be stable before wiring into MyReview.
+
+### Phase D — Read-Side Features (LOW risk, employee-facing)
+
+9. **D1 `EligibilityService.check_self` + `GET /eligibility/me`**
+10. **D2 `PerformanceService.get_my_tier` + `GET /performance/me/tier`**
+11. **D3 `MyEligibilityPanel` + `PerformanceTierBadge` inside MyReview**
+12. **D4 `PerformanceHistoryPanel` inside EvaluationDetail + SalaryDetail**
+
+### Phase E — Independent Performance Page (LOW risk)
+
+13. **E1 `PerformanceManagement.tsx` + `/performance` route + nav entry**
+14. **E2 Tier summary chart + filters**
+
+### Phase F — Phase 11 Nav Closure (DOCS, no code change)
+
+15. **F1 SUMMARY.md补齐 (phase 11 retrospective)**
+16. **F2 UAT checklist for 4 roles × new + existing menu entries — include v1.4 新增的两个条目**
+
+---
+
+## Data Flow (v1.4 additions)
+
+### Employee Self-Service Read (new)
 
 ```
-API Handler                  Redis (db 1)             Celery Worker
-     |                          |                         |
-     |-- task.delay(args) ----->|                         |
-     |<-- task_id (immediate)---|                         |
-     |                          |-- pick up task -------->|
-     |                          |                         |-- engine.dispose()
-     |                          |                         |-- SessionLocal()
-     |                          |                         |-- service.method()
-     |                          |                         |-- db.close()
-     |                          |<-- store result (db 2)--|
+employee opens /my-review
+  ↓
+MyReview.tsx useEffect fires 3 parallel requests:
+  GET /api/v1/submissions/me           (existing)
+  GET /api/v1/eligibility/me           (new — eligibility.py)
+  GET /api/v1/performance/me/tier?year (new — performance.py)
+  ↓
+Backend: eligibility.py → EligibilityService.check_self(user)
+         → resolves user.employee_id
+         → delegates to check_employee() (SAME logic as HR batch view)
+         → applies override (SAME as HR view — approved overrides are visible to employee too)
+  ↓
+MyEligibilityPanel renders 4 rules; MyTierBadge renders "您本年度处于档次 2/3 (前 70%)"
 ```
 
-### Rejection Auto-Delete Flow
+### Performance Tier Computation (new, full-company)
 
 ```
-POST /api/v1/sharing/{id}/reject
-  |
-  v
-SharingService.reject_request()
-  |-- Validate rejector == original uploader
-  |-- sr.status = 'rejected', sr.resolved_at = utc_now()
-  |-- db.flush()  (persist status BEFORE file deletion)
-  |-- FileService.delete_file(sr.requester_file_id)
-  |     |-- LocalStorageService.delete(storage_key)
-  |     |-- Delete EvidenceItem records
-  |     |-- db.delete(uploaded_file) -> CASCADE ProjectContributor
-  |     |-- Recalculate submission status
-  |-- Return rejected SharingRequest
+HR imports performance_grades (Excel or Feishu)
+  ↓
+PerformanceRecord rows inserted (existing flow)
+  ↓
+PerformanceService.invalidate_tier_cache(year=2025) called post-import
+  ↓
+Next request to /performance/me/tier or /performance/tier-summary:
+  PerformanceService._ranked_employees(year=2025)   # SQL: ORDER BY grade
+    → PerformanceTierEngine.assign(ranked)           # pure
+    → {employee_id: 1|2|3} cached in LRU by year
+  ↓
+Response: {tier: 2, sample_size: 1247, insufficient_sample: false}
+```
+
+### Feishu Sync with Observability (fixed)
+
+```
+HR triggers feishu sync for performance_grades
+  ↓
+eligibility_import.py → feishu_sync_eligibility_task.delay(...)
+  ↓
+Celery worker → FeishuService.sync_performance_records(...)
+  ↓ NEW: _with_sync_log wrapper
+  FeishuSyncLog row created (status='running', mode='performance_grades')
+  ↓
+  Bitable records fetched
+  ↓
+  For each record:
+    _lookup_employee(emp_map, emp_no)
+    if unmatched: increment unmatched_count, append to unmatched_nos (top 20)
+    else: upsert PerformanceRecord
+  ↓ NEW:
+  FeishuSyncLog updated: synced/updated/skipped/unmatched/failed counts, unmatched_employee_nos
+  ↓
+HR visits /eligibility?tab=sync-logs → sees 1247 fetched, 1243 synced, 4 unmatched (工号 "12345", "67890", ...)
 ```
 
 ---
 
-## Patterns to Follow
+## Architectural Patterns Reused (No New Patterns Introduced)
 
-### Pattern 1: Celery Task with Isolated Session + Engine Disposal
-**What:** Dispose inherited engine, create fresh `SessionLocal()`, close in `finally`.
-**When:** All Celery tasks touching the database.
-**Why:** Fork-inherited connections are invalid; workers need fresh connections.
-**Precedent:** `scheduler/feishu_scheduler.py:run_incremental_sync()`.
+### Pattern: Service method with self-access specialization
 
-### Pattern 2: Service Composition via Optional Constructor Injection
-**What:** Services accept optional collaborator services with lazy defaults.
-**When:** One service needs another (SharingService needs FileService).
-**Precedent:** All services accept `settings: Settings | None = None`.
+**What:** Add `check_self(user)` sibling to `check_employee(employee_id)`. Self-methods resolve identity from `user` then delegate to the canonical method.
 
-### Pattern 3: Alembic Migration with batch_alter_table
-**What:** Use `batch_alter_table` for all SQLite-touching migrations.
-**When:** Any schema change to existing tables.
-**Precedent:** Existing Alembic migrations in the project.
+**When to use:** Employee-facing read endpoints where the subject is always the caller.
 
-### Pattern 4: Optional[X] for Mapped/Pydantic, X | None for Function Sigs
-**What:** Use `Optional[X]` in SQLAlchemy `Mapped` and Pydantic model fields; `X | None` is safe in function signatures.
-**When:** Python 3.9 target environment.
-**Why:** SQLAlchemy and Pydantic eval annotations at runtime; function sigs are deferred by `__future__`.
+**Precedent in codebase:** `SubmissionService.get_for_employee_id` is already called from both batch and self-service paths; same shape.
 
----
+### Pattern: Pure engine + service orchestrator
 
-## Anti-Patterns to Avoid
+**What:** Put rules-and-math in `engines/*.py` with no DB/I/O; service layer queries data and calls the engine.
 
-### Anti-Pattern 1: Celery Tasks Importing FastAPI Dependencies
-**Instead:** Create `SessionLocal()` directly, instantiate services manually.
+**Precedent:** `EligibilityEngine` + `EligibilityService`. New `PerformanceTierEngine` + `PerformanceService` follow identical shape.
 
-### Anti-Pattern 2: Async Celery Tasks
-**Instead:** All tasks as regular `def` functions with synchronous SQLAlchemy.
+### Pattern: Upsert by natural key with leading-zero tolerance
 
-### Anti-Pattern 3: Deleting Files Without FileService
-**Instead:** Always use `FileService.delete_file()` for full cascade cleanup.
+**What:** `FeishuService._build_employee_map()` indexes both zero-prefixed and stripped forms — masks upstream data quality but ensures no lost records.
 
-### Anti-Pattern 4: Adding Celery Beat Prematurely
-**Instead:** Keep APScheduler for periodic tasks; Celery for on-demand async only.
+**When to use:** Any integration layer that cannot guarantee upstream data cleanliness.
 
-### Anti-Pattern 5: Sharing Same Redis DB for Celery and Rate Limiter
-**Instead:** Separate Redis databases (0, 1, 2) for different concerns.
+**Limitation:** Hides root cause (v1.4 fix addresses the actual cause, keeping the tolerance as defense-in-depth).
 
 ---
 
-## Build Order (Dependency-Aware)
+## Anti-Patterns to Avoid (v1.4-specific)
 
-```
-Phase 1: Python 3.9 Compatibility (MUST BE FIRST -- blocker)
-  - Downgrade numpy==2.0.2, Pillow==10.4.0
-  - Replace Mapped[X | None] -> Mapped[Optional[X]] in all models (~20 files)
-  - Replace X | None -> Optional[X] in all Pydantic schemas (~81 files)
-  - Enable SQLite PRAGMA foreign_keys=ON in database.py
-  - Test on Python 3.9 interpreter
-  - WHY FIRST: Application cannot start on 3.9 without these changes
+### Anti-Pattern 1: Storing tier on PerformanceRecord
 
-Phase 2: Celery+Redis Infrastructure
-  - core/celery_app.py with separate Redis DBs
-  - tasks/ package with feishu_tasks.py
-  - worker_process_init signal for DB engine disposal
-  - Migrate feishu.py from threading.Thread to task.delay()
-  - Worker startup documentation
-  - WHY SECOND: infrastructure for Phase 5
+**What people want to do:** Add `tier: Mapped[int]` to PerformanceRecord so it's denormalized and fast.
 
-Phase 3: Employee Company Field (trivial)
-  - Alembic migration with batch_alter_table
-  - Model + schema changes (using Optional[str] syntax)
-  - Import alias addition
-  - Frontend detail page display
-  - WHY HERE: quick win
+**Why wrong:** Tier depends on the *distribution* of all records in a year. Adding/removing one record shifts boundaries. A stored tier becomes stale the moment another import runs. Would need invalidation logic everywhere.
 
-Phase 4: Sharing Rejection Auto-Delete
-  - Inject FileService into SharingService
-  - Modify reject_request() with correct flush-then-delete ordering
-  - Add pending/rejected status labels to outgoing sharing requests
-  - Separate expired file cleanup (Celery task, not lazy expiry)
-  - WHY HERE: self-contained
+**Instead:** Always derive tier from `PerformanceTierEngine`. Cache at service layer keyed by year with explicit `invalidate(year)` after imports.
 
-Phase 5: Unified Eligibility Import Management
-  - Backend: import_type filter on list_jobs
-  - Backend: Feishu performance sync endpoint
-  - Frontend: "数据导入" tab in EligibilityManagementPage
-  - Frontend: extend ImportCenter IMPORT_TYPES
-  - WHY LAST: most complex, benefits from Celery
-```
+### Anti-Pattern 2: Creating `/my-eligibility` as a separate route
 
-### Phase Ordering Rationale
+**What people want to do:** New route for discoverability.
 
-- **Python 3.9 first:** Application literally cannot start on 3.9 without model/schema fixes and dependency downgrades. This is a hard blocker, not a nice-to-have.
-- **Celery second:** Once the app starts on 3.9, build async infrastructure.
-- **Company field third:** Small, uses patterns established in Phase 1.
-- **Rejection auto-delete fourth:** Benefits from PRAGMA fix in Phase 1.
-- **Eligibility import last:** Most complex frontend work; can use Celery from Phase 2.
+**Why wrong:** Fragments the employee self-service experience; every new employee-facing feature would become its own route; menu sprawl.
+
+**Instead:** MyReview is the single employee home. Add tabs/sections.
+
+### Anti-Pattern 3: Piping employee tier through `/api/v1/employees/me`
+
+**What people want to do:** Stick `tier` on the employee-me response payload so it ships with every auth check.
+
+**Why wrong:** `GET /employees/me` is identity data (name, department, role). Tier is derived per-year analytics. Coupling them means every login roundtrip runs a tier computation.
+
+**Instead:** Dedicated `GET /performance/me/tier?year=X` — called only when a UI component needs it.
+
+### Anti-Pattern 4: Adding Redis as a hard dependency for tier cache
+
+**What people want to do:** Use Redis to cache tier map across workers.
+
+**Why wrong:** `cache_service.py` already has a Redis-with-in-memory-fallback design. Adding a required Redis path violates v1.2's no-hard-Redis-in-dev guarantee.
+
+**Instead:** Start with `@lru_cache` on the service method; upgrade to `cache_service` later only if a multi-worker cache coherence problem appears.
+
+### Anti-Pattern 5: Silently skipping unmatched Feishu records
+
+**What the current code does:** `logger.warning` only; no persistent record of which employee_nos failed to match.
+
+**Why wrong:** HR sees "sync successful" but some employees' data is missing; no way to diagnose without shell access.
+
+**Instead:** Always record unmatched employee_nos in FeishuSyncLog + expose in UI.
+
+---
+
+## Scaling Considerations
+
+| Scale | Tier engine | Sync log observability | Import throughput |
+|-------|-------------|------------------------|-------------------|
+| 0–1k employees | In-process dict, <10 ms per call | 20 log rows fits easily | Synchronous OK |
+| 1k–10k employees | `@lru_cache` by year; ~200 KB dict | Already paginated; no change | Celery async already in place |
+| 10k–100k | Move cache to Redis via `cache_service`; tier recomputation still <500 ms | Truncate `unmatched_employee_nos` to top 100 + link to paginated endpoint | Split by cycle or department chunks |
+
+**First bottleneck at real scale:** `_build_employee_map()` in FeishuService loads ALL employees every sync. At 10k+, move to chunked lookup or DB-side JOIN. Out-of-scope for v1.4.
+
+---
+
+## Integration Points — External + Internal
+
+### External Services
+
+| Service | Integration Pattern | v1.4 Changes |
+|---------|---------------------|--------------|
+| Feishu Bitable | HTTP polling via `FeishuService._fetch_all_records` | Sync log scaffolding makes failures visible; no protocol change |
+| DeepSeek LLM | Unchanged | — |
+| Celery + Redis broker | Unchanged | — |
+
+### Internal Boundaries
+
+| Boundary | Communication | v1.4 Considerations |
+|----------|---------------|---------------------|
+| `MyReview` page ↔ `/eligibility/me` | HTTPS + JWT | Employee-scoped; no AccessScopeService (identity via user.employee_id) |
+| `PerformanceService` ↔ `PerformanceTierEngine` | Direct function call | Engine is pure, fully unit-testable |
+| `FeishuService._map_fields` ↔ `employee_no` validator | No runtime coupling (validator is Pydantic-layer) | Defense in depth: any `employee_no` leaving the API boundary now passes through validator |
+| Alembic data migration ↔ runtime | One-shot at deploy | Dry-run + HR review before commit |
+
+---
+
+## Open Questions for Requirements/Roadmapping
+
+Forwarded to downstream Requirements phase:
+
+1. **Tier visibility for employees with `null` tier (sample < 50):** Show "样本不足 (需 ≥50 人)" or hide? — UX decision.
+2. **Does tier refresh automatically after import, or require HR trigger?** — product decision; pure-engine supports both.
+3. **Should `/eligibility/me` return 404 for unbound users or 200 with a "not linked to an employee record" message?** — consistency decision.
+4. **Repair script gating: run once globally or per-department?** — ops decision; both are supported by the proposed script.
+5. **Sync log UI: merge with existing attendance sync log page or create a unified log center?** — scope decision.
 
 ---
 
 ## Sources
 
-- Direct codebase analysis: all service, model, schema, API, and frontend files referenced above
-- [SQLAlchemy Issue #9110](https://github.com/sqlalchemy/sqlalchemy/issues/9110): `Mapped[str | None]` fails on Python 3.9
-- [Pydantic Issue #7923](https://github.com/pydantic/pydantic/issues/7923): PEP 604 unions fail on Python 3.9
-- [SQLAlchemy Cascading Deletes](https://docs.sqlalchemy.org/en/20/orm/cascades.html): CASCADE behavior documentation
-- Celery 5.4 documentation: task patterns, worker signals, Redis broker config
-- `requirements.txt`: numpy==2.2.1 (requires 3.10+), Pillow==11.0.0 (requires 3.10+)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/api/v1/eligibility.py` (existing `/batch` + `/{employee_id}` endpoints)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/services/eligibility_service.py` (`check_employee`, `_apply_overrides`, `check_employees_batch`)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/services/import_service.py` (SUPPORTED_TYPES gap; dtype handling)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/services/feishu_service.py` (`_map_fields:240-245` leading-zero bug; `sync_attendance:288-437` sync_log pattern; missing sync_log on 4 eligibility methods)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/engines/eligibility_engine.py` (pure-engine precedent for `PerformanceTierEngine`)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/api/v1/eligibility_import.py` (ELIGIBILITY_IMPORT_TYPES includes `hire_info`, `non_statutory_leave` not in ImportService.SUPPORTED_TYPES)
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/models/performance_record.py` (UNIQUE(employee_id, year))
+- `/Users/mac/PycharmProjects/Wage_adjust/backend/app/models/feishu_sync_log.py` (existing schema supports any `mode` string)
+- `/Users/mac/PycharmProjects/Wage_adjust/frontend/src/utils/roleAccess.ts` (`ROLE_MODULES['employee']` personal group; `ROLE_HOME_PATHS['employee'] = '/my-review'`)
+- `/Users/mac/PycharmProjects/Wage_adjust/frontend/src/App.tsx:432-433` (`<Route element={<MyReviewPage />} path="/my-review" />`)
+- `/Users/mac/PycharmProjects/Wage_adjust/frontend/src/components/eligibility/EligibilityListTab.tsx` (shared `RULE_STATUS_BADGE` to be extracted)
+- `/Users/mac/PycharmProjects/Wage_adjust/.planning/PROJECT.md` (v1.4 target features, layering constraints, Phase 11 known issue)
+- `/Users/mac/PycharmProjects/Wage_adjust/.planning/codebase/ARCHITECTURE.md` (layering invariants: api → services → engines → models)
+
+---
+*Architecture research for: v1.4 employee-end eligibility visibility, performance tier, employee_no integrity, import chain stability*
+*Researched: 2026-04-20*
