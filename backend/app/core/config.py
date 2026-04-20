@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     feishu_app_id: str = ''
     feishu_app_secret: str = ''
     feishu_redirect_uri: str = ''
+    feishu_bind_redirect_uri: str = ''
 
     public_api_key: str = "your_public_api_key"
     public_api_rate_limit: str = "1000/hour"
