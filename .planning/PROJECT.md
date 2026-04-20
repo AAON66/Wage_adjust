@@ -1,18 +1,18 @@
 # Project: 公司综合调薪工具 (Enterprise Salary Adjustment Platform)
 
 **Created:** 2026-03-25
-**Status:** Active — v1.2 in progress (2026-04-14)
+**Status:** Active — v1.4 in progress (2026-04-20)
 
-## Current Milestone: v1.2 生产就绪与数据管理完善
+## Current Milestone: v1.4 员工端体验完善与导入链路稳定性
 
-**Goal:** 使系统兼容 Python 3.9 并优化部署，启用 Celery+Redis 异步任务架构，完善调薪资格数据导入管理，修复文件共享拒绝后的显示问题，增加员工所属公司字段。
+**Goal:** 让员工在自己的页面就能看到本次调薪的资格状态与绩效档次，补齐绩效导入与历史展示链路，并修复工号前导零、飞书同步、Excel 模板下载等已知阻塞性 bug。
 
 **Target features:**
-- Celery+Redis 异步任务架构启用（跨应用 API 调用基础）
-- 员工档案增加所属公司字段（仅档案详情可见）
-- Python 3.9 兼容 + 服务器部署优化
-- 文件共享拒绝后自动删除 + 待审批状态标签
-- 调薪资格数据统一导入管理（飞书多维表格 + 本地 Excel）
+- 员工端调薪资格自助可见（随时可见最新状态；不合格时明确列出未通过规则）
+- 绩效导入链路与员工端档次展示（独立「绩效管理」页面 + 修复现有调薪资格导入页的绩效分支；评估详情/调薪建议展示历史绩效；员工端展示 1/2/3 档 = 20/70/10，全公司对比，不显示排名）
+- 工号前导零保留修复（Excel / 飞书 / 手动录入三条链路统一，含存量数据修补）
+- 调薪资格导入功能修复（飞书同步成功但未落库根因修复；重复导入按员工+周期维度覆盖更新；Excel 导入开通 + 模板下载返回真实文件）
+- Phase 11 导航菜单验证补齐（补齐 SUMMARY.md 并按 UAT 清单验证）
 
 ---
 
@@ -77,15 +77,25 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ Employee company field: shared backend/frontend contract, import overwrite-clear-preserve semantics, admin form editing, detail-only visibility — validated in Phase 20
 - ✓ Login page Canvas particle background: full-viewport animated particles with distance-threshold linking, mouse repulsion, HiDPI, prefers-reduced-motion, and visibilitychange pause — validated in Phase 28 (LOGIN-02/03)
 
-### Active (Next Milestone)
+### Active (v1.4 in progress)
 
-- [ ] Menu & navigation restructuring: grouped sidebar, collapsible, role-filtered (NAV-01/02/03 — deferred from v1.1)
+- [ ] 员工端调薪资格自助可见：随时在员工页面展示资格状态与未通过规则明细
+- [ ] 绩效导入链路：新增「绩效管理」页面（导入/列表/历史）+ 修复调薪资格导入页的绩效分支
+- [ ] 绩效档次与历史展示：评估详情/调薪建议展示历史绩效；员工端显示 1/2/3 档（20/70/10，全公司对比）
+- [ ] 工号前导零保留：Excel / 飞书 / 手动录入统一按字符串保留，存量数据修补
+- [ ] 调薪资格导入功能修复：飞书同步成功但未落库根因；重复导入覆盖更新；Excel 模板下载与导入可用
+- [ ] Phase 11 导航菜单验证补齐：SUMMARY.md + UAT 清单验证
+
+### Deferred (Not in v1.4)
+
 - [ ] Performance full cycle: currently only grade import is supported; full review workflow not built
 - [ ] Real-time notifications: currently polling on page load; WebSocket push for approval events
 - [ ] Production deployment hardening: PostgreSQL migration (finishing live cutover), Redis cluster, MinIO/S3 config
 - [ ] E2E integration test suite: key user journeys automated
 - [ ] 飞书工作台免登（tt.requestAccess）— 需应用上架工作台
 - [ ] 嵌入式飞书 QR 扫码面板（原 FUI-01/FUI-03 deferred） — 需解决飞书应用能力配置（「网页扫码登录」申请 + 发版审批）
+- [ ] boto3 Python 3.10+ 迁移（2026-04-29 EOL） — 单独跟踪，不进 v1.4
+- [ ] 资格批量查询游标分页 — <10k 员工暂不紧迫
 
 ### Out of Scope
 
@@ -218,4 +228,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 after v1.3 milestone completion*
+*Last updated: 2026-04-20 after v1.4 milestone kickoff*
