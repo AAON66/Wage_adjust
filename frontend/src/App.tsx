@@ -15,6 +15,7 @@ import { EmployeesPage } from "./pages/Employees";
 import { EmployeeAdminPage } from "./pages/EmployeeAdmin";
 import { EligibilityManagementPage } from "./pages/EligibilityManagementPage";
 import { EvaluationDetailPage } from "./pages/EvaluationDetail";
+import { FeishuBindCallbackPage } from "./pages/FeishuBindCallbackPage";
 import { FeishuCallbackPage } from "./pages/FeishuCallbackPage";
 import { FeishuConfigPage } from "./pages/FeishuConfig";
 import { ImportCenterPage } from "./pages/ImportCenter";
@@ -444,6 +445,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={["admin", "hrbp", "manager", "employee"]} />}>
             <Route element={<EmployeeScopedEvaluationPage />} path="/employees/:employeeId" />
             <Route element={<SettingsPage />} path="/settings" />
+            <Route element={<FeishuBindCallbackPage />} path="/settings/feishu-bind-callback" />
             <Route element={<SharingRequestsPage />} path="/sharing-requests" />
           </Route>
 
