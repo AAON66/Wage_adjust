@@ -101,13 +101,25 @@ export async function selfBindConfirm(idCardNo: string): Promise<UserProfile> {
   return response.data;
 }
 
-export async function authorizeFeishu(): Promise<FeishuAuthorizeResponse> {
-  const response = await api.get<FeishuAuthorizeResponse>('/auth/feishu/authorize');
+export async function authorizeFeishu(purpose?: 'login' | 'bind'): Promise<FeishuAuthorizeResponse> {
+  const response = await api.get<FeishuAuthorizeResponse>('/auth/feishu/authorize', {
+    params: purpose ? { purpose } : undefined,
+  });
   return response.data;
 }
 
 export async function feishuCallback(code: string, state: string): Promise<AuthResponse> {
   const payload: FeishuCallbackPayload = { code, state };
   const response = await api.post<AuthResponse>('/auth/feishu/callback', payload);
+  return response.data;
+}
+
+export async function bindFeishu(code: string, state: string): Promise<UserProfile> {
+  const response = await api.post<UserProfile>('/auth/feishu/bind', { code, state });
+  return response.data;
+}
+
+export async function unbindFeishu(): Promise<UserProfile> {
+  const response = await api.post<UserProfile>('/auth/feishu/unbind');
   return response.data;
 }
