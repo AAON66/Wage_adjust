@@ -49,7 +49,7 @@ export function LoginPage() {
   return (
     <>
       <ParticleBackground />
-      <main style={{ minHeight: '100vh', background: 'var(--color-bg-page)', display: 'flex', alignItems: 'center', padding: '24px 20px', position: 'relative', zIndex: 1 }}>
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '24px 20px', position: 'relative', zIndex: 1 }}>
         <div style={{ margin: '0 auto', width: '100%', maxWidth: 1100, display: 'grid', gap: 20 }} className="lg:grid-cols-[1.1fr_0.9fr]">
           <section className="surface animate-fade-up" style={{ padding: '32px 32px', overflow: 'hidden' }}>
             <p className="eyebrow">账号登录</p>
