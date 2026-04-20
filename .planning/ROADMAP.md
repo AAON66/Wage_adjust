@@ -122,13 +122,18 @@ Plans:
 
 ### Phase 27.1: 设置页飞书账号绑定与解绑 (INSERTED)
 
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 27
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd-plan-phase 27.1 to break down)
+**Goal**: 已登录用户可在设置页主动绑定和解绑飞书账号，绑定必须校验 employee_no 一致，解绑需二次确认
+**Depends on**: Phase 27
+**Requirements**: FAUTH-06, FAUTH-07, FAUTH-08, FAUTH-09
+**Success Criteria** (what must be TRUE):
+  1. 设置页显示飞书绑定 section，所有登录角色可见
+  2. 未绑定用户点击「使用飞书绑定」整页跳转飞书授权后回到设置页完成绑定
+  3. 已绑定用户点击「解除飞书绑定」弹窗确认后清空 feishu_open_id，不踢出 session
+  4. 飞书 employee_no 与当前账号 Employee 不一致时拒绝绑定并显示中文错误
+  5. 待绑定 open_id 已被其他账号占用时返回 409 显示中文错误
+  6. 绑定/解绑写入 AuditLog（action: feishu_bound / feishu_unbound，含 open_id 头尾 8 位）
+**Plans**: TBD
+**UI hint**: yes
 
 ### Phase 28: 登录页粒子背景
 **Goal**: 登录页具备全屏 Canvas 粒子动态背景，提供现代化视觉体验

@@ -13,6 +13,10 @@
 - [ ] **FAUTH-03**: OAuth 回调包含 state 参数 CSRF 校验，authorization code 一次性使用防重放
 - [ ] **FAUTH-04**: User 模型新增 feishu_open_id 字段（唯一约束），已绑定用户后续登录直接识别无需重复匹配
 - [ ] **FAUTH-05**: 飞书登录找不到匹配员工时返回中文错误提示"工号未匹配，请联系管理员开通"
+- [ ] **FAUTH-06**: 已登录用户可在设置页主动绑定飞书账号，填充 users.feishu_open_id；绑定必须校验飞书 employee_no 与当前 User 绑定的 Employee 一致（Phase 27.1）
+- [ ] **FAUTH-07**: 已绑定用户可在设置页解除飞书绑定，清空 users.feishu_open_id；操作需二次确认，保留当前 session（Phase 27.1）
+- [ ] **FAUTH-08**: 绑定目标 feishu_open_id 已被其他账号占用时返回 409 + 中文提示，不允许强制覆盖（Phase 27.1）
+- [ ] **FAUTH-09**: 绑定/解绑写入 AuditLog，记录 user_id、IP、open_id 头尾 8 位（不存完整 open_id）（Phase 27.1）
 
 ## 飞书前端集成 (FUI)
 
@@ -64,6 +68,10 @@
 | FAUTH-03 | — | Pending |
 | FAUTH-04 | — | Pending |
 | FAUTH-05 | — | Pending |
+| FAUTH-06 | 27.1 | Pending |
+| FAUTH-07 | 27.1 | Pending |
+| FAUTH-08 | 27.1 | Pending |
+| FAUTH-09 | 27.1 | Pending |
 | FUI-01 | — | Pending |
 | FUI-02 | — | Pending |
 | FUI-03 | — | Pending |
