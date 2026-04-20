@@ -132,7 +132,11 @@ Plans:
   4. 飞书 employee_no 与当前账号 Employee 不一致时拒绝绑定并显示中文错误
   5. 待绑定 open_id 已被其他账号占用时返回 409 显示中文错误
   6. 绑定/解绑写入 AuditLog（action: feishu_bound / feishu_unbound，含 open_id 头尾 8 位）
-**Plans**: TBD
+**Plans:** 3/3 plans complete
+Plans:
+- [x] 27.1-01-PLAN.md — FeishuOAuthService bind/unbind 服务方法 + Settings 字段 + service 单元测试
+- [x] 27.1-02-PLAN.md — /auth/feishu/bind + /unbind API 端点 + AuditLog handler 写入 + 集成测试
+- [x] 27.1-03-PLAN.md — 前端 services/feishuErrors/FeishuBindCallbackPage/SettingsPage 集成 + 8 步 manual UAT
 **UI hint**: yes
 
 ### Phase 28: 登录页粒子背景
