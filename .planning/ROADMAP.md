@@ -71,7 +71,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 
 - [x] **Phase 25: 技术债清理** - 消除 v1.2 遗留的重复代码和轮询不一致问题 (completed 2026-04-16)
 - [x] **Phase 26: 飞书 OAuth2 后端接入** - 后端完成飞书授权码换 token、用户匹配绑定、JWT 签发全流程 (completed 2026-04-16)
-- [ ] **Phase 27: 飞书 OAuth2 前端集成** - 前端嵌入飞书扫码面板并处理 OAuth 回调完成登录
+- [x] **Phase 27: 飞书 OAuth2 前端集成** - 前端嵌入飞书账号登录入口并处理 OAuth 回调完成登录（completed 2026-04-20 via D-17 redirect-flow）
 - [x] **Phase 28: 登录页粒子背景** - Canvas 粒子动态背景组件，支持鼠标交互和无障碍 (completed 2026-04-20)
 
 ## Phase Details
@@ -107,16 +107,16 @@ Plans:
 **Goal**: 用户可在登录页通过飞书扫码完成登录，前端处理完整的 OAuth 回调流程
 **Depends on**: Phase 26 (后端 OAuth API 就绪)
 **Requirements**: FUI-01, FUI-02, FUI-03, FUI-04
-**Success Criteria** (what must be TRUE):
-  1. 登录页展示飞书 QR 扫码面板，用户扫码后自动跳转完成授权
+**Success Criteria** (what must be TRUE, amended 2026-04-20 per D-17):
+  1. ~~登录页展示飞书 QR 扫码面板，用户扫码后自动跳转完成授权~~ → 改为「登录页提供飞书账号登录入口，点击后整页跳转飞书授权完成登录」（D-17：飞书应用能力限制下 QR 不可用）
   2. 前端 /auth/feishu/callback 路由正确解析 code/state 并调用后端接口完成登录跳转
-  3. 二维码过期后（3 分钟）自动刷新并显示刷新提示
+  3. ~~二维码过期后（3 分钟）自动刷新并显示刷新提示~~ → **Won't Do**（D-17：QR 链路移除，FUI-03 随之 Deferred）
   4. 飞书登录失败时显示分类中文错误提示（授权取消、工号未匹配、网络错误等场景均覆盖）
-**Plans:** 2/3 plans executed
+**Plans:** 3/3 plans effectively shipped (27-03 superseded by 27.1 D-17 redirect-flow FeishuLoginPanel)
 Plans:
 - [x] 27-01-PLAN.md — 类型契约 + auth service 飞书封装 + feishuErrors 错误映射（FUI-04 基础）
 - [x] 27-02-PLAN.md — useAuth.loginWithFeishu + FeishuCallbackPage + /auth/feishu/callback 公开路由（FUI-02、FUI-04 回调场景）
-- [ ] 27-03-PLAN.md — FeishuLoginPanel（SDK + postMessage + 180s 过期刷新 + 错误 banner）+ Login.tsx 集成（FUI-01、FUI-03、FUI-04 面板场景）
+- [~] ~~27-03-PLAN.md — FeishuLoginPanel（SDK + postMessage + 180s 过期刷新）+ Login.tsx 集成~~ → **Won't Do** (2026-04-20)：UAT 期间飞书「网页扫码登录」能力申请被拒（多次 4401），D-17 用整页跳转方案取代。实际交付的 `frontend/src/components/auth/FeishuLoginPanel.tsx`（redirect-flow 版）在 27.1 的 Settings 页 UAT 中已端到端验证，覆盖 FUI-01 / FUI-04 面板场景
 **UI hint**: yes
 
 ### Phase 27.1: 设置页飞书账号绑定与解绑 (INSERTED)
@@ -185,5 +185,5 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 (Phase 29 cancelled 202
 | 24. 生产部署 | v1.2 | 2/2 | Complete | 2026-04-16 |
 | 25. 技术债清理 | v1.3 | 1/1 | Complete | 2026-04-16 |
 | 26. 飞书 OAuth2 后端 | v1.3 | 2/2 | Complete    | 2026-04-16 |
-| 27. 飞书 OAuth2 前端 | v1.3 | 2/3 | In Progress|  |
+| 27. 飞书 OAuth2 前端 | v1.3 | 3/3 | Complete    | 2026-04-20 |
 | 28. 粒子背景 | v1.3 | 2/2 | Complete    | 2026-04-20 |
