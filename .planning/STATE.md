@@ -4,8 +4,8 @@ milestone: v1.3
 milestone_name: 飞书登录与登录页重设计
 status: executing
 stopped_at: Phase 27 context gathered
-last_updated: "2026-04-19T06:23:57.040Z"
-last_activity: 2026-04-19 -- Phase 27 planning complete
+last_updated: "2026-04-19T06:25:37.194Z"
+last_activity: 2026-04-19 -- Phase 27 execution started
 progress:
   total_phases: 5
   completed_phases: 2
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-07)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- with every decision explainable and traceable
-**Current focus:** Phase 26 — 飞书 OAuth2 后端接入
+**Current focus:** Phase 27 — 飞书 OAuth2 前端集成
 
 ## Current Position
 
-Phase: 27
-Plan: Not started
-Status: Ready to execute
-Last activity: 2026-04-19 -- Phase 27 planning complete
+Phase: 27 (飞书 OAuth2 前端集成) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 27
+Last activity: 2026-04-19 -- Phase 27 execution started
 
 Progress: [----------] 0% (v1.3: 0/5 phases)
 
@@ -52,6 +52,10 @@ Progress: [----------] 0% (v1.3: 0/5 phases)
 
 - Pillow 10.4.0 may miss security patches only in 11+ -- acceptable for transitional 3.9 target
 - numpy 2.0.2 vs 2.2.1 API differences in pandas operations -- needs runtime testing in Phase 18
+
+### Roadmap Evolution
+
+- Phase 27.1 inserted after Phase 27: 设置页飞书账号绑定与解绑 (URGENT) — 2026-04-20 UAT 发现登录态用户在设置页缺少飞书绑定/解绑入口
 
 ## Session Continuity
 
