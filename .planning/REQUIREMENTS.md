@@ -27,7 +27,7 @@
 
 ## 登录页重设计 (LOGIN)
 
-- [ ] **LOGIN-01**: 登录页重设计为左右双栏布局，左侧账号密码登录表单，右侧飞书扫码/授权面板
+- [~] ~~**LOGIN-01**: 登录页重设计为左右双栏布局，左侧账号密码登录表单，右侧飞书扫码/授权面板~~ → **Won't Do** (2026-04-20)：Phase 29 取消，现有 Login.tsx「左欢迎介绍+角色卡 | 右 LoginForm+FeishuLoginPanel 叠放」+ 粒子背景已满足实用需求，不再做重排
 - [ ] **LOGIN-02**: 登录页添加全屏 Canvas 粒子动态背景，参考智慧树风格
 - [ ] **LOGIN-03**: 粒子背景支持鼠标跟随交互、HiDPI 适配和 prefers-reduced-motion 响应
 - [ ] **LOGIN-04**: 现有邮箱/密码登录功能完整保留，不受飞书登录集成影响
@@ -76,7 +76,7 @@
 | FUI-02 | — | Pending |
 | FUI-03 | — | Pending |
 | FUI-04 | — | Pending |
-| LOGIN-01 | — | Pending |
+| LOGIN-01 | — | Won't Do |
 | LOGIN-02 | — | Pending |
 | LOGIN-03 | — | Pending |
 | LOGIN-04 | — | Pending |

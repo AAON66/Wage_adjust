@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-10 (shipped 2026-03-30)
 - ✅ **v1.1 体验优化与业务规则完善** — Phases 11-17 (shipped 2026-04-07)
 - ✅ **v1.2 生产就绪与数据管理完善** — Phases 18-24 (shipped 2026-04-16)
-- 🚧 **v1.3 飞书登录与登录页重设计** — Phases 25-29 (in progress)
+- 🚧 **v1.3 飞书登录与登录页重设计** — Phases 25-28 (in progress; Phase 29 cancelled 2026-04-20)
 
 ## Phases
 
@@ -73,7 +73,6 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 - [x] **Phase 26: 飞书 OAuth2 后端接入** - 后端完成飞书授权码换 token、用户匹配绑定、JWT 签发全流程 (completed 2026-04-16)
 - [ ] **Phase 27: 飞书 OAuth2 前端集成** - 前端嵌入飞书扫码面板并处理 OAuth 回调完成登录
 - [x] **Phase 28: 登录页粒子背景** - Canvas 粒子动态背景组件，支持鼠标交互和无障碍 (completed 2026-04-20)
-- [ ] **Phase 29: 登录页重设计整合** - 登录页重构为左右双栏布局，整合所有新组件
 
 ## Phase Details
 
@@ -153,22 +152,10 @@ Plans:
 - [x] 28-02-PLAN.md — Login.tsx 集成 + z-index 调整 + 22 项手动 UAT 验收（D-03）
 **UI hint**: yes
 
-### Phase 29: 登录页重设计整合
-**Goal**: 登录页完成从单一表单到左右双栏布局的重设计，所有登录方式统一集成
-**Depends on**: Phase 27 (飞书前端集成), Phase 28 (粒子背景)
-**Requirements**: LOGIN-01, LOGIN-04
-**Success Criteria** (what must be TRUE):
-  1. 登录页为左右双栏布局：左侧账号密码登录表单，右侧飞书扫码/授权面板
-  2. 现有邮箱/密码登录功能完整保留，登录流程与重设计前行为一致
-  3. 粒子动态背景作为全屏底层正确显示，不遮挡登录内容
-  4. 两种登录方式（密码 + 飞书）均可独立完成登录并正确跳转到对应角色首页
-**Plans**: TBD
-**UI hint**: yes
-
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 25 → 26 → 27 → 28 → 29
+Phases execute in numeric order: 25 → 26 → 27 → 28 (Phase 29 cancelled 2026-04-20)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -200,4 +187,3 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 → 29
 | 26. 飞书 OAuth2 后端 | v1.3 | 2/2 | Complete    | 2026-04-16 |
 | 27. 飞书 OAuth2 前端 | v1.3 | 2/3 | In Progress|  |
 | 28. 粒子背景 | v1.3 | 2/2 | Complete    | 2026-04-20 |
-| 29. 登录页重设计 | v1.3 | 0/? | Not started | - |
