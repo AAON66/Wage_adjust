@@ -16,6 +16,7 @@ from backend.app.core.security import (
     verify_password,
 )
 from backend.app.dependencies import get_app_settings, get_current_user, get_db
+from backend.app.models.audit_log import AuditLog
 from backend.app.models.user import User
 from backend.app.schemas.user import (
     AuthResponse,
@@ -268,13 +269,14 @@ def self_bind_confirm(
 
 @router.get('/feishu/authorize')
 def feishu_authorize(
+    purpose: str = Query('login', pattern='^(login|bind)$'),
     db: Session = Depends(get_db),
     settings = Depends(get_app_settings),
 ) -> dict[str, str]:
-    """生成飞书 OAuth 授权 URL，返回 authorize_url 和 state。"""
+    """生成飞书 OAuth 授权 URL。purpose=login（默认，向后兼容）或 bind。"""
     service = FeishuOAuthService(db, settings=settings)
     redis_client = service.require_redis()
-    return service.generate_authorize_url(redis_client)
+    return service.generate_authorize_url(redis_client, purpose=purpose)
 
 
 @router.post('/feishu/callback', response_model=AuthResponse)
@@ -295,3 +297,80 @@ def feishu_callback(
     _reset_failed_login(client_ip, settings)
 
     return _build_auth_response(user, settings)
+
+
+def _truncate_open_id(open_id: str) -> dict[str, str]:
+    """D-15: AuditLog 只保留 open_id 前 8 位 / 后 8 位，保护隐私。"""
+    if not open_id:
+        return {'open_id_prefix': '', 'open_id_suffix': ''}
+    if len(open_id) <= 16:
+        # 短 open_id 直接前后各半（绝大多数飞书 open_id >= 28 位，此分支理论不会命中）
+        half = len(open_id) // 2
+        return {'open_id_prefix': open_id[:half], 'open_id_suffix': open_id[half:]}
+    return {'open_id_prefix': open_id[:8], 'open_id_suffix': open_id[-8:]}
+
+
+@router.post('/feishu/bind', response_model=UserRead)
+def feishu_bind(
+    payload: FeishuCallbackRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    settings=Depends(get_app_settings),
+) -> UserRead:
+    """已登录用户把飞书账号绑定到当前账号。校验 employee_no 一致与 open_id 未被占用。"""
+    service = FeishuOAuthService(db, settings=settings)
+    redis_client = service.require_redis()
+
+    user = service.handle_bind_callback(payload.code, payload.state, current_user, redis_client)
+
+    # D-15: AuditLog (handler 层写入，遵循 established pattern)
+    client_ip = request.client.host if request.client else 'unknown'
+    truncated = _truncate_open_id(user.feishu_open_id or '')
+    db.add(AuditLog(
+        operator_id=user.id,
+        operator_role=user.role,
+        action='feishu_bound',
+        target_type='user',
+        target_id=user.id,
+        detail={
+            **truncated,
+            'ip_address': client_ip,
+        },
+    ))
+    db.commit()
+    db.refresh(user)
+    return UserRead.model_validate(user)
+
+
+@router.post('/feishu/unbind', response_model=UserRead)
+def feishu_unbind(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    settings=Depends(get_app_settings),
+) -> UserRead:
+    """已登录用户解除当前账号的飞书绑定。保留当前 session（不动 token_version）。"""
+    service = FeishuOAuthService(db, settings=settings)
+
+    # 记录 unbind 前的 open_id（用于审计 detail 截断）
+    previous_open_id = current_user.feishu_open_id or ''
+
+    user = service.handle_unbind(current_user)
+
+    client_ip = request.client.host if request.client else 'unknown'
+    truncated = _truncate_open_id(previous_open_id)
+    db.add(AuditLog(
+        operator_id=user.id,
+        operator_role=user.role,
+        action='feishu_unbound',
+        target_type='user',
+        target_id=user.id,
+        detail={
+            **truncated,
+            'ip_address': client_ip,
+        },
+    ))
+    db.commit()
+    db.refresh(user)
+    return UserRead.model_validate(user)
