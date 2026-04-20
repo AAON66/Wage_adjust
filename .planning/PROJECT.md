@@ -82,8 +82,10 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - [ ] Menu & navigation restructuring: grouped sidebar, collapsible, role-filtered (NAV-01/02/03 — deferred from v1.1)
 - [ ] Performance full cycle: currently only grade import is supported; full review workflow not built
 - [ ] Real-time notifications: currently polling on page load; WebSocket push for approval events
-- [ ] Production deployment hardening: PostgreSQL migration, Redis cluster, MinIO/S3 config
+- [ ] Production deployment hardening: PostgreSQL migration (finishing live cutover), Redis cluster, MinIO/S3 config
 - [ ] E2E integration test suite: key user journeys automated
+- [ ] 飞书工作台免登（tt.requestAccess）— 需应用上架工作台
+- [ ] 嵌入式飞书 QR 扫码面板（原 FUI-01/FUI-03 deferred） — 需解决飞书应用能力配置（「网页扫码登录」申请 + 发版审批）
 
 ### Out of Scope
 
@@ -216,4 +218,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 after Phase 28 completion*
+*Last updated: 2026-04-20 after v1.3 milestone completion*

@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-10 (shipped 2026-03-30)
 - ✅ **v1.1 体验优化与业务规则完善** — Phases 11-17 (shipped 2026-04-07)
 - ✅ **v1.2 生产就绪与数据管理完善** — Phases 18-24 (shipped 2026-04-16)
-- 🚧 **v1.3 飞书登录与登录页重设计** — Phases 25-28 (in progress; Phase 29 cancelled 2026-04-20)
+- ✅ **v1.3 飞书登录与登录页重设计** — Phases 25-28 (shipped 2026-04-20; Phase 29 cancelled)
 
 ## Phases
 
@@ -57,105 +57,21 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 
 </details>
 
-### 🚧 v1.3 飞书登录与登录页重设计 (In Progress)
+<details>
+<summary>✅ v1.3 飞书登录与登录页重设计 (Phases 25-28) — SHIPPED 2026-04-20</summary>
 
-**Milestone Goal:** 支持飞书扫码/网页授权登录并自动绑定员工账号，同时重新设计登录页面为左右分栏加粒子动态背景。
+- [x] Phase 25: 技术债清理 (1/1 plan) — completed 2026-04-16
+- [x] Phase 26: 飞书 OAuth2 后端接入 (2/2 plans) — completed 2026-04-16
+- [x] Phase 27: 飞书 OAuth2 前端集成 (3/3 plans) — completed 2026-04-20 (D-17 redirect-flow)
+- [x] Phase 27.1: 设置页飞书账号绑定与解绑 (INSERTED, 3/3 plans) — completed 2026-04-20
+- [x] Phase 28: 登录页粒子背景 (2/2 plans) — completed 2026-04-20
+- ~~Phase 29: 登录页重设计整合~~ — **Cancelled 2026-04-20** (LOGIN-01 Won't Do; 当前 Login 页 + 粒子背景已满足实用需求)
 
-**Prerequisites (external/manual, not code phases):**
-- 飞书开放平台创建企业自建应用，获取 App ID / App Secret
-- 注册 OAuth redirect URI（开发环境 localhost + 生产域名）
-- 申请 `contact:user.employee_id:readonly` 等权限并发布版本
-- 企业管理员审批应用版本
+Full details: `.planning/milestones/v1.3-ROADMAP.md`
 
-> 上述配置是硬性前置条件，必须在 Phase 26 开始前完成。未完成则 Phase 26 标记为 Blocked。
-
-- [x] **Phase 25: 技术债清理** - 消除 v1.2 遗留的重复代码和轮询不一致问题 (completed 2026-04-16)
-- [x] **Phase 26: 飞书 OAuth2 后端接入** - 后端完成飞书授权码换 token、用户匹配绑定、JWT 签发全流程 (completed 2026-04-16)
-- [x] **Phase 27: 飞书 OAuth2 前端集成** - 前端嵌入飞书账号登录入口并处理 OAuth 回调完成登录（completed 2026-04-20 via D-17 redirect-flow）
-- [x] **Phase 28: 登录页粒子背景** - Canvas 粒子动态背景组件，支持鼠标交互和无障碍 (completed 2026-04-20)
-
-## Phase Details
-
-### Phase 25: 技术债清理
-**Goal**: 消除 v1.2 遗留的两项技术债，为新功能开发提供干净基线
-**Depends on**: Nothing (独立于飞书登录功能)
-**Requirements**: DEBT-01, DEBT-02
-**Success Criteria** (what must be TRUE):
-  1. llm_service.py 中不存在本地 InMemoryRateLimiter 类定义，改为从 core/rate_limiter.py 导入
-  2. FeishuSyncPanel 使用 useTaskPolling hook 进行轮询，同步过程中显示进度信息
-  3. 现有 AI 评估和飞书同步功能正常运行，无回归
-**Plans:** 1/1 plans complete
-Plans:
-- [x] 25-01-PLAN.md — RateLimiter 去重 + FeishuSyncPanel 轮询重构 (completed 2026-04-16)
-
-### Phase 26: 飞书 OAuth2 后端接入
-**Goal**: 后端完整支持飞书授权码登录流程，包括安全校验、用户匹配绑定和 JWT 签发
-**Depends on**: Phase 25 (代码基线清理); 飞书开放平台配置（外部前置条件）
-**Requirements**: FAUTH-01, FAUTH-02, FAUTH-03, FAUTH-04, FAUTH-05
-**Success Criteria** (what must be TRUE):
-  1. 后端接收飞书授权码后能换取 user_access_token 并获取用户信息（employee_no）
-  2. 飞书用户的 employee_no 与系统 Employee 匹配成功后，自动绑定 User 账号并返回有效 JWT
-  3. 已绑定 feishu_open_id 的用户再次飞书登录时直接识别，无需重复匹配
-  4. OAuth 回调包含 state CSRF 校验，同一 authorization code 不可重复使用
-  5. 飞书登录找不到匹配员工时返回中文错误提示"工号未匹配，请联系管理员开通"
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 26-01-PLAN.md — User 模型 + Settings 配置 + Alembic 迁移
-- [x] 26-02-PLAN.md — FeishuOAuthService 服务 + API 端点 + 单元测试
-
-### Phase 27: 飞书 OAuth2 前端集成
-**Goal**: 用户可在登录页通过飞书扫码完成登录，前端处理完整的 OAuth 回调流程
-**Depends on**: Phase 26 (后端 OAuth API 就绪)
-**Requirements**: FUI-01, FUI-02, FUI-03, FUI-04
-**Success Criteria** (what must be TRUE, amended 2026-04-20 per D-17):
-  1. ~~登录页展示飞书 QR 扫码面板，用户扫码后自动跳转完成授权~~ → 改为「登录页提供飞书账号登录入口，点击后整页跳转飞书授权完成登录」（D-17：飞书应用能力限制下 QR 不可用）
-  2. 前端 /auth/feishu/callback 路由正确解析 code/state 并调用后端接口完成登录跳转
-  3. ~~二维码过期后（3 分钟）自动刷新并显示刷新提示~~ → **Won't Do**（D-17：QR 链路移除，FUI-03 随之 Deferred）
-  4. 飞书登录失败时显示分类中文错误提示（授权取消、工号未匹配、网络错误等场景均覆盖）
-**Plans:** 3/3 plans effectively shipped (27-03 superseded by 27.1 D-17 redirect-flow FeishuLoginPanel)
-Plans:
-- [x] 27-01-PLAN.md — 类型契约 + auth service 飞书封装 + feishuErrors 错误映射（FUI-04 基础）
-- [x] 27-02-PLAN.md — useAuth.loginWithFeishu + FeishuCallbackPage + /auth/feishu/callback 公开路由（FUI-02、FUI-04 回调场景）
-- [~] ~~27-03-PLAN.md — FeishuLoginPanel（SDK + postMessage + 180s 过期刷新）+ Login.tsx 集成~~ → **Won't Do** (2026-04-20)：UAT 期间飞书「网页扫码登录」能力申请被拒（多次 4401），D-17 用整页跳转方案取代。实际交付的 `frontend/src/components/auth/FeishuLoginPanel.tsx`（redirect-flow 版）在 27.1 的 Settings 页 UAT 中已端到端验证，覆盖 FUI-01 / FUI-04 面板场景
-**UI hint**: yes
-
-### Phase 27.1: 设置页飞书账号绑定与解绑 (INSERTED)
-
-**Goal**: 已登录用户可在设置页主动绑定和解绑飞书账号，绑定必须校验 employee_no 一致，解绑需二次确认
-**Depends on**: Phase 27
-**Requirements**: FAUTH-06, FAUTH-07, FAUTH-08, FAUTH-09
-**Success Criteria** (what must be TRUE):
-  1. 设置页显示飞书绑定 section，所有登录角色可见
-  2. 未绑定用户点击「使用飞书绑定」整页跳转飞书授权后回到设置页完成绑定
-  3. 已绑定用户点击「解除飞书绑定」弹窗确认后清空 feishu_open_id，不踢出 session
-  4. 飞书 employee_no 与当前账号 Employee 不一致时拒绝绑定并显示中文错误
-  5. 待绑定 open_id 已被其他账号占用时返回 409 显示中文错误
-  6. 绑定/解绑写入 AuditLog（action: feishu_bound / feishu_unbound，含 open_id 头尾 8 位）
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 27.1-01-PLAN.md — FeishuOAuthService bind/unbind 服务方法 + Settings 字段 + service 单元测试
-- [x] 27.1-02-PLAN.md — /auth/feishu/bind + /unbind API 端点 + AuditLog handler 写入 + 集成测试
-- [x] 27.1-03-PLAN.md — 前端 services/feishuErrors/FeishuBindCallbackPage/SettingsPage 集成 + 8 步 manual UAT
-**UI hint**: yes
-
-### Phase 28: 登录页粒子背景
-**Goal**: 登录页具备全屏 Canvas 粒子动态背景，提供现代化视觉体验
-**Depends on**: Nothing (与 OAuth 逻辑完全解耦，可在 Phase 26/27 之后或并行)
-**Requirements**: LOGIN-02, LOGIN-03
-**Success Criteria** (what must be TRUE):
-  1. 登录页显示全屏 Canvas 粒子动态背景，粒子间有连线效果
-  2. 鼠标移动时粒子产生跟随交互效果
-  3. 粒子背景在 HiDPI 屏幕上清晰不模糊，在 prefers-reduced-motion 开启时自动停止动画
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 28-01-PLAN.md — ParticleBackground 组件（Canvas/rAF/HiDPI/reduced-motion/visibilitychange/鼠标排斥，D-01~D-02、D-04~D-12）
-- [x] 28-02-PLAN.md — Login.tsx 集成 + z-index 调整 + 22 项手动 UAT 验收（D-03）
-**UI hint**: yes
+</details>
 
 ## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 25 → 26 → 27 → 28 (Phase 29 cancelled 2026-04-20)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -184,6 +100,7 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 (Phase 29 cancelled 202
 | 23. 资格导入管理 | v1.2 | 3/3 | Complete | 2026-04-15 |
 | 24. 生产部署 | v1.2 | 2/2 | Complete | 2026-04-16 |
 | 25. 技术债清理 | v1.3 | 1/1 | Complete | 2026-04-16 |
-| 26. 飞书 OAuth2 后端 | v1.3 | 2/2 | Complete    | 2026-04-16 |
-| 27. 飞书 OAuth2 前端 | v1.3 | 3/3 | Complete    | 2026-04-20 |
-| 28. 粒子背景 | v1.3 | 2/2 | Complete    | 2026-04-20 |
+| 26. 飞书 OAuth2 后端 | v1.3 | 2/2 | Complete | 2026-04-16 |
+| 27. 飞书 OAuth2 前端 | v1.3 | 3/3 | Complete | 2026-04-20 |
+| 27.1. 设置页飞书绑定 | v1.3 | 3/3 | Complete | 2026-04-20 |
+| 28. 粒子背景 | v1.3 | 2/2 | Complete | 2026-04-20 |
