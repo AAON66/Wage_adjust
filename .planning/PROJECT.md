@@ -75,6 +75,7 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ Salary display simplification: summary panel, expandable detail, eligibility badge with rule drill-down — v1.1
 - ✓ Celery+Redis async foundation: shared worker DB lifecycle, health endpoint, Docker-backed runtime proof, requirements closure — v1.2 Phase 19
 - ✓ Employee company field: shared backend/frontend contract, import overwrite-clear-preserve semantics, admin form editing, detail-only visibility — validated in Phase 20
+- ✓ Login page Canvas particle background: full-viewport animated particles with distance-threshold linking, mouse repulsion, HiDPI, prefers-reduced-motion, and visibilitychange pause — validated in Phase 28 (LOGIN-02/03)
 
 ### Active (Next Milestone)
 
@@ -215,4 +216,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-09 after Phase 20 completion*
+*Last updated: 2026-04-20 after Phase 28 completion*
