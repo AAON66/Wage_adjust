@@ -72,7 +72,7 @@ Full details: `.planning/milestones/v1.2-ROADMAP.md`
 - [x] **Phase 25: 技术债清理** - 消除 v1.2 遗留的重复代码和轮询不一致问题 (completed 2026-04-16)
 - [x] **Phase 26: 飞书 OAuth2 后端接入** - 后端完成飞书授权码换 token、用户匹配绑定、JWT 签发全流程 (completed 2026-04-16)
 - [ ] **Phase 27: 飞书 OAuth2 前端集成** - 前端嵌入飞书扫码面板并处理 OAuth 回调完成登录
-- [ ] **Phase 28: 登录页粒子背景** - Canvas 粒子动态背景组件，支持鼠标交互和无障碍
+- [x] **Phase 28: 登录页粒子背景** - Canvas 粒子动态背景组件，支持鼠标交互和无障碍 (completed 2026-04-20)
 - [ ] **Phase 29: 登录页重设计整合** - 登录页重构为左右双栏布局，整合所有新组件
 
 ## Phase Details
@@ -147,10 +147,10 @@ Plans:
   1. 登录页显示全屏 Canvas 粒子动态背景，粒子间有连线效果
   2. 鼠标移动时粒子产生跟随交互效果
   3. 粒子背景在 HiDPI 屏幕上清晰不模糊，在 prefers-reduced-motion 开启时自动停止动画
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [x] 28-01-PLAN.md — ParticleBackground 组件（Canvas/rAF/HiDPI/reduced-motion/visibilitychange/鼠标排斥，D-01~D-02、D-04~D-12）
-- [ ] 28-02-PLAN.md — Login.tsx 集成 + z-index 调整 + 22 项手动 UAT 验收（D-03）
+- [x] 28-02-PLAN.md — Login.tsx 集成 + z-index 调整 + 22 项手动 UAT 验收（D-03）
 **UI hint**: yes
 
 ### Phase 29: 登录页重设计整合
@@ -199,5 +199,5 @@ Phases execute in numeric order: 25 → 26 → 27 → 28 → 29
 | 25. 技术债清理 | v1.3 | 1/1 | Complete | 2026-04-16 |
 | 26. 飞书 OAuth2 后端 | v1.3 | 2/2 | Complete    | 2026-04-16 |
 | 27. 飞书 OAuth2 前端 | v1.3 | 2/3 | In Progress|  |
-| 28. 粒子背景 | v1.3 | 1/2 | In Progress|  |
+| 28. 粒子背景 | v1.3 | 2/2 | Complete    | 2026-04-20 |
 | 29. 登录页重设计 | v1.3 | 0/? | Not started | - |
