@@ -6,6 +6,7 @@ export type FeishuErrorCode =
   | 'state_invalid_or_expired'
   | 'code_expired_or_replayed'
   | 'redis_unavailable'
+  | 'feishu_unreachable'
   | 'network_error'
   | 'sdk_load_failed'
   | 'unknown_error';
@@ -18,9 +19,10 @@ export interface FeishuError {
 const COPY: Record<FeishuErrorCode, string> = {
   authorization_cancelled: '你已取消飞书授权',
   employee_not_matched: '工号未匹配，请联系管理员开通',
-  state_invalid_or_expired: '会话已过期，请刷新二维码重试',
-  code_expired_or_replayed: '授权码已失效，请重新扫码',
+  state_invalid_or_expired: '会话已过期，请重新发起授权',
+  code_expired_or_replayed: '授权码已失效，请重新登录',
   redis_unavailable: '登录服务暂不可用，请稍后重试',
+  feishu_unreachable: '无法连接飞书服务，请稍后重试',
   network_error: '网络错误，请检查连接',
   sdk_load_failed: '飞书登录组件加载失败，请刷新重试',
   unknown_error: '登录失败，请稍后重试',
@@ -43,6 +45,7 @@ function classifyBackend(err: unknown): FeishuErrorCode {
   const detail = extractDetail(err.response.data);
 
   if (status === 503) return 'redis_unavailable';
+  if (status === 502) return 'feishu_unreachable';
   if (status === 403) return 'authorization_cancelled';
   if (status === 400) {
     if (detail.includes('state')) return 'state_invalid_or_expired';
