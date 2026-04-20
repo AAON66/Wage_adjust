@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
-import { changePassword, selfBindConfirm, selfBindPreview } from '../services/auth';
+import { authorizeFeishu, changePassword, selfBindConfirm, selfBindPreview, unbindFeishu } from '../services/auth';
 import { assessPasswordStrength } from '../utils/password';
+import { resolveFeishuError } from '../utils/feishuErrors';
 import { getRoleHomePath, getRoleLabel } from '../utils/roleAccess';
 import type { SelfBindPreviewResult } from '../types/api';
 
@@ -33,6 +34,19 @@ export function SettingsPage() {
   const [bindStep, setBindStep] = useState<'input' | 'preview' | 'done'>('input');
   const [bindError, setBindError] = useState<string | null>(null);
   const [isBinding, setIsBinding] = useState(false);
+  const [feishuError, setFeishuError] = useState<string | null>(null);
+  const [feishuSuccess, setFeishuSuccess] = useState<string | null>(null);
+  const [isFeishuProcessing, setIsFeishuProcessing] = useState(false);
+
+  // 监听 FeishuBindCallbackPage 跳回时携带的 state: { bindSuccess: true }
+  useEffect(() => {
+    const navState = location.state as { bindSuccess?: boolean } | null;
+    if (navState?.bindSuccess) {
+      setFeishuSuccess('飞书账号已绑定');
+      // 清除 history state 避免刷新重复显示
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const mustChangePassword = Boolean(user?.must_change_password || (location.state as { forcePasswordChange?: boolean } | null)?.forcePasswordChange);
   const passwordStrength = useMemo(() => assessPasswordStrength(newPassword), [newPassword]);
@@ -78,6 +92,39 @@ export function SettingsPage() {
       }
     } finally {
       setIsBinding(false);
+    }
+  }
+
+  async function handleFeishuBind() {
+    setFeishuError(null);
+    setFeishuSuccess(null);
+    setIsFeishuProcessing(true);
+    try {
+      const { authorize_url } = await authorizeFeishu('bind');
+      window.location.href = authorize_url;
+      // 整页跳转，后续代码不会执行；setIsFeishuProcessing 无需 reset
+    } catch (err) {
+      setFeishuError(resolveFeishuError('backend', err).message);
+      setIsFeishuProcessing(false);
+    }
+  }
+
+  async function handleFeishuUnbind() {
+    // D-10: 解绑二次确认
+    const confirmed = window.confirm('解绑后你将无法再使用飞书账号登录，需重新绑定。确认解绑？');
+    if (!confirmed) return;
+
+    setFeishuError(null);
+    setFeishuSuccess(null);
+    setIsFeishuProcessing(true);
+    try {
+      await unbindFeishu();
+      await refreshProfile();
+      setFeishuSuccess('已解除飞书绑定');
+    } catch (err) {
+      setFeishuError(resolveFeishuError('backend', err).message);
+    } finally {
+      setIsFeishuProcessing(false);
     }
   }
 
@@ -239,6 +286,87 @@ export function SettingsPage() {
             </div>
           </div>
         </section>
+      </section>
+
+      <section className="surface px-6 py-6 lg:px-7">
+        <div className="section-head">
+          <div>
+            <p className="eyebrow">登录方式</p>
+            <h2 className="section-title">飞书账号</h2>
+            <p className="mt-2 text-sm leading-6 text-steel">
+              {user?.feishu_open_id
+                ? '你的飞书账号已绑定到系统账号，可在登录页使用飞书扫码登录。'
+                : '绑定飞书账号后，可用飞书扫码快速登录。'}
+            </p>
+          </div>
+        </div>
+
+        {feishuError ? (
+          <p style={{ marginTop: 16, background: 'var(--color-danger-bg)', border: '1px solid #FFCDD0', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--color-danger)' }}>
+            {feishuError}
+          </p>
+        ) : null}
+        {feishuSuccess ? (
+          <p style={{ marginTop: 16, background: 'var(--color-success-bg)', border: '1px solid #B7F5C2', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--color-success)' }}>
+            {feishuSuccess}
+          </p>
+        ) : null}
+
+        <div className="mt-5 flex items-center gap-3">
+          {user?.feishu_open_id ? (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderRadius: 999,
+                background: 'var(--color-success-bg)',
+                color: 'var(--color-success)',
+                padding: '4px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              已绑定
+            </span>
+          ) : (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                borderRadius: 999,
+                background: 'var(--color-bg-subtle)',
+                color: 'var(--color-steel)',
+                padding: '4px 12px',
+                fontSize: 13,
+                fontWeight: 500,
+              }}
+            >
+              未绑定
+            </span>
+          )}
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-3">
+          {user?.feishu_open_id ? (
+            <button
+              className="action-secondary"
+              disabled={isFeishuProcessing}
+              onClick={() => void handleFeishuUnbind()}
+              type="button"
+            >
+              {isFeishuProcessing ? '处理中…' : '解除飞书绑定'}
+            </button>
+          ) : (
+            <button
+              className="action-primary"
+              disabled={isFeishuProcessing}
+              onClick={() => void handleFeishuBind()}
+              type="button"
+            >
+              {isFeishuProcessing ? '处理中…' : '使用飞书绑定'}
+            </button>
+          )}
+        </div>
       </section>
     </AppShell>
   );
