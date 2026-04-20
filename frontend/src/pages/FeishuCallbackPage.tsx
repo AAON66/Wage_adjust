@@ -16,25 +16,24 @@ export function FeishuCallbackPage() {
   const hasRunRef = useRef(false);
 
   useEffect(() => {
+    // Guarded mount-once: React StrictMode safety. useAuth/useNavigate refs change
+    // on every AuthProvider re-render, so we must NOT depend on them — otherwise
+    // effect re-runs cancel the in-flight Promise and state updates are skipped.
     if (hasRunRef.current) return;
     hasRunRef.current = true;
 
-    let cancelled = false;
     const code = searchParams.get('code');
     const stateParam = searchParams.get('state');
 
     if (!code || !stateParam) {
       setState('failed');
       setErrorMessage(resolveFeishuError('backend', new Error('缺少授权参数')).message);
-      return () => {
-        cancelled = true;
-      };
+      return;
     }
 
-    async function run() {
+    void (async () => {
       try {
-        const profile = await loginWithFeishu(code!, stateParam!);
-        if (cancelled) return;
+        const profile = await loginWithFeishu(code, stateParam);
         setState('success');
         if (profile.must_change_password) {
           navigate('/settings', {
@@ -45,17 +44,12 @@ export function FeishuCallbackPage() {
           navigate(getRoleHomePath(profile.role), { replace: true });
         }
       } catch (err) {
-        if (cancelled) return;
         setState('failed');
         setErrorMessage(resolveFeishuError('backend', err).message);
       }
-    }
-    void run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [searchParams, loginWithFeishu, navigate]);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <main
