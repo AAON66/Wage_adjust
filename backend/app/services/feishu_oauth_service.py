@@ -65,7 +65,16 @@ class FeishuOAuthService:
         redis_client.setex(f'feishu_oauth_code:{code}', 600, '1')
 
         token_data = self._exchange_code_for_token(code)
-        access_token = token_data.get('data', {}).get('access_token', '')
+        # v2 /oauth/token returns access_token at top-level (standard OAuth 2.0).
+        # Fallback to data.access_token for v1-style compatibility.
+        access_token = (
+            token_data.get('access_token')
+            or token_data.get('data', {}).get('access_token')
+            or ''
+        )
+        if not access_token:
+            logger.error('Feishu token exchange returned no access_token: %s', token_data)
+            raise HTTPException(status_code=502, detail='飞书认证服务异常，请稍后重试')
 
         user_info = self._get_user_info(access_token)
         open_id = user_info.get('open_id', '')
@@ -106,17 +115,22 @@ class FeishuOAuthService:
 
     def _exchange_code_for_token(self, code: str) -> dict:
         """Exchange authorization code for user access token via Feishu API."""
-        resp = httpx.post(
-            self.FEISHU_TOKEN_URL,
-            json={
-                'grant_type': 'authorization_code',
-                'client_id': self._settings.feishu_app_id,
-                'client_secret': self._settings.feishu_app_secret,
-                'code': code,
-                'redirect_uri': self._settings.feishu_redirect_uri,
-            },
-            timeout=10,
-        )
+        try:
+            resp = httpx.post(
+                self.FEISHU_TOKEN_URL,
+                json={
+                    'grant_type': 'authorization_code',
+                    'client_id': self._settings.feishu_app_id,
+                    'client_secret': self._settings.feishu_app_secret,
+                    'code': code,
+                    'redirect_uri': self._settings.feishu_redirect_uri,
+                },
+                timeout=10,
+            )
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.TransportError) as exc:
+            logger.warning('Feishu token endpoint unreachable: %s', exc)
+            raise HTTPException(status_code=502, detail='无法连接飞书认证服务，请稍后重试') from exc
+
         data = resp.json()
         error_code = data.get('code', 0)
 
@@ -129,11 +143,16 @@ class FeishuOAuthService:
 
     def _get_user_info(self, access_token: str) -> dict:
         """Fetch user info from Feishu using user access token."""
-        resp = httpx.get(
-            self.FEISHU_USER_INFO_URL,
-            headers={'Authorization': f'Bearer {access_token}'},
-            timeout=10,
-        )
+        try:
+            resp = httpx.get(
+                self.FEISHU_USER_INFO_URL,
+                headers={'Authorization': f'Bearer {access_token}'},
+                timeout=10,
+            )
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.TransportError) as exc:
+            logger.warning('Feishu user_info endpoint unreachable: %s', exc)
+            raise HTTPException(status_code=502, detail='无法获取飞书用户信息，请稍后重试') from exc
+
         data = resp.json()
         if data.get('code', 0) != 0:
             logger.warning('Feishu user_info failed: code=%s msg=%s', data.get('code'), data.get('msg'))
