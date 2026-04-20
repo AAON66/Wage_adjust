@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import logging
 import secrets
+import time
 import urllib.parse
+from collections.abc import Callable
+from typing import TypeVar
 
 import httpx
 import redis as redis_lib
@@ -16,6 +19,48 @@ from backend.app.models.user import User
 from backend.app.services.feishu_service import FeishuService
 
 logger = logging.getLogger(__name__)
+
+_TRANSIENT_HTTPX_ERRORS = (
+    httpx.ConnectError,
+    httpx.TimeoutException,
+    httpx.ReadError,
+    httpx.WriteError,
+    httpx.RemoteProtocolError,
+)
+
+T = TypeVar('T')
+
+
+def _call_feishu_with_retry(
+    fn: Callable[[], T],
+    *,
+    endpoint_label: str,
+    max_attempts: int = 3,
+    backoff_base: float = 0.5,
+) -> T:
+    """Call a httpx function with exponential backoff on transient transport errors.
+
+    Retries only on ConnectError / TimeoutException / ReadError / WriteError /
+    RemoteProtocolError — Feishu's endpoints occasionally drop connections from
+    oversea networks. Business errors (HTTP 4xx with a JSON body) still propagate
+    immediately since httpx does not raise on them.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return fn()
+        except _TRANSIENT_HTTPX_ERRORS as exc:
+            last_exc = exc
+            if attempt >= max_attempts:
+                break
+            delay = backoff_base * (2 ** (attempt - 1))
+            logger.warning(
+                'Feishu %s transient error (attempt %d/%d): %s — retrying in %.2fs',
+                endpoint_label, attempt, max_attempts, exc, delay,
+            )
+            time.sleep(delay)
+    assert last_exc is not None
+    raise last_exc
 
 # Error code mapping from Feishu OAuth token endpoint
 _FEISHU_ERROR_MAP: dict[int, tuple[int, str]] = {
@@ -116,19 +161,22 @@ class FeishuOAuthService:
     def _exchange_code_for_token(self, code: str) -> dict:
         """Exchange authorization code for user access token via Feishu API."""
         try:
-            resp = httpx.post(
-                self.FEISHU_TOKEN_URL,
-                json={
-                    'grant_type': 'authorization_code',
-                    'client_id': self._settings.feishu_app_id,
-                    'client_secret': self._settings.feishu_app_secret,
-                    'code': code,
-                    'redirect_uri': self._settings.feishu_redirect_uri,
-                },
-                timeout=10,
+            resp = _call_feishu_with_retry(
+                lambda: httpx.post(
+                    self.FEISHU_TOKEN_URL,
+                    json={
+                        'grant_type': 'authorization_code',
+                        'client_id': self._settings.feishu_app_id,
+                        'client_secret': self._settings.feishu_app_secret,
+                        'code': code,
+                        'redirect_uri': self._settings.feishu_redirect_uri,
+                    },
+                    timeout=10,
+                ),
+                endpoint_label='token',
             )
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.TransportError) as exc:
-            logger.warning('Feishu token endpoint unreachable: %s', exc)
+        except _TRANSIENT_HTTPX_ERRORS as exc:
+            logger.warning('Feishu token endpoint unreachable after retries: %s', exc)
             raise HTTPException(status_code=502, detail='无法连接飞书认证服务，请稍后重试') from exc
 
         data = resp.json()
@@ -144,13 +192,16 @@ class FeishuOAuthService:
     def _get_user_info(self, access_token: str) -> dict:
         """Fetch user info from Feishu using user access token."""
         try:
-            resp = httpx.get(
-                self.FEISHU_USER_INFO_URL,
-                headers={'Authorization': f'Bearer {access_token}'},
-                timeout=10,
+            resp = _call_feishu_with_retry(
+                lambda: httpx.get(
+                    self.FEISHU_USER_INFO_URL,
+                    headers={'Authorization': f'Bearer {access_token}'},
+                    timeout=10,
+                ),
+                endpoint_label='user_info',
             )
-        except (httpx.ConnectError, httpx.TimeoutException, httpx.TransportError) as exc:
-            logger.warning('Feishu user_info endpoint unreachable: %s', exc)
+        except _TRANSIENT_HTTPX_ERRORS as exc:
+            logger.warning('Feishu user_info endpoint unreachable after retries: %s', exc)
             raise HTTPException(status_code=502, detail='无法获取飞书用户信息，请稍后重试') from exc
 
         data = resp.json()
