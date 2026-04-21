@@ -1114,9 +1114,14 @@ CLAUDE.md 中其他强制条款（Step 1-6 工作流、Step 4 Testing Requiremen
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> 全部 5 个 OQ 已在 plan 阶段拍板。详见各 OQ 段首的 **RESOLVED** 行。
 
 1. **`_import_salary_adjustments` 是否改 upsert？**
+
+   **RESOLVED:** _import_salary_adjustments 改 upsert，业务键 (employee_id, adjustment_date, adjustment_type)，与飞书同步对齐。Plan 32-01 加 UniqueConstraint（uq_salary_adj_employee_date_type），Plan 32-02 改 upsert。
+
    - 当前：append（line 830-838）
    - D-14 文档：upsert by `(employee_id, adjustment_date)`
    - 飞书同步：upsert by `(employee_id, adjustment_date, adjustment_type)`（line 947-952）
@@ -1124,20 +1129,32 @@ CLAUDE.md 中其他强制条款（Step 1-6 工作流、Step 4 Testing Requiremen
    - 阻塞：需 plan 阶段决议（A1）
 
 2. **D-17 选 APScheduler 还是 Celery Beat？**
+
+   **RESOLVED:** 选 APScheduler，复用 backend/app/scheduler/feishu_scheduler.py 模式，不引入 Celery Beat。Plan 32-06 实现（每 15 分钟跑 expire_stale_import_jobs）。
+
    - 推荐 APScheduler（无新部署成本）
    - 需要：plan 阶段确认部署方运维侧没有「禁止应用进程内调度」的要求
 
 3. **confirm 端点走同步还是 Celery 异步？**
+
+   **RESOLVED:** confirm 端点同步执行（< 5000 行实测 < 5 秒），避免轮询复杂度。Plan 32-03 service 层同步实现，Plan 32-04 API 层薄包装直接返回 ConfirmResponse。
+
    - 同步：< 5000 行实测 < 5 秒，HR 体验好（无轮询）
    - 异步：与现有上传体验一致，HR 可离开
    - 折中：< 500 行同步，>= 500 行异步（行数判断点配置化）
 
 4. **当前 `POST /eligibility-import/excel`（一步上传）是否保留？**
+
+   **RESOLVED:** 旧 POST /excel 保留并标 deprecated=True，新版前端不调用。Plan 32-04 在路由 decorator 加 deprecated=True，Plan 32-05/06 前端改用 uploadAndPreview + confirmImport 两阶段。
+
    - 保留：兼容性
    - 废弃：减少 API 表面积
    - 推荐：保留并标 `Deprecated`，规划期决议
 
 5. **文件 hash 校验是否做？**
+
+   **RESOLVED:** 做 sha256 文件 hash 校验，preview 时把哈希存到 ImportJob.result_summary.preview.file_sha256，confirm 时校验。Plan 32-03 实现（_save_staged_file 返回 sha256，_read_staged_file 接 expected_sha256 参数）。
+
    - 做：F3 边缘场景能检测，多 5 行代码
    - 不做：YAGNI，本地磁盘理论上不会被外部进程改
    - 推荐：做（成本低，价值高）
