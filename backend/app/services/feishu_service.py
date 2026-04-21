@@ -495,177 +495,184 @@ class FeishuService:
     # ------------------------------------------------------------------
 
     def sync_attendance(self, mode: str, triggered_by: str | None = None) -> FeishuSyncLog:
-        """同步考勤数据（full 或 incremental），单事务提交。"""
-        now = datetime.now(timezone.utc)
-        sync_log = FeishuSyncLog(
-            sync_type='attendance',  # Phase 31 / D-01: 区分五类同步
-            mode=mode,
-            status='running',
-            total_fetched=0,
-            synced_count=0,
-            updated_count=0,
-            skipped_count=0,
-            unmatched_count=0,
-            failed_count=0,
-            started_at=now,
+        """Phase 31 / D-12: 同步考勤数据（full 或 incremental）。
+
+        外部签名保持：(mode, triggered_by) → FeishuSyncLog。
+        sync_with_retry 调用本方法，依赖此签名（Pitfall F）。
+        内部重构为委托 `_with_sync_log('attendance', ...)`。
+        """
+        self._last_attendance_skipped_count = 0  # type: ignore[attr-defined]
+        sync_log_id = self._with_sync_log(
+            sync_type='attendance',
+            fn=self._sync_attendance_body,
             triggered_by=triggered_by,
+            mode=mode,
+            body_mode=mode,  # explicitly forward to body (helper's `mode` goes to log.mode)
         )
-        fallback_counter: dict[str, int] = {'count': 0}
-        self.db.add(sync_log)
-        self.db.flush()
-        sync_log_id = sync_log.id
-
-        try:
-            # Get active config
-            config = self.get_config()
-            if config is None:
-                raise RuntimeError('No active Feishu config found')
-
-            settings = get_settings()
-            app_secret = config.get_app_secret(settings.feishu_encryption_key)
-
-            # Get token
-            token = self._ensure_token(config.app_id, app_secret)
-
-            # Parse field mapping
-            field_mapping = json.loads(config.field_mapping) if isinstance(config.field_mapping, str) else config.field_mapping
-
-            # Determine since for incremental
-            since: int | None = None
-            if mode == 'incremental':
-                last_success = self.db.execute(
-                    select(FeishuSyncLog)
-                    .where(FeishuSyncLog.status == 'success')
-                    .order_by(FeishuSyncLog.finished_at.desc())
-                    .limit(1)
-                ).scalar_one_or_none()
-                if last_success and last_success.finished_at:
-                    # 增量使用 overlap window 以防边界遗漏
-                    since_ts = int(last_success.finished_at.timestamp() * 1000)
-                    since = since_ts - self.OVERLAP_WINDOW_MS
-
-            # Fetch records
-            records = self._fetch_all_records(token, config.bitable_app_token, config.bitable_table_id, field_mapping, since)
-            sync_log.total_fetched = len(records)
-
-            # Build employee_no -> employee_id mapping (handles leading-zero mismatch)
-            emp_map = self._build_employee_map()
-            logger.info('Employee map keys (first 20): %s', list(emp_map.keys())[:20])
-
-            # Upsert records
-            synced = 0
-            updated = 0
-            skipped = 0
-            unmatched = 0
-            failed = 0
-            unmatched_nos: list[str] = []
-
-            for record in records:
-                try:
-                    emp_no = record.get('employee_no')
-                    logger.info('Matching emp_no=%r (type=%s) against emp_map', emp_no, type(emp_no).__name__)
-                    employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
-
-                    if employee_id is None:
-                        unmatched += 1
-                        if len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
-                            unmatched_nos.append(str(emp_no or ''))
-                        continue
-
-                    period = record.get('period') or now.strftime('%Y-%m')
-                    feishu_record_id = record.get('feishu_record_id')
-                    source_modified_at = record.get('last_modified_time')
-                    synced_at = datetime.now(timezone.utc)
-
-                    # data_as_of assignment rule
-                    if source_modified_at:
-                        data_as_of = datetime.fromtimestamp(source_modified_at / 1000, tz=timezone.utc)
-                    else:
-                        data_as_of = synced_at
-
-                    # Try upsert by employee_id + period
-                    existing = self.db.execute(
-                        select(AttendanceRecord).where(
-                            AttendanceRecord.employee_id == employee_id,
-                            AttendanceRecord.period == period,
-                        )
-                    ).scalar_one_or_none()
-
-                    if existing:
-                        # Check if source data is newer
-                        if source_modified_at and existing.source_modified_at:
-                            if source_modified_at <= existing.source_modified_at:
-                                skipped += 1
-                                continue
-
-                        existing.attendance_rate = record.get('attendance_rate')
-                        existing.absence_days = record.get('absence_days')
-                        existing.overtime_hours = record.get('overtime_hours')
-                        existing.late_count = record.get('late_count')
-                        existing.early_leave_count = record.get('early_leave_count')
-                        existing.leave_days = record.get('leave_days')
-                        existing.feishu_record_id = feishu_record_id
-                        existing.source_modified_at = source_modified_at
-                        existing.data_as_of = data_as_of
-                        existing.synced_at = synced_at
-                        updated += 1
-                    else:
-                        new_record = AttendanceRecord(
-                            employee_id=employee_id,
-                            employee_no=emp_no,
-                            period=period,
-                            attendance_rate=record.get('attendance_rate'),
-                            absence_days=record.get('absence_days'),
-                            overtime_hours=record.get('overtime_hours'),
-                            late_count=record.get('late_count'),
-                            early_leave_count=record.get('early_leave_count'),
-                            leave_days=record.get('leave_days'),
-                            feishu_record_id=feishu_record_id,
-                            source_modified_at=source_modified_at,
-                            data_as_of=data_as_of,
-                            synced_at=synced_at,
-                        )
-                        self.db.add(new_record)
-                        synced += 1
-
-                except Exception:
-                    logger.exception('Failed to process attendance record: %s', record.get('employee_no'))
-                    failed += 1
-
-            # Update sync log with final counts
-            sync_log.synced_count = synced
-            sync_log.updated_count = updated
-            sync_log.skipped_count = skipped
-            sync_log.unmatched_count = unmatched
-            sync_log.failed_count = failed
-            sync_log.leading_zero_fallback_count = fallback_counter['count']
-            sync_log.status = 'success'
-            sync_log.finished_at = datetime.now(timezone.utc)
-            if unmatched_nos:
-                sync_log.unmatched_employee_nos = json.dumps(unmatched_nos)
-
-            # Single commit for all records + log status
+        # helper 用独立 session commit log；self.db 可能持有过期视图 → expire_all 后再 get
+        self.db.expire_all()
+        log = self.db.get(FeishuSyncLog, sync_log_id)
+        # Patch skipped_count (attendance 专属字段，helper 的 _apply_counters_to_log 不设置)
+        skipped = getattr(self, '_last_attendance_skipped_count', 0)
+        if log is not None and skipped:
+            log.skipped_count = skipped
             self.db.commit()
-            return sync_log
+        return log
 
-        except Exception as exc:
-            self.db.rollback()
-            # Save failure status in a new session to avoid polluted session state
+    def _sync_attendance_body(
+        self, *, sync_log_id: str, body_mode: str,
+    ) -> _SyncCounters:
+        """Phase 31: sync_attendance 的业务体。返回 _SyncCounters。
+
+        body_mode 是业务侧的 full/incremental 模式选择（helper 的 `mode` 参数用于写入 log.mode，
+        此处由 sync_attendance 显式重复转发到 body 命名为 body_mode，避免与 helper kwarg 冲突）。
+        """
+        mode = body_mode
+        now = datetime.now(timezone.utc)
+
+        # Get active config
+        config = self.get_config()
+        if config is None:
+            raise RuntimeError('No active Feishu config found')
+
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+
+        # Get token
+        token = self._ensure_token(config.app_id, app_secret)
+
+        # Parse field mapping
+        field_mapping = json.loads(config.field_mapping) if isinstance(config.field_mapping, str) else config.field_mapping
+
+        # Determine since for incremental
+        since: int | None = None
+        if mode == 'incremental':
+            last_success = self.db.execute(
+                select(FeishuSyncLog)
+                .where(FeishuSyncLog.status == 'success')
+                .order_by(FeishuSyncLog.finished_at.desc())
+                .limit(1)
+            ).scalar_one_or_none()
+            if last_success and last_success.finished_at:
+                since_ts = int(last_success.finished_at.timestamp() * 1000)
+                since = since_ts - self.OVERLAP_WINDOW_MS
+
+        # Fetch records
+        records = self._fetch_all_records(
+            token, config.bitable_app_token, config.bitable_table_id, field_mapping, since,
+        )
+
+        # Build employee_no -> employee_id mapping (handles leading-zero mismatch)
+        emp_map = self._build_employee_map()
+        logger.info('Employee map keys (first 20): %s', list(emp_map.keys())[:20])
+
+        fallback_counter: dict[str, int] = {'count': 0}
+
+        # Upsert records
+        synced = 0
+        updated = 0
+        skipped = 0
+        unmatched = 0
+        failed = 0
+        unmatched_nos: list[str] = []
+        total = len(records)
+
+        for record in records:
             try:
-                fail_db = SessionLocal()
-                try:
-                    fail_log = fail_db.get(FeishuSyncLog, sync_log_id)
-                    if fail_log:
-                        fail_log.status = 'failed'
-                        fail_log.error_message = str(exc)[:2000]
-                        fail_log.leading_zero_fallback_count = fallback_counter['count']
-                        fail_log.finished_at = datetime.now(timezone.utc)
-                        fail_db.commit()
-                finally:
-                    fail_db.close()
+                emp_no = record.get('employee_no')
+                logger.info('Matching emp_no=%r (type=%s) against emp_map', emp_no, type(emp_no).__name__)
+                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
+
+                if employee_id is None:
+                    unmatched += 1
+                    if len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
+                        unmatched_nos.append(str(emp_no or ''))
+                    continue
+
+                period = record.get('period') or now.strftime('%Y-%m')
+                feishu_record_id = record.get('feishu_record_id')
+                source_modified_at = record.get('last_modified_time')
+                synced_at = datetime.now(timezone.utc)
+
+                # data_as_of assignment rule
+                if source_modified_at:
+                    data_as_of = datetime.fromtimestamp(source_modified_at / 1000, tz=timezone.utc)
+                else:
+                    data_as_of = synced_at
+
+                # Try upsert by employee_id + period
+                existing = self.db.execute(
+                    select(AttendanceRecord).where(
+                        AttendanceRecord.employee_id == employee_id,
+                        AttendanceRecord.period == period,
+                    )
+                ).scalar_one_or_none()
+
+                if existing:
+                    # Check if source data is newer
+                    if source_modified_at and existing.source_modified_at:
+                        if source_modified_at <= existing.source_modified_at:
+                            skipped += 1
+                            continue
+
+                    existing.attendance_rate = record.get('attendance_rate')
+                    existing.absence_days = record.get('absence_days')
+                    existing.overtime_hours = record.get('overtime_hours')
+                    existing.late_count = record.get('late_count')
+                    existing.early_leave_count = record.get('early_leave_count')
+                    existing.leave_days = record.get('leave_days')
+                    existing.feishu_record_id = feishu_record_id
+                    existing.source_modified_at = source_modified_at
+                    existing.data_as_of = data_as_of
+                    existing.synced_at = synced_at
+                    updated += 1
+                else:
+                    new_record = AttendanceRecord(
+                        employee_id=employee_id,
+                        employee_no=emp_no,
+                        period=period,
+                        attendance_rate=record.get('attendance_rate'),
+                        absence_days=record.get('absence_days'),
+                        overtime_hours=record.get('overtime_hours'),
+                        late_count=record.get('late_count'),
+                        early_leave_count=record.get('early_leave_count'),
+                        leave_days=record.get('leave_days'),
+                        feishu_record_id=feishu_record_id,
+                        source_modified_at=source_modified_at,
+                        data_as_of=data_as_of,
+                        synced_at=synced_at,
+                    )
+                    self.db.add(new_record)
+                    synced += 1
+
             except Exception:
-                logger.exception('Failed to save sync failure log')
-            raise
+                logger.exception('Failed to process attendance record: %s', record.get('employee_no'))
+                failed += 1
+
+        # Single commit for all records (helper handles log commit separately in independent session)
+        self.db.commit()
+
+        # NOTE: Phase 31 Deferred — sync_attendance 的 skipped_count 语义（「源数据更旧」业务跳过）
+        # 不重新分类到 mapping_failed，保持现状直到实战数据验证（参见 31-CONTEXT §deferred）。
+        # Helper 不使用 skipped 字段，但业务层仍需要为 attendance 显式补写 skipped_count → 在 helper
+        # 覆盖后再补写（避免被 _apply_counters_to_log 重置）。
+        # 解决方案：把 skipped 写入 log 的逻辑改放回 helper 之后。目前 _apply_counters_to_log 不碰
+        # skipped_count 列（保留 0），如果需要持久化 attendance 的 skipped，可以在 sync_attendance
+        # outer 方法于 helper 返回后 patch log。
+        counters = _SyncCounters(
+            success=synced,
+            updated=updated,
+            unmatched=unmatched,
+            mapping_failed=0,  # attendance 无 mapping_failed 分流（Deferred）
+            failed=failed,
+            leading_zero_fallback=fallback_counter['count'],
+            total_fetched=total,
+            unmatched_nos=tuple(unmatched_nos),
+        )
+        # Stash skipped for outer caller to patch onto log (since _apply_counters_to_log
+        # doesn't write skipped_count). We pass via a mutable side-channel attr.
+        self._last_attendance_skipped_count = skipped  # type: ignore[attr-defined]
+        return counters
 
     # ------------------------------------------------------------------
     # Performance records sync (D-09/ELIG-09)
@@ -677,8 +684,34 @@ class FeishuService:
         app_token: str,
         table_id: str,
         field_mapping: dict[str, str] | None = None,
-    ) -> dict:
-        """Sync performance records from Feishu bitable with upsert on (employee_id, year)."""
+        triggered_by: str | None = None,
+    ) -> FeishuSyncLog:
+        """Phase 31 / D-10: 同步绩效记录。返回 FeishuSyncLog（替代旧的 dict）。"""
+        sync_log_id = self._with_sync_log(
+            sync_type='performance',
+            fn=self._sync_performance_records_body,
+            triggered_by=triggered_by,
+            mode='full',
+            app_token=app_token,
+            table_id=table_id,
+            field_mapping=field_mapping,
+        )
+        self.db.expire_all()
+        return self.db.get(FeishuSyncLog, sync_log_id)
+
+    def _sync_performance_records_body(
+        self,
+        *,
+        sync_log_id: str,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> _SyncCounters:
+        """Phase 31 / D-02 / D-11: 绩效同步业务体，返回 _SyncCounters。
+
+        D-02 新语义：year 解析失败 / grade 非法 → mapping_failed（不是 skipped）。
+        emp_no 找不到 → unmatched。
+        """
         if field_mapping is None:
             field_mapping = {
                 '员工工号': 'employee_no',
@@ -686,7 +719,6 @@ class FeishuService:
                 '绩效等级': 'grade',
             }
 
-        # Get active config for token
         config = self.get_config()
         if config is None:
             raise RuntimeError('No active Feishu config found')
@@ -694,52 +726,56 @@ class FeishuService:
         settings = get_settings()
         app_secret = config.get_app_secret(settings.feishu_encryption_key)
         token = self._ensure_token(config.app_id, app_secret)
-
-        # Fetch records
         records = self._fetch_all_records(token, app_token, table_id, field_mapping)
 
-        # Build employee_no -> employee_id mapping (handles leading-zero mismatch)
         emp_map = self._build_employee_map()
         fallback_counter: dict[str, int] = {'count': 0}
 
         synced = 0
-        skipped = 0
+        updated = 0
+        unmatched = 0
+        mapping_failed = 0
         failed = 0
+        unmatched_nos: list[str] = []
         total = len(records)
 
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
+                employee_id = self._lookup_employee(
+                    emp_map, emp_no, fallback_counter=fallback_counter,
+                )
                 if employee_id is None:
-                    logger.warning('Performance sync: employee_no=%s not found, skipping', emp_no)
-                    skipped += 1
+                    unmatched += 1
+                    if emp_no and len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
+                        unmatched_nos.append(str(emp_no))
                     continue
 
-                # Parse year
                 raw_year = record.get('year')
                 if raw_year is None:
-                    skipped += 1
+                    mapping_failed += 1
                     continue
                 try:
                     year = int(float(str(raw_year)))
                 except (ValueError, TypeError):
-                    logger.warning('Performance sync: invalid year=%r for emp_no=%s', raw_year, emp_no)
-                    skipped += 1
+                    logger.warning(
+                        'Performance sync: invalid year=%r for emp_no=%s', raw_year, emp_no,
+                    )
+                    mapping_failed += 1
                     continue
 
-                # Normalize grade
                 raw_grade = record.get('grade')
                 if raw_grade is None:
-                    skipped += 1
+                    mapping_failed += 1
                     continue
                 grade = str(raw_grade).strip().upper()
                 if grade not in ('A', 'B', 'C', 'D', 'E'):
-                    logger.warning('Performance sync: invalid grade=%s for emp_no=%s', grade, emp_no)
-                    skipped += 1
+                    logger.warning(
+                        'Performance sync: invalid grade=%s for emp_no=%s', grade, emp_no,
+                    )
+                    mapping_failed += 1
                     continue
 
-                # Idempotent upsert on (employee_id, year)
                 existing = self.db.scalar(
                     select(PerformanceRecord).where(
                         PerformanceRecord.employee_id == employee_id,
@@ -750,6 +786,7 @@ class FeishuService:
                     existing.grade = grade
                     existing.source = 'feishu'
                     self.db.add(existing)
+                    updated += 1
                 else:
                     new_record = PerformanceRecord(
                         employee_id=employee_id,
@@ -759,22 +796,28 @@ class FeishuService:
                         source='feishu',
                     )
                     self.db.add(new_record)
+                    synced += 1
                 self.db.flush()
-                synced += 1
 
             except Exception:
-                logger.exception('Failed to process performance record: emp_no=%s', record.get('employee_no'))
+                logger.exception(
+                    'Failed to process performance record: emp_no=%s',
+                    record.get('employee_no'),
+                )
                 failed += 1
 
         self.db.commit()
-        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
-        return {
-            'synced': synced,
-            'skipped': skipped,
-            'failed': failed,
-            'total': total,
-            'leading_zero_fallback_count': fallback_counter['count'],
-        }
+
+        return _SyncCounters(
+            success=synced,
+            updated=updated,
+            unmatched=unmatched,
+            mapping_failed=mapping_failed,
+            failed=failed,
+            leading_zero_fallback=fallback_counter['count'],
+            total_fetched=total,
+            unmatched_nos=tuple(unmatched_nos),
+        )
 
     # ------------------------------------------------------------------
     # Salary adjustments sync (ELIGIMP-02)
@@ -786,8 +829,34 @@ class FeishuService:
         app_token: str,
         table_id: str,
         field_mapping: dict[str, str] | None = None,
-    ) -> dict:
-        """Sync salary adjustment records from Feishu bitable with upsert on (employee_id, adjustment_date, adjustment_type)."""
+        triggered_by: str | None = None,
+    ) -> FeishuSyncLog:
+        """Phase 31 / D-10: 同步调薪记录。返回 FeishuSyncLog。"""
+        sync_log_id = self._with_sync_log(
+            sync_type='salary_adjustments',
+            fn=self._sync_salary_adjustments_body,
+            triggered_by=triggered_by,
+            mode='full',
+            app_token=app_token,
+            table_id=table_id,
+            field_mapping=field_mapping,
+        )
+        self.db.expire_all()
+        return self.db.get(FeishuSyncLog, sync_log_id)
+
+    def _sync_salary_adjustments_body(
+        self,
+        *,
+        sync_log_id: str,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> _SyncCounters:
+        """Phase 31 / D-02 / D-11: 调薪同步业务体。
+
+        D-02: adjustment_date 解析失败 / amount 解析失败 → mapping_failed。
+        emp_no 找不到 → unmatched。
+        """
         if field_mapping is None:
             field_mapping = {
                 '员工工号': 'employee_no',
@@ -810,41 +879,56 @@ class FeishuService:
 
         synced = 0
         updated = 0
-        skipped = 0
+        unmatched = 0
+        mapping_failed = 0
         failed = 0
+        unmatched_nos: list[str] = []
         total = len(records)
+
+        import pandas as pd
+        from decimal import Decimal, InvalidOperation
 
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
+                employee_id = self._lookup_employee(
+                    emp_map, emp_no, fallback_counter=fallback_counter,
+                )
                 if employee_id is None:
-                    skipped += 1
+                    unmatched += 1
+                    if emp_no and len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
+                        unmatched_nos.append(str(emp_no))
                     continue
-
-                import pandas as pd
-                from decimal import Decimal, InvalidOperation
 
                 raw_date = record.get('adjustment_date')
                 if raw_date is None:
-                    skipped += 1
+                    mapping_failed += 1
                     continue
                 try:
-                    # Support both timestamp (ms) and date string formats
                     if isinstance(raw_date, (int, float)):
                         adjustment_date = pd.to_datetime(raw_date, unit='ms').date()
                     else:
                         adjustment_date = pd.to_datetime(raw_date).date()
                 except Exception:
-                    skipped += 1
+                    logger.warning(
+                        'Salary adj sync: invalid adjustment_date=%r for emp_no=%s',
+                        raw_date, emp_no,
+                    )
+                    mapping_failed += 1
                     continue
 
                 raw_type = record.get('adjustment_type')
                 if raw_type is None:
-                    skipped += 1
+                    mapping_failed += 1
                     continue
-                adj_type_map = {'转正调薪': 'probation', '年度调薪': 'annual', '专项调薪': 'special'}
-                adj_type = adj_type_map.get(str(raw_type).strip(), str(raw_type).strip().lower())
+                adj_type_map = {
+                    '转正调薪': 'probation',
+                    '年度调薪': 'annual',
+                    '专项调薪': 'special',
+                }
+                adj_type = adj_type_map.get(
+                    str(raw_type).strip(), str(raw_type).strip().lower(),
+                )
 
                 amount = None
                 raw_amount = record.get('amount')
@@ -852,9 +936,13 @@ class FeishuService:
                     try:
                         amount = Decimal(str(raw_amount).strip())
                     except InvalidOperation:
-                        pass
+                        logger.warning(
+                            'Salary adj sync: invalid amount=%r for emp_no=%s',
+                            raw_amount, emp_no,
+                        )
+                        mapping_failed += 1
+                        continue
 
-                # Idempotent upsert on (employee_id, adjustment_date, adjustment_type)
                 existing = self.db.scalar(
                     select(SalaryAdjustmentRecord).where(
                         SalaryAdjustmentRecord.employee_id == employee_id,
@@ -877,22 +965,27 @@ class FeishuService:
                         source='feishu',
                     )
                     self.db.add(new_record)
+                    synced += 1
                 self.db.flush()
-                synced += 1
             except Exception:
-                logger.exception('Failed to process salary adjustment record: emp_no=%s', record.get('employee_no'))
+                logger.exception(
+                    'Failed to process salary adjustment record: emp_no=%s',
+                    record.get('employee_no'),
+                )
                 failed += 1
 
         self.db.commit()
-        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
-        return {
-            'synced': synced,
-            'updated': updated,
-            'skipped': skipped,
-            'failed': failed,
-            'total': total,
-            'leading_zero_fallback_count': fallback_counter['count'],
-        }
+
+        return _SyncCounters(
+            success=synced,
+            updated=updated,
+            unmatched=unmatched,
+            mapping_failed=mapping_failed,
+            failed=failed,
+            leading_zero_fallback=fallback_counter['count'],
+            total_fetched=total,
+            unmatched_nos=tuple(unmatched_nos),
+        )
 
     # ------------------------------------------------------------------
     # Hire info sync (ELIGIMP-02)
@@ -904,8 +997,35 @@ class FeishuService:
         app_token: str,
         table_id: str,
         field_mapping: dict[str, str] | None = None,
-    ) -> dict:
-        """Sync hire dates and last adjustment dates from Feishu bitable, updating Employee fields."""
+        triggered_by: str | None = None,
+    ) -> FeishuSyncLog:
+        """Phase 31 / D-10: 同步入职信息。返回 FeishuSyncLog。"""
+        sync_log_id = self._with_sync_log(
+            sync_type='hire_info',
+            fn=self._sync_hire_info_body,
+            triggered_by=triggered_by,
+            mode='full',
+            app_token=app_token,
+            table_id=table_id,
+            field_mapping=field_mapping,
+        )
+        self.db.expire_all()
+        return self.db.get(FeishuSyncLog, sync_log_id)
+
+    def _sync_hire_info_body(
+        self,
+        *,
+        sync_log_id: str,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> _SyncCounters:
+        """Phase 31 / D-02 / D-11: 入职信息同步业务体。
+
+        D-02: hire_date / last_salary_adjustment_date 解析失败 → mapping_failed。
+        emp_no 找不到 → unmatched。
+        两个日期字段都缺失或都无效 → mapping_failed（本行无有效映射）。
+        """
         if field_mapping is None:
             field_mapping = {
                 '员工工号': 'employee_no',
@@ -925,29 +1045,37 @@ class FeishuService:
         emp_map = self._build_employee_map()
         fallback_counter: dict[str, int] = {'count': 0}
 
+        import pandas as pd
+
         synced = 0
-        skipped = 0
+        unmatched = 0
+        mapping_failed = 0
         failed = 0
+        unmatched_nos: list[str] = []
         total = len(records)
 
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
+                employee_id = self._lookup_employee(
+                    emp_map, emp_no, fallback_counter=fallback_counter,
+                )
                 if employee_id is None:
-                    skipped += 1
+                    unmatched += 1
+                    if emp_no and len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
+                        unmatched_nos.append(str(emp_no))
                     continue
-
-                import pandas as pd
 
                 employee = self.db.get(Employee, employee_id)
                 if employee is None:
-                    skipped += 1
+                    unmatched += 1
+                    if emp_no and len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
+                        unmatched_nos.append(str(emp_no))
                     continue
 
-                updated = False
+                did_update = False
+                had_parse_failure = False
 
-                # Process hire_date
                 raw_hire_date = record.get('hire_date')
                 if raw_hire_date is not None:
                     try:
@@ -956,11 +1084,10 @@ class FeishuService:
                         else:
                             hire_date = pd.to_datetime(raw_hire_date).date()
                         employee.hire_date = hire_date
-                        updated = True
+                        did_update = True
                     except Exception:
-                        pass
+                        had_parse_failure = True
 
-                # Process last_salary_adjustment_date
                 raw_last_adj_date = record.get('last_salary_adjustment_date')
                 if raw_last_adj_date is not None:
                     try:
@@ -969,29 +1096,38 @@ class FeishuService:
                         else:
                             last_adj_date = pd.to_datetime(raw_last_adj_date).date()
                         employee.last_salary_adjustment_date = last_adj_date
-                        updated = True
+                        did_update = True
                     except Exception:
-                        pass
+                        had_parse_failure = True
 
-                if updated:
+                if did_update:
                     self.db.add(employee)
                     self.db.flush()
                     synced += 1
+                elif had_parse_failure:
+                    mapping_failed += 1
                 else:
-                    skipped += 1
+                    # 两个日期都是 None（无有效输入）—— 归 mapping_failed（行不可用）
+                    mapping_failed += 1
             except Exception:
-                logger.exception('Failed to process hire info record: emp_no=%s', record.get('employee_no'))
+                logger.exception(
+                    'Failed to process hire info record: emp_no=%s',
+                    record.get('employee_no'),
+                )
                 failed += 1
 
         self.db.commit()
-        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
-        return {
-            'synced': synced,
-            'skipped': skipped,
-            'failed': failed,
-            'total': total,
-            'leading_zero_fallback_count': fallback_counter['count'],
-        }
+
+        return _SyncCounters(
+            success=synced,
+            updated=0,  # hire_info 写入 Employee 字段，不区分 add/update；统一归 success
+            unmatched=unmatched,
+            mapping_failed=mapping_failed,
+            failed=failed,
+            leading_zero_fallback=fallback_counter['count'],
+            total_fetched=total,
+            unmatched_nos=tuple(unmatched_nos),
+        )
 
     # ------------------------------------------------------------------
     # Non-statutory leave sync (ELIGIMP-02)
@@ -1003,8 +1139,34 @@ class FeishuService:
         app_token: str,
         table_id: str,
         field_mapping: dict[str, str] | None = None,
-    ) -> dict:
-        """Sync non-statutory leave records from Feishu bitable with upsert on (employee_id, year)."""
+        triggered_by: str | None = None,
+    ) -> FeishuSyncLog:
+        """Phase 31 / D-10: 同步社保假勤记录。返回 FeishuSyncLog。"""
+        sync_log_id = self._with_sync_log(
+            sync_type='non_statutory_leave',
+            fn=self._sync_non_statutory_leave_body,
+            triggered_by=triggered_by,
+            mode='full',
+            app_token=app_token,
+            table_id=table_id,
+            field_mapping=field_mapping,
+        )
+        self.db.expire_all()
+        return self.db.get(FeishuSyncLog, sync_log_id)
+
+    def _sync_non_statutory_leave_body(
+        self,
+        *,
+        sync_log_id: str,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str] | None = None,
+    ) -> _SyncCounters:
+        """Phase 31 / D-02 / D-11: 社保假勤同步业务体。
+
+        D-02: year 解析失败 / total_days 解析失败 → mapping_failed。
+        emp_no 找不到 → unmatched。
+        """
         if field_mapping is None:
             field_mapping = {
                 '员工工号': 'employee_no',
@@ -1026,36 +1188,51 @@ class FeishuService:
         fallback_counter: dict[str, int] = {'count': 0}
 
         synced = 0
-        skipped = 0
+        updated = 0
+        unmatched = 0
+        mapping_failed = 0
         failed = 0
+        unmatched_nos: list[str] = []
         total = len(records)
 
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
+                employee_id = self._lookup_employee(
+                    emp_map, emp_no, fallback_counter=fallback_counter,
+                )
                 if employee_id is None:
-                    skipped += 1
+                    unmatched += 1
+                    if emp_no and len(unmatched_nos) < self.MAX_UNMATCHED_LOG:
+                        unmatched_nos.append(str(emp_no))
                     continue
 
                 raw_year = record.get('year')
                 if raw_year is None:
-                    skipped += 1
+                    mapping_failed += 1
                     continue
                 try:
                     year = int(float(str(raw_year)))
                 except (ValueError, TypeError):
-                    skipped += 1
+                    logger.warning(
+                        'NonStatutoryLeave sync: invalid year=%r for emp_no=%s',
+                        raw_year, emp_no,
+                    )
+                    mapping_failed += 1
                     continue
 
                 raw_days = record.get('total_days')
                 if raw_days is None:
-                    skipped += 1
+                    mapping_failed += 1
                     continue
                 try:
                     total_days = float(str(raw_days).strip())
                 except (ValueError, TypeError):
-                    skipped += 1
+                    logger.warning(
+                        'NonStatutoryLeave sync: invalid total_days=%r for emp_no=%s',
+                        raw_days, emp_no,
+                    )
+                    mapping_failed += 1
                     continue
 
                 leave_type = None
@@ -1065,7 +1242,6 @@ class FeishuService:
                     if lt:
                         leave_type = lt
 
-                # Upsert on (employee_id, year)
                 existing = self.db.scalar(
                     select(NonStatutoryLeave).where(
                         NonStatutoryLeave.employee_id == employee_id,
@@ -1077,6 +1253,7 @@ class FeishuService:
                     existing.leave_type = leave_type
                     existing.source = 'feishu'
                     self.db.add(existing)
+                    updated += 1
                 else:
                     new_record = NonStatutoryLeave(
                         employee_id=employee_id,
@@ -1087,21 +1264,27 @@ class FeishuService:
                         source='feishu',
                     )
                     self.db.add(new_record)
+                    synced += 1
                 self.db.flush()
-                synced += 1
             except Exception:
-                logger.exception('Failed to process non-statutory leave record: emp_no=%s', record.get('employee_no'))
+                logger.exception(
+                    'Failed to process non-statutory leave record: emp_no=%s',
+                    record.get('employee_no'),
+                )
                 failed += 1
 
         self.db.commit()
-        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
-        return {
-            'synced': synced,
-            'skipped': skipped,
-            'failed': failed,
-            'total': total,
-            'leading_zero_fallback_count': fallback_counter['count'],
-        }
+
+        return _SyncCounters(
+            success=synced,
+            updated=updated,
+            unmatched=unmatched,
+            mapping_failed=mapping_failed,
+            failed=failed,
+            leading_zero_fallback=fallback_counter['count'],
+            total_fetched=total,
+            unmatched_nos=tuple(unmatched_nos),
+        )
 
     # ------------------------------------------------------------------
     # Bitable field listing (D-07)
