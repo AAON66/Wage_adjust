@@ -20,6 +20,15 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  // Don't overwrite a manually-set Authorization header (e.g. fetchCurrentUser after login
+  // passes a freshly-issued token that must take precedence over any stale localStorage token).
+  const existing =
+    typeof (config.headers as unknown as { get?: (name: string) => unknown })?.get === 'function'
+      ? (config.headers as unknown as { get: (name: string) => unknown }).get('Authorization')
+      : (config.headers as unknown as Record<string, unknown>)?.Authorization;
+  if (existing) {
+    return config;
+  }
   const token = window.localStorage.getItem(ACCESS_TOKEN_KEY);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -56,6 +65,11 @@ function clearAuthSession() {
   window.localStorage.removeItem(REFRESH_TOKEN_KEY);
   window.localStorage.removeItem(USER_KEY);
   window.dispatchEvent(new Event(AUTH_SESSION_EVENT));
+  // Redirect to login when session expires, unless we're already on a public page
+  const path = window.location.pathname;
+  if (path !== '/login' && path !== '/' && !path.startsWith('/api-docs')) {
+    window.location.href = `/login?from=${encodeURIComponent(path)}`;
+  }
 }
 
 api.interceptors.response.use(
@@ -65,6 +79,13 @@ api.interceptors.response.use(
     const originalRequest = error.config as RetryableRequestConfig | undefined;
 
     if (status !== 401 || !originalRequest || originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Don't try to refresh for auth endpoints themselves — login/refresh failures
+    // should bubble up, not trigger a refresh loop or clear session on bad password.
+    const url = originalRequest.url ?? '';
+    if (url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register')) {
       return Promise.reject(error);
     }
 

@@ -16,6 +16,7 @@ celery_app = Celery(
         'backend.app.tasks.test_tasks',
         'backend.app.tasks.evaluation_tasks',
         'backend.app.tasks.import_tasks',
+        'backend.app.tasks.feishu_sync_tasks',
     ],
 )
 
@@ -41,7 +42,12 @@ def dispose_db_engine_on_worker_init(**_: object) -> None:
     if session_bind is not engine:
         engine.dispose()
 
+    # 注册全部 ORM 模型，避免 relationship() 字符串引用无法解析
+    from backend.app.models import load_model_modules
+    load_model_modules()
+
 
 from backend.app.tasks import test_tasks as _test_tasks  # noqa: F401,E402
 from backend.app.tasks import evaluation_tasks as _evaluation_tasks  # noqa: F401,E402
 from backend.app.tasks import import_tasks as _import_tasks  # noqa: F401,E402
+from backend.app.tasks import feishu_sync_tasks as _feishu_sync_tasks  # noqa: F401,E402

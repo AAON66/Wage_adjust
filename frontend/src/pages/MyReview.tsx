@@ -28,7 +28,7 @@ import {
   uploadSubmissionFilesWithDuplicate,
 } from '../services/fileService';
 import { checkDuplicate } from '../services/sharingService';
-import { computeFileSHA256 } from '../utils/fileHash';
+import { computeFileSHA256, SubtleCryptoUnavailableError } from '../utils/fileHash';
 import { fetchSalaryRecommendationByEvaluation } from '../services/salaryService';
 import { ensureSubmission, fetchEmployeeSubmissions } from '../services/submissionService';
 import type {
@@ -415,8 +415,12 @@ export function MyReviewPage() {
         }
         item.status = 'clean';
         setFileQueue([...nextQueue]);
-      } catch {
-        setHashCheckStatus('error');
+      } catch (err) {
+        if (err instanceof SubtleCryptoUnavailableError) {
+          setHashCheckStatus('idle');
+        } else {
+          setHashCheckStatus('error');
+        }
         item.status = 'clean';
         setFileQueue([...nextQueue]);
       }

@@ -34,7 +34,7 @@ import {
   DuplicateFileException,
 } from '../services/fileService';
 import { checkDuplicate } from '../services/sharingService';
-import { computeFileSHA256 } from '../utils/fileHash';
+import { computeFileSHA256, SubtleCryptoUnavailableError } from '../utils/fileHash';
 import { fetchEmployee } from '../services/employeeService';
 import { fetchSalaryHistoryByEmployee, fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
@@ -1079,7 +1079,12 @@ export function EvaluationDetailPage() {
   }
 
   async function finishQueueAndUpload(queue: FileQueueItem[]) {
-    if (!submission) return;
+    if (!submission) {
+      setErrorMessage('尚未建立本周期的评估任务，无法上传。请先在「创建周期」页创建评估周期，并确认当前员工已分配。');
+      setIsUploading(false);
+      setFileQueue([]);
+      return;
+    }
     const cleanFiles = queue.filter((i) => i.status === 'clean').map((i) => i.file);
     const duplicateItems = queue.filter((i) => i.status === 'approvedToUpload');
 
@@ -1167,9 +1172,13 @@ export function EvaluationDetailPage() {
         }
         item.status = 'clean';
         setFileQueue([...nextQueue]);
-      } catch {
-        // graceful degradation: mark as clean, allow upload without check
-        setHashCheckStatus('error');
+      } catch (err) {
+        // 非 HTTPS 环境下 crypto.subtle 不可用 —— 静默跳过查重，走正常上传链路
+        if (err instanceof SubtleCryptoUnavailableError) {
+          setHashCheckStatus('idle');
+        } else {
+          setHashCheckStatus('error');
+        }
         item.status = 'clean';
         setFileQueue([...nextQueue]);
       }

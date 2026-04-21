@@ -113,11 +113,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function handleLogin(payload: LoginPayload): Promise<UserProfile> {
     const tokens = await loginRequest(payload);
-    const profile = await fetchCurrentUser(tokens.access_token);
-    storeAuthSession({ user: profile, tokens });
-    setUser(profile);
-    setAccessToken(tokens.access_token);
-    return profile;
+    // Store tokens BEFORE calling fetchCurrentUser so the axios request interceptor
+    // picks up the fresh access token from localStorage instead of any stale one.
+    updateStoredTokens(tokens);
+    try {
+      const profile = await fetchCurrentUser(tokens.access_token);
+      storeAuthSession({ user: profile, tokens });
+      setUser(profile);
+      setAccessToken(tokens.access_token);
+      return profile;
+    } catch (error) {
+      // If profile fetch fails, clean up the half-committed session so we don't
+      // leave tokens without a user record.
+      clearAuthStorage();
+      throw error;
+    }
   }
 
   async function handleLoginWithFeishu(code: string, state: string): Promise<UserProfile> {

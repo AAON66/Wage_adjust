@@ -31,7 +31,7 @@ def create_employee(
 @router.get("", response_model=EmployeeListResponse)
 def list_employees(
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=20, ge=1, le=100),
+    page_size: int = Query(default=20, ge=1, le=2000),
     department: str | None = Query(default=None),
     job_family: str | None = Query(default=None),
     status_filter: str | None = Query(default=None, alias="status"),

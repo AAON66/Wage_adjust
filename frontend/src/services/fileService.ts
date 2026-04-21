@@ -34,6 +34,7 @@ export async function uploadSubmissionFiles(
   try {
     const response = await api.post<UploadedFileListResponse>(`/submissions/${submissionId}/files`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: LONG_RUNNING_TIMEOUT,
     });
     return response.data;
   } catch (error) {
@@ -61,7 +62,10 @@ export async function uploadSubmissionFilesWithDuplicate(
   const response = await api.post<UploadedFileListResponse>(
     `/submissions/${submissionId}/files?allow_duplicate=true&original_file_id=${encodeURIComponent(originalFileId)}`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: LONG_RUNNING_TIMEOUT,
+    },
   );
   return response.data;
 }
@@ -76,6 +80,7 @@ export async function replaceSubmissionFile(fileId: string, file: File): Promise
   formData.append('file', file);
   const response = await api.put<UploadedFileRecord>(`/files/${fileId}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: LONG_RUNNING_TIMEOUT,
   });
   return response.data;
 }

@@ -27,7 +27,7 @@ export function EmployeeAdminPage() {
     setErrorMessage(null);
     try {
       const [employeeResponse, departmentResponse] = await Promise.all([
-        fetchEmployees({ page: 1, page_size: 100 }),
+        fetchEmployees({ page: 1, page_size: 2000 }),
         fetchDepartments(),
       ]);
       setEmployees(employeeResponse.items);

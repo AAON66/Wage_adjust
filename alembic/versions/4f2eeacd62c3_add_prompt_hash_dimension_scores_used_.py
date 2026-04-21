@@ -25,7 +25,7 @@ def upgrade() -> None:
 
     # Add used_fallback column to ai_evaluations (non-nullable boolean, default False)
     with op.batch_alter_table('ai_evaluations') as batch_op:
-        batch_op.add_column(sa.Column('used_fallback', sa.Boolean(), nullable=False, server_default='0'))
+        batch_op.add_column(sa.Column('used_fallback', sa.Boolean(), nullable=False, server_default=sa.text('false')))
 
 
 def downgrade() -> None:

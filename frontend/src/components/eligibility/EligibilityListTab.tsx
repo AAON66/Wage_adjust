@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useCallback, useEffect, useState } from 'react';
 
 import { useAuth } from '../../hooks/useAuth';
@@ -43,15 +44,32 @@ export function EligibilityListTab() {
   const [overrideReason, setOverrideReason] = useState('');
   const [overrideSubmitting, setOverrideSubmitting] = useState(false);
   const [overrideError, setOverrideError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetchEligibilityBatch({ ...filters, page, page_size: pageSize });
       setItems(res.items);
       setTotal(res.total);
-    } catch {
-      // error silently handled -- empty state shown
+    } catch (err) {
+      setItems([]);
+      setTotal(0);
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status;
+        if (status === 401) {
+          setLoadError('登录状态已失效，请退出后重新登录。');
+        } else if (status === 403) {
+          setLoadError('当前账号没有查看调薪资格的权限。');
+        } else if (status && status >= 500) {
+          setLoadError(`服务端错误 (${status})，请稍后再试或联系管理员。`);
+        } else {
+          setLoadError('加载失败，请稍后再试。');
+        }
+      } else {
+        setLoadError('网络异常，无法加载数据。');
+      }
     } finally {
       setLoading(false);
     }
@@ -133,6 +151,10 @@ export function EligibilityListTab() {
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className="h-12 animate-pulse rounded" style={{ background: 'var(--color-border)' }} />
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="surface px-6 py-8 text-center text-sm" style={{ color: 'var(--color-danger)' }}>
+          {loadError}
         </div>
       ) : items.length === 0 ? (
         <div className="surface px-6 py-12 text-center text-sm text-steel">暂无数据</div>

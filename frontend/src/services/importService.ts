@@ -12,7 +12,7 @@ export async function createImportJob(importType: string, file: File): Promise<T
   const response = await api.post<TaskTriggerResponse>(
     `/imports/jobs?import_type=${encodeURIComponent(importType)}`,
     formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
+    { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 120000 },
   );
   return response.data;
 }

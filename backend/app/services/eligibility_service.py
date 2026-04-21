@@ -15,9 +15,10 @@ from backend.app.engines.eligibility_engine import (
     EligibilityThresholds,
     RuleResult,
 )
-from backend.app.models.attendance_record import AttendanceRecord
+from backend.app.models.attendance_record import AttendanceRecord  # noqa: F401 (保留导入供他处引用)
 from backend.app.models.eligibility_override import EligibilityOverride
 from backend.app.models.employee import Employee
+from backend.app.models.non_statutory_leave import NonStatutoryLeave
 from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.salary_adjustment_record import SalaryAdjustmentRecord
 from backend.app.models.user import User
@@ -84,12 +85,14 @@ class EligibilityService:
         )
 
         non_statutory_leave_days: float | None = self.db.scalar(
-            select(func.sum(AttendanceRecord.non_statutory_leave_days))
+            select(func.sum(NonStatutoryLeave.total_days))
             .where(
-                AttendanceRecord.employee_id == employee_id,
-                AttendanceRecord.period.like(f'{year}%'),
+                NonStatutoryLeave.employee_id == employee_id,
+                NonStatutoryLeave.year == year,
             )
         )
+        if non_statutory_leave_days is not None:
+            non_statutory_leave_days = float(non_statutory_leave_days)
 
         engine = EligibilityEngine(thresholds=self._build_thresholds())
         return engine.evaluate(
@@ -129,19 +132,21 @@ class EligibilityService:
         ).all()
         adj_map: dict[str, date | None] = {row[0]: row[1] for row in adj_rows}
 
-        # Leave totals
+        # Leave totals（从 non_statutory_leaves 表读 —— 飞书同步「非法定假期」的落表位置）
         leave_rows = self.db.execute(
             select(
-                AttendanceRecord.employee_id,
-                func.sum(AttendanceRecord.non_statutory_leave_days),
+                NonStatutoryLeave.employee_id,
+                func.sum(NonStatutoryLeave.total_days),
             )
             .where(
-                AttendanceRecord.employee_id.in_(employee_ids),
-                AttendanceRecord.period.like(f'{year}%'),
+                NonStatutoryLeave.employee_id.in_(employee_ids),
+                NonStatutoryLeave.year == year,
             )
-            .group_by(AttendanceRecord.employee_id)
+            .group_by(NonStatutoryLeave.employee_id)
         ).all()
-        leave_map: dict[str, float | None] = {row[0]: row[1] for row in leave_rows}
+        leave_map: dict[str, float | None] = {
+            row[0]: float(row[1]) if row[1] is not None else None for row in leave_rows
+        }
 
         return perf_map, adj_map, leave_map
 

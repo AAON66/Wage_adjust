@@ -86,15 +86,36 @@ export function DashboardPage() {
 
     const cycleParam = selectedCycleId || undefined;
 
+    async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+      let lastError: unknown;
+      for (let i = 0; i < attempts; i++) {
+        try {
+          return await fn();
+        } catch (error) {
+          lastError = error;
+          // Don't retry 4xx/5xx HTTP errors with a proper response — those are deterministic.
+          // Only retry network errors (no response), since dashboard endpoints sometimes
+          // drop the connection transiently under concurrent load.
+          if (axios.isAxiosError(error) && error.response) {
+            throw error;
+          }
+          if (i < attempts - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+          }
+        }
+      }
+      throw lastError;
+    }
+
     async function loadAllChartData() {
       let hasError = false;
 
-      // Fetch all chart data in parallel
+      // Fetch all chart data in parallel, with auto-retry on transient network errors
       const results = await Promise.allSettled([
-        fetchAiLevelDistribution(cycleParam),
-        fetchSalaryDistribution(cycleParam),
-        fetchApprovalPipeline(cycleParam),
-        fetchDashboardSnapshot(cycleParam),
+        withRetry(() => fetchAiLevelDistribution(cycleParam)),
+        withRetry(() => fetchSalaryDistribution(cycleParam)),
+        withRetry(() => fetchApprovalPipeline(cycleParam)),
+        withRetry(() => fetchDashboardSnapshot(cycleParam)),
       ]);
 
       if (cancelled) return;

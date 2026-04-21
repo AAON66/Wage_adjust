@@ -342,8 +342,8 @@ class FeishuService:
         emp_rows = self.db.execute(select(Employee.employee_no, Employee.id)).all()
         return {emp_no: emp_id for emp_no, emp_id in emp_rows}
 
+    @staticmethod
     def _lookup_employee(
-        self,
         emp_map: dict[str, str],
         emp_no: str | None,
         *,
@@ -1194,6 +1194,10 @@ class FeishuService:
         failed = 0
         unmatched_nos: list[str] = []
         total = len(records)
+
+        # 诊断日志：打前 3 条非法定假期记录的映射后字典，便于定位字段映射问题
+        for idx, sample in enumerate(records[:3]):
+            logger.info('non_statutory_leave mapped sample #%d: %s', idx, sample)
 
         for record in records:
             try:

@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from backend.app.core.config import Settings, get_settings
@@ -337,7 +338,27 @@ class SalaryService:
         recommendation.status = 'recommended'
         recommendation.explanation = self._generate_salary_explanation(evaluation=evaluation, recommendation=recommendation)
         self.db.add(recommendation)
-        self.db.commit()
+        try:
+            self.db.commit()
+        except IntegrityError:
+            # 并发或重复提交：另一个请求已抢先为同一 evaluation_id 创建记录。
+            # 回滚、查回已存在记录并把新结果落到它上面。
+            self.db.rollback()
+            existing = self.get_recommendation_by_evaluation(evaluation_id)
+            if existing is None:
+                raise
+            existing.current_salary = result.current_salary
+            existing.recommended_ratio = result.recommended_ratio
+            existing.recommended_salary = result.recommended_salary
+            existing.ai_multiplier = result.ai_multiplier
+            existing.certification_bonus = result.certification_bonus
+            existing.final_adjustment_ratio = result.final_adjustment_ratio
+            existing.status = 'recommended'
+            existing.explanation = recommendation.explanation
+            self.db.add(existing)
+            self.db.commit()
+            self.db.refresh(existing)
+            return existing
         self.db.refresh(recommendation)
         return recommendation
 

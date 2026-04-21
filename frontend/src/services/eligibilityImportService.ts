@@ -14,6 +14,7 @@ export async function uploadEligibilityExcel(importType: EligibilityImportType, 
   formData.append('file', file);
   return api.post(`/eligibility-import/excel?import_type=${importType}`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: 120000,
   });
 }
 

@@ -131,7 +131,7 @@ def upgrade() -> None:
     sa.Column('hashed_password', sa.String(length=255), nullable=False),
     sa.Column('role', sa.String(length=50), nullable=False),
     sa.Column('id_card_no', sa.String(length=32), nullable=True),
-    sa.Column('must_change_password', sa.Boolean(), server_default='0', nullable=False),
+    sa.Column('must_change_password', sa.Boolean(), server_default=sa.text('false'), nullable=False),
     sa.Column('employee_id', sa.String(length=36), nullable=True),
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),

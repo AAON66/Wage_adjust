@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column('sync_hour', sa.Integer(), nullable=False, server_default='6'),
         sa.Column('sync_minute', sa.Integer(), nullable=False, server_default='0'),
         sa.Column('sync_timezone', sa.String(64), nullable=False, server_default='Asia/Shanghai'),
-        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('1')),
+        sa.Column('is_active', sa.Boolean(), nullable=False, server_default=sa.text('true')),
         sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
     )

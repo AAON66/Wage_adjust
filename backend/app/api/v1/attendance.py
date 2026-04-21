@@ -69,6 +69,7 @@ def get_employee_attendance(
             overtime_hours=record.overtime_hours,
             late_count=record.late_count,
             early_leave_count=record.early_leave_count,
+            leave_days=record.leave_days,
             data_as_of=record.data_as_of,
         ),
     }
