@@ -77,6 +77,7 @@ class SyncLogRead(BaseModel):
     skipped_count: int
     unmatched_count: int
     failed_count: int
+    leading_zero_fallback_count: int = 0
     error_message: Optional[str]
     unmatched_employee_nos: Optional[List[str]]
     started_at: datetime

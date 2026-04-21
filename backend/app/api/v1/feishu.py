@@ -21,7 +21,7 @@ from backend.app.schemas.feishu import (
     SyncTriggerRequest,
     SyncTriggerResponse,
 )
-from backend.app.services.feishu_service import FeishuService
+from backend.app.services.feishu_service import FeishuConfigValidationError, FeishuService
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +74,7 @@ def _sync_log_to_read(log) -> SyncLogRead:
         skipped_count=log.skipped_count,
         unmatched_count=log.unmatched_count,
         failed_count=log.failed_count,
+        leading_zero_fallback_count=log.leading_zero_fallback_count,
         error_message=log.error_message,
         unmatched_employee_nos=unmatched,
         started_at=log.started_at,
@@ -117,9 +118,22 @@ def create_config(
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_roles('admin')),
 ) -> FeishuConfigRead:
-    """创建飞书配置（仅 admin）。创建后自动重载调度器。"""
+    """创建飞书配置（仅 admin）。创建后自动重载调度器。
+
+    EMPNO-03 / D-01: 配置保存前会校验飞书端 employee_no 字段类型必须为 text；
+    非 text 类型返回 422 + 结构化错误 body。
+    """
     service = FeishuService(db)
-    config = service.create_config(data)
+    # Exception handler 透传路径: X
+    # main.py http_exception_handler 已对 HTTPException.detail 为 dict 时透传 (content=exc.detail)，
+    # 因此用 raise HTTPException(detail=exc.detail) 即可直接返回结构化 body。
+    try:
+        config = service.create_config(data)
+    except FeishuConfigValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.detail,
+        ) from exc
     try:
         reload_scheduler(config.sync_hour, config.sync_minute, config.sync_timezone)
     except Exception:
@@ -134,9 +148,20 @@ def update_config(
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_roles('admin')),
 ) -> FeishuConfigRead:
-    """更新飞书配置（仅 admin）。更新后自动重载调度器。"""
+    """更新飞书配置（仅 admin）。更新后自动重载调度器。
+
+    EMPNO-03 / D-01: 若 HR 修改了 field_mapping / bitable_app_token / bitable_table_id，
+    保存前会重新校验字段类型；非 text 类型返回 422 + 结构化错误 body。
+    """
     service = FeishuService(db)
-    config = service.update_config(config_id, data)
+    # Exception handler 透传路径: X (main.py 已支持 dict detail 透传)
+    try:
+        config = service.update_config(config_id, data)
+    except FeishuConfigValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=exc.detail,
+        ) from exc
     try:
         reload_scheduler(config.sync_hour, config.sync_minute, config.sync_timezone)
     except Exception:
