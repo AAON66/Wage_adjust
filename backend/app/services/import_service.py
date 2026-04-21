@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import re
 from collections.abc import Callable
 from decimal import Decimal, InvalidOperation
 
@@ -78,6 +79,14 @@ class ImportService:
         'performance_grades': ['employee_no'],
         'salary_adjustments': ['employee_no'],
     }
+
+    # D-07: 检测 Excel 工号列被错识别为数字后 pandas dtype=str 得到 '1234.0' 形态
+    _LEADING_ZERO_LOST_PATTERN = re.compile(r'^\d+\.0$')
+
+    # D-07: 需要跑 format sanity check 的「关键业务键」列（系统字段名）
+    # 跨所有 import_type 适用；per-type 通过 REQUIRED_COLUMNS 进一步过滤
+    _EMPLOYEE_NO_KEY_COLUMNS = frozenset({'employee_no', 'manager_employee_no'})
+
     COLUMN_LABELS = {
         'employee_no': '员工工号',
         'name': '员工姓名',
@@ -427,19 +436,44 @@ class ImportService:
         raise ValueError(self._localize_error_message('Unsupported file format. Please upload CSV for now.'))
 
     def _dispatch_import(self, import_type: str, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+        # row_index 语义（全局约定）：pandas DataFrame 0-based index 加 1 = 数据行号（不含 Excel 表头）。
+        # HR 对照 Excel 时需加 1（row_index=2 对应 Excel 第 3 行）。Phase 30 内不扩大改动。
         dataframe = self._normalize_columns(import_type, dataframe)
         required = self.REQUIRED_COLUMNS[import_type]
         missing = [column for column in required if column not in dataframe.columns]
         if missing:
             missing_labels = '、'.join(self._label_for_column(column) for column in missing)
             raise ValueError(f'缺少必填列：{missing_labels}。请重新下载最新模板后填写。')
+
+        # D-07: format sanity check —— 在派发到具体 _import_* 前检测前导零丢失
+        bad_rows = self._detect_leading_zero_loss_rows(dataframe)
+        results: list[dict[str, object]] = []
+        if bad_rows:
+            for pandas_idx in sorted(bad_rows.keys()):
+                row_index, col_name = bad_rows[pandas_idx]
+                col_label = self._label_for_column(col_name)
+                results.append({
+                    'row_index': row_index,
+                    'status': 'failed',
+                    'error_column': col_label,
+                    'message': (
+                        f'第 {row_index} 行{col_label}列格式异常（疑似丢失前导零）。'
+                        f'请在 Excel 中将该列改为「文本」格式后重新上传，或从系统重新下载最新模板。'
+                    ),
+                })
+            # 用 bool mask 丢弃坏行，**保留原 pandas index**（禁止 reset_index）
+            bad_mask = dataframe.index.isin(bad_rows.keys())
+            dataframe = dataframe.loc[~bad_mask].copy()
+
         if import_type == 'employees':
-            return self._import_employees(dataframe)
-        if import_type == 'performance_grades':
-            return self._import_performance_grades(dataframe)
-        if import_type == 'salary_adjustments':
-            return self._import_salary_adjustments(dataframe)
-        return self._import_certifications(dataframe)
+            results.extend(self._import_employees(dataframe))
+        elif import_type == 'performance_grades':
+            results.extend(self._import_performance_grades(dataframe))
+        elif import_type == 'salary_adjustments':
+            results.extend(self._import_salary_adjustments(dataframe))
+        else:
+            results.extend(self._import_certifications(dataframe))
+        return results
 
     def _normalize_columns(self, import_type: str, dataframe: pd.DataFrame) -> pd.DataFrame:
         alias_map = self.COLUMN_ALIASES.get(import_type, {})
@@ -472,6 +506,25 @@ class ImportService:
         if '补贴' in msg or 'bonus_rate' in msg.lower() or 'float' in msg.lower():
             return '补贴比例'
         return ''
+
+    @classmethod
+    def _detect_leading_zero_loss_rows(cls, dataframe: pd.DataFrame) -> dict[int, tuple[int, str]]:
+        """D-07: 扫描 dataframe 中的关键业务键列，返回 {pandas_idx: (row_index, column_name)} 映射。
+
+        row_index 语义：pandas 0-based index 加 1 = 数据行号（不含 Excel 表头）。
+        **与既有 _import_* 方法的 row_index 口径完全一致**（HR 对照 Excel 时需加 1 跳过表头行）。
+        值匹配 '^\\d+\\.0$' 视为「工号列格式异常（疑似丢失前导零）」。
+        """
+        bad_rows: dict[int, tuple[int, str]] = {}
+        for col_name in cls._EMPLOYEE_NO_KEY_COLUMNS:
+            if col_name not in dataframe.columns:
+                continue
+            for pandas_idx, value in dataframe[col_name].items():
+                if isinstance(value, str) and cls._LEADING_ZERO_LOST_PATTERN.match(value.strip()):
+                    row_index = int(pandas_idx) + 1  # 与 _import_* 口径一致
+                    if pandas_idx not in bad_rows:
+                        bad_rows[pandas_idx] = (row_index, col_name)
+        return bad_rows
 
     def _import_employees(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
         results: list[dict[str, object]] = []
