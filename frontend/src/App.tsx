@@ -24,6 +24,7 @@ import { MyReviewPage } from "./pages/MyReview";
 import { SalarySimulatorPage } from "./pages/SalarySimulator";
 import { SettingsPage } from "./pages/Settings";
 import { SharingRequestsPage } from "./pages/SharingRequests";
+import { SyncLogsPage } from "./pages/SyncLogsPage";
 import { ApiKeyManagementPage } from "./pages/ApiKeyManagement";
 import { AuditLogPage } from "./pages/AuditLog";
 import { UserAdminPage } from "./pages/UserAdmin";
@@ -460,6 +461,7 @@ export default function App() {
             <Route element={<SalarySimulatorPage />} path="/salary-simulator" />
             <Route element={<ImportCenterPage />} path="/import-center" />
             <Route element={<AttendanceManagementPage />} path="/attendance" />
+            <Route element={<SyncLogsPage />} path="/feishu/sync-logs" />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>

@@ -37,6 +37,11 @@
   --color-info: #1456F0;
   --color-info-bg: #EBF0FE;
 
+  /* Phase 31 / D-07: mapping_failed 专属紫色 token */
+  --color-violet: #722ED1;
+  --color-violet-bg: #F5EBFA;
+  --color-violet-border: #E1C9F0;
+
   /* Shadows */
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.10);

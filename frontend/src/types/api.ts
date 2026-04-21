@@ -778,15 +778,26 @@ export interface SyncTriggerResponse {
   message: string;
 }
 
+export type SyncLogSyncType =
+  | 'attendance'
+  | 'performance'
+  | 'salary_adjustments'
+  | 'hire_info'
+  | 'non_statutory_leave';
+
+export type SyncLogStatus = 'running' | 'success' | 'partial' | 'failed';
+
 export interface SyncLogRead {
   id: string;
+  sync_type: SyncLogSyncType;
   mode: string;
-  status: 'running' | 'success' | 'failed';
+  status: SyncLogStatus;
   total_fetched: number;
   synced_count: number;
   updated_count: number;
   skipped_count: number;
   unmatched_count: number;
+  mapping_failed_count: number;
   failed_count: number;
   leading_zero_fallback_count: number;
   error_message: string | null;
