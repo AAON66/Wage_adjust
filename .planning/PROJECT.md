@@ -77,6 +77,7 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ Employee company field: shared backend/frontend contract, import overwrite-clear-preserve semantics, admin form editing, detail-only visibility — validated in Phase 20
 - ✓ Login page Canvas particle background: full-viewport animated particles with distance-threshold linking, mouse repulsion, HiDPI, prefers-reduced-motion, and visibilitychange pause — validated in Phase 28 (LOGIN-02/03)
 - ✓ 工号前导零写入路径统一：Excel 模板/读入、飞书 `_map_fields` 去 int 误用、手动表单 Pydantic str 约束、飞书 bitable 字段类型 422 校验、容忍匹配计数器 `leading_zero_fallback_count` 与 SyncStatusCard 黄色提示 — 验证于 Phase 30 (EMPNO-01/02/03/04)；存量数据修补按 Phase 30 Success Criterion 4 显式不在范围内
+- ✓ 飞书同步可观测性：`FeishuSyncLog` 扩展 `sync_type` + `mapping_failed_count`；`FeishuService` 抽出 `_with_sync_log` helper + `_SyncCounters` dataclass 统一 5 类同步的 log 生命周期；`unmatched + mapping_failed + failed > 0 → partial` 硬切派生；per-sync_type 锁（409 不写 log）；HR 独立「同步日志」页面含 6 Tab + 5 色 badge + CSV 下载 + 详情抽屉 — 验证于 Phase 31 (IMPORT-03/04)；代码层 12/12 must-haves 全绿，9 项浏览器 UAT 留在 `31-HUMAN-UAT.md`
 
 ### Active (v1.4 in progress)
 
@@ -229,4 +230,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-21 after Phase 30 工号前导零修复 completion*
+*Last updated: 2026-04-21 after Phase 31 飞书同步可观测性 completion*
