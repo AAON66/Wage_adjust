@@ -27,6 +27,19 @@ from backend.app.schemas.feishu import FeishuConfigCreate, FeishuConfigUpdate, F
 logger = logging.getLogger(__name__)
 
 
+class FeishuConfigValidationError(ValueError):
+    """EMPNO-03 / D-01: 飞书配置校验失败（字段类型不符合要求等）。
+
+    detail dict 结构：
+        {'error': 'invalid_field_type', 'field': 'employee_no',
+         'expected': 'text', 'actual': '<type-name>'}
+    """
+
+    def __init__(self, detail: dict) -> None:
+        super().__init__(str(detail))
+        self.detail = detail
+
+
 class FeishuService:
     """飞书 API 集成服务 — token 管理、分页拉取、字段映射、事务性 upsert 和重试。"""
 
@@ -962,6 +975,135 @@ class FeishuService:
         return all_fields
 
     # ------------------------------------------------------------------
+    # Field mapping validation (EMPNO-03 / D-01 / D-02)
+    # ------------------------------------------------------------------
+
+    # EMPNO-03 / D-01 / D-02: 飞书字段类型枚举 — type=1 表示多行文本
+    _FEISHU_TEXT_FIELD_TYPE = 1
+
+    # D-01: 仅对关键业务键列做类型校验；其他字段 HR 可自由映射不同类型（例如日期列是 5）
+    _FIELD_MAPPING_REQUIRED_TYPES: dict[str, int] = {
+        'employee_no': _FEISHU_TEXT_FIELD_TYPE,
+    }
+
+    # D-01: 飞书 field type 整数 → 人类可读名称（错误 payload 用）
+    _FEISHU_FIELD_TYPE_NAMES: dict[int, str] = {
+        1: 'text',
+        2: 'number',
+        3: 'single_select',
+        4: 'multi_select',
+        5: 'datetime',
+        7: 'checkbox',
+        11: 'user',
+        13: 'phone',
+        15: 'url',
+        17: 'attachment',
+    }
+
+    def validate_field_mapping(
+        self,
+        *,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str],
+    ) -> None:
+        """D-01 公共 API：基于已持久化的 config 做字段类型校验。"""
+        config = self.get_config()
+        if config is None:
+            raise FeishuConfigValidationError({
+                'error': 'no_active_config',
+                'message': '未找到激活的飞书配置',
+            })
+        settings = get_settings()
+        app_secret = config.get_app_secret(settings.feishu_encryption_key)
+        self._validate_field_mapping_with_credentials(
+            app_id=config.app_id,
+            app_secret=app_secret,
+            app_token=app_token,
+            table_id=table_id,
+            field_mapping=field_mapping,
+        )
+
+    def _validate_field_mapping_with_credentials(
+        self,
+        *,
+        app_id: str,
+        app_secret: str,
+        app_token: str,
+        table_id: str,
+        field_mapping: dict[str, str],
+    ) -> None:
+        """D-01 辅助：直接用传入的 credentials 校验字段类型，不依赖已持久化 config。
+
+        创建/更新配置时可在 commit 前调用此方法；若校验失败抛 FeishuConfigValidationError。
+        """
+        token = self._ensure_token(app_id, app_secret)
+        url = f'{self.FEISHU_BASE_URL}/bitable/v1/apps/{app_token}/tables/{table_id}/fields'
+        headers = {'Authorization': f'Bearer {token}'}
+
+        fields_meta: list[dict] = []
+        page_token: str | None = None
+        while True:
+            params: dict = {'page_size': 100}
+            if page_token:
+                params['page_token'] = page_token
+            self._rate_limiter.wait_and_acquire()
+            try:
+                resp = httpx.get(url, headers=headers, params=params, timeout=30)
+                data = resp.json()
+            except Exception as exc:
+                raise FeishuConfigValidationError({
+                    'error': 'bitable_fields_fetch_failed',
+                    'message': f'无法拉取飞书字段元信息进行校验：{exc}',
+                }) from exc
+            if data.get('code') != 0:
+                raise FeishuConfigValidationError({
+                    'error': 'bitable_fields_fetch_failed',
+                    'message': f'飞书字段接口返回错误：code={data.get("code")} msg={data.get("msg")}',
+                })
+            for item in data.get('data', {}).get('items', []):
+                fields_meta.append({
+                    'field_name': item.get('field_name', ''),
+                    'type': item.get('type', 0),
+                })
+            has_more = data.get('data', {}).get('has_more', False)
+            page_token = data.get('data', {}).get('page_token')
+            if not has_more or not page_token:
+                break
+
+        feishu_name_to_type = {
+            item['field_name']: int(item.get('type', 0)) for item in fields_meta
+        }
+        # field_mapping 格式：{feishu_field_name: system_field_name}
+        reverse_mapping = {v: k for k, v in field_mapping.items()}
+
+        for system_field, required_type in self._FIELD_MAPPING_REQUIRED_TYPES.items():
+            feishu_field_name = reverse_mapping.get(system_field)
+            if feishu_field_name is None:
+                # HR 未映射该 system_field，validate 跳过
+                continue
+            actual_type_int = feishu_name_to_type.get(feishu_field_name)
+            if actual_type_int is None:
+                raise FeishuConfigValidationError({
+                    'error': 'field_not_found_in_bitable',
+                    'field': system_field,
+                    'feishu_field_name': feishu_field_name,
+                })
+            if actual_type_int != required_type:
+                actual_name = self._FEISHU_FIELD_TYPE_NAMES.get(
+                    actual_type_int, f'unknown({actual_type_int})',
+                )
+                expected_name = self._FEISHU_FIELD_TYPE_NAMES.get(
+                    required_type, str(required_type),
+                )
+                raise FeishuConfigValidationError({
+                    'error': 'invalid_field_type',
+                    'field': system_field,
+                    'expected': expected_name,
+                    'actual': actual_name,
+                })
+
+    # ------------------------------------------------------------------
     # Bitable URL parsing
     # ------------------------------------------------------------------
 
@@ -1044,9 +1186,21 @@ class FeishuService:
         ).scalar_one_or_none()
 
     def create_config(self, data: FeishuConfigCreate) -> FeishuConfig:
-        """创建飞书配置，加密 app_secret，序列化 field_mapping。"""
+        """创建飞书配置，加密 app_secret，序列化 field_mapping。
+
+        EMPNO-03 / D-01: 保存前校验 employee_no 映射字段类型必须为 text。
+        """
         settings = get_settings()
         field_mapping_dict = {item.feishu_field: item.system_field for item in data.field_mapping}
+
+        # D-01: 阻断非 text 类型的 employee_no 字段映射保存 — 必须在 FeishuConfig 实例化之前
+        self._validate_field_mapping_with_credentials(
+            app_id=data.app_id,
+            app_secret=data.app_secret,
+            app_token=data.bitable_app_token,
+            table_id=data.bitable_table_id,
+            field_mapping=field_mapping_dict,
+        )
 
         config = FeishuConfig(
             app_id=data.app_id,
@@ -1064,13 +1218,54 @@ class FeishuService:
         return config
 
     def update_config(self, config_id: str, data: FeishuConfigUpdate) -> FeishuConfig:
-        """更新飞书配置。app_secret 为 None 或空字符串时保留原值。"""
+        """更新飞书配置。app_secret 为 None 或空字符串时保留原值。
+
+        EMPNO-03 / D-01: 若 HR 修改了 field_mapping / bitable_app_token / bitable_table_id，
+        保存前重新校验字段类型；非 text 类型抛 FeishuConfigValidationError。
+        """
         config = self.db.get(FeishuConfig, config_id)
         if config is None:
             raise RuntimeError(f'Config {config_id} not found')
 
         settings = get_settings()
 
+        # D-01: 如果 field_mapping / bitable 坐标任一被修改，需要重新校验
+        needs_validation = (
+            data.field_mapping is not None
+            or data.bitable_app_token is not None
+            or data.bitable_table_id is not None
+        )
+        if needs_validation:
+            effective_app_id = data.app_id if data.app_id is not None else config.app_id
+            if data.app_secret and data.app_secret.strip():
+                effective_app_secret = data.app_secret
+            else:
+                effective_app_secret = config.get_app_secret(settings.feishu_encryption_key)
+            effective_app_token = (
+                data.bitable_app_token if data.bitable_app_token is not None
+                else config.bitable_app_token
+            )
+            effective_table_id = (
+                data.bitable_table_id if data.bitable_table_id is not None
+                else config.bitable_table_id
+            )
+            if data.field_mapping is not None:
+                effective_mapping = {
+                    item.feishu_field: item.system_field for item in data.field_mapping
+                }
+            else:
+                raw = config.field_mapping
+                effective_mapping = json.loads(raw) if isinstance(raw, str) else (raw or {})
+
+            self._validate_field_mapping_with_credentials(
+                app_id=effective_app_id,
+                app_secret=effective_app_secret,
+                app_token=effective_app_token,
+                table_id=effective_table_id,
+                field_mapping=effective_mapping,
+            )
+
+        # 以下保留原有写入逻辑
         if data.app_id is not None:
             config.app_id = data.app_id
         if data.app_secret and data.app_secret.strip():
