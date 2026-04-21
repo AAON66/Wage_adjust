@@ -917,27 +917,31 @@ export async function downloadUnmatchedCsv(logId: string): Promise<void> {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **过渡期 `performance_grades` alias 保留多久？**
    - 什么我们知道：Phase 31 上线后立即、Phase 32 肯定要移除（CONTEXT 暗示 Phase 32 会动 ELIGIBILITY_IMPORT_TYPES）。
    - 什么不清楚：是否在 Phase 31 内一次性清掉（降低复杂度，但承担 in-flight 风险）vs Phase 32 清（更稳，但代码里多一个 TODO）。
    - 推荐：Phase 31 保留 alias + TODO 注释 `# TODO(phase-32): remove performance_grades alias`；运维在升级 Phase 31 前 drain Celery queue。Plan 阶段确认。
+   - **RESOLVED:** Phase 31 保留 `performance_grades` alias + `# TODO(phase-32): remove performance_grades alias` 注释；运维在升级 Phase 31 前 drain Celery broker 中的 in-flight `performance_grades` 任务。Plan 03 Task 2 `sync_methods` dict 同时注册 `'performance'` 与 `'performance_grades'` 两个 key，并 `canonical_sync_type = 'performance' if sync_type == 'performance_grades' else sync_type` 规范化，确保 FeishuSyncLog.sync_type 永远只写 `'performance'`。
 
 2. **`skipped_count` 语义变更的数据迁移**
    - 什么我们知道：D-02 说「`skipped_count` 语义收紧为业务跳过」，新增 `mapping_failed_count` 专表字段映射失败。
    - 什么不清楚：存量日志的 `skipped_count` 保持不变，还是迁移时把一部分迁到 `mapping_failed_count`？
    - 推荐：**存量不迁移**（Phase 30 EMPNO-04 同理的保守原则）。新语义只在 Phase 31 之后产生的 log 上生效；存量 `skipped_count` 保留原语义。文档在 `SUMMARY.md` 明确记录。
+   - **RESOLVED:** 存量日志 `skipped_count` 不迁移（Phase 30 EMPNO-04 保守原则）。新语义（year/grade/date 解析失败归 `mapping_failed_count`；业务跳过保留到 `skipped_count`）只对 Phase 31 之后产生的 log 生效。Plan 01 Alembic 迁移不触碰 `skipped_count`；Plan 02 body 方法按 D-02 分流规则落地。SUMMARY.md 记录该口径差异供后续审计。
 
 3. **CSV 下载是否按 sync_type 差异化内容？**
    - 什么我们知道：D-08 锁定 CSV 单列 `employee_no`、前 20 行。
    - 什么不清楚：不同 sync_type 的 unmatched_employee_nos 字段都存在且口径一致？
    - 推荐：所有五类 sync 都已在容忍匹配命中后退还 emp_no 到 unmatched_nos（见 sync_attendance:394, sync_performance_records:538 等），Phase 31 helper 从 `_SyncCounters.unmatched_nos` 统一填入 `FeishuSyncLog.unmatched_employee_nos` — 口径一致。
+   - **RESOLVED:** 所有五类 sync 的 CSV 内容格式统一 — 单列 header `employee_no` + 前 20 行 unmatched_employee_nos；**不**按 sync_type 差异化。Plan 02 `_SyncCounters.unmatched_nos` tuple（≤100 条）统一填入 `FeishuSyncLog.unmatched_employee_nos`；Plan 03 `/sync-logs/{id}/unmatched.csv` 端点固定取前 20 条。
 
 4. **`mode` 字段对非 attendance 类型固定为 `'full'` — 前端如何渲染？**
    - 什么我们知道：D-04 说「前端列表展示 mode 列时仅对 `sync_type='attendance'` 显示，其他隐藏」。
    - 什么不清楚：具体是整列隐藏，还是某行显示「—」？
    - 推荐：行内按 sync_type 条件渲染 `mode`：attendance 时显示 full/incremental badge，其他显示空白或 `—`。Plan 阶段与视觉稿对齐。
+   - **RESOLVED:** 采用「行内按 sync_type 条件渲染」方案（整列保留，非 attendance 行显示 `—`），以与 D-04 语义严格对齐。Plan 04 SyncLogsPage `<thead>` 包含「模式」列（在「状态」与「计数」之间）；SyncLogRow.tsx 对 `log.sync_type === 'attendance'` 渲染 `<ModeBadge mode={log.mode} />`（full/incremental），其他类型渲染 `—`。整列保留的理由：避免 CSS grid 列数动态切换带来的重排，且 HR 一眼扫到「模式」列也能验证 attendance 行是否为 `full`/`incremental`。
 
 ---
 
