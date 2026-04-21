@@ -239,10 +239,15 @@ class FeishuService:
 
             if system_name == 'employee_no':
                 has_employee_no = True
-                if isinstance(value, float) and value == int(value):
-                    value = str(int(value))
-                else:
-                    value = str(value).strip()
+                # D-08: employee_no 永远按 text 处理。原 int(value) 路径会丢前导零（'02615' -> 2615.0 -> '2615'）。
+                # 飞书源字段类型若为「数字」，raw_value 就是 float，此时工号已在飞书存储层丢失前导零 —
+                # 仅记录 warning 让 HR 感知；配置保存时 validate_field_mapping 会阻断非 text 字段。
+                if not isinstance(raw_value, str):
+                    logger.warning(
+                        '飞书 employee_no 非文本类型，已强制转字符串（可能已丢失前导零）。raw_value=%r',
+                        raw_value,
+                    )
+                value = str(value).strip()
 
             mapped[system_name] = value
 
@@ -257,29 +262,44 @@ class FeishuService:
     # ------------------------------------------------------------------
 
     def _build_employee_map(self) -> dict[str, str]:
-        """Build employee_no → id map that tolerates leading-zero differences.
+        """Build employee_no → id map from DB (DB 真实视图，不预填充 stripped 版本)。
 
-        E.g. both '02615' and '2615' will match an employee stored as either form.
+        容忍匹配（lstrip('0')）在 _lookup_employee 的 fallback 分支实现；
+        fallback 命中时 fallback_counter['count'] += 1（EMPNO-04 / D-03 / D-04）。
+        该计数反映「飞书源与 DB 前导零不一致、靠 lstrip 救回」的真实记录数。
         """
         emp_rows = self.db.execute(select(Employee.employee_no, Employee.id)).all()
-        emp_map: dict[str, str] = {}
-        for emp_no, emp_id in emp_rows:
-            emp_map[emp_no] = emp_id
-            # Also index by stripped version so '02615' matches '2615' and vice versa
-            stripped = emp_no.lstrip('0') or '0'
-            if stripped not in emp_map:
-                emp_map[stripped] = emp_id
-        return emp_map
+        return {emp_no: emp_id for emp_no, emp_id in emp_rows}
 
-    @staticmethod
-    def _lookup_employee(emp_map: dict[str, str], emp_no: str | None) -> str | None:
-        """Find employee_id by trying exact match first, then stripped leading zeros."""
+    def _lookup_employee(
+        self,
+        emp_map: dict[str, str],
+        emp_no: str | None,
+        *,
+        fallback_counter: dict[str, int] | None = None,
+    ) -> str | None:
+        """Find employee_id by trying exact match first, then lstrip fallback.
+
+        EMPNO-04 / D-03: exact match 失败后，对 emp_map 每个 key 做 lstrip('0') 比对；
+        fallback 命中时若传入 fallback_counter，counter['count'] += 1。
+        该计数反映「飞书源工号与 DB 前导零不一致」的信号，不降级同步 status（D-04）。
+
+        fallback_counter 是一个共享的 dict（调用方传入），同步结束后随 FeishuSyncLog 落库。
+        """
         if not emp_no:
             return None
+        # exact match
         emp_id = emp_map.get(emp_no)
         if emp_id is not None:
             return emp_id
-        return emp_map.get(emp_no.lstrip('0') or '0')
+        # fallback: 对 emp_map 每个 key 做 lstrip 比对（B-10 修复：真正的「飞书丢前导零」路径）
+        stripped_key = emp_no.lstrip('0') or '0'
+        for map_key, map_id in emp_map.items():
+            if (map_key.lstrip('0') or '0') == stripped_key:
+                if fallback_counter is not None:
+                    fallback_counter['count'] = fallback_counter.get('count', 0) + 1
+                return map_id
+        return None
 
     # ------------------------------------------------------------------
     # Core sync logic (single transaction)
@@ -300,6 +320,7 @@ class FeishuService:
             started_at=now,
             triggered_by=triggered_by,
         )
+        fallback_counter: dict[str, int] = {'count': 0}
         self.db.add(sync_log)
         self.db.flush()
         sync_log_id = sync_log.id
@@ -353,7 +374,7 @@ class FeishuService:
                 try:
                     emp_no = record.get('employee_no')
                     logger.info('Matching emp_no=%r (type=%s) against emp_map', emp_no, type(emp_no).__name__)
-                    employee_id = self._lookup_employee(emp_map, emp_no)
+                    employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
 
                     if employee_id is None:
                         unmatched += 1
@@ -427,6 +448,7 @@ class FeishuService:
             sync_log.skipped_count = skipped
             sync_log.unmatched_count = unmatched
             sync_log.failed_count = failed
+            sync_log.leading_zero_fallback_count = fallback_counter['count']
             sync_log.status = 'success'
             sync_log.finished_at = datetime.now(timezone.utc)
             if unmatched_nos:
@@ -446,6 +468,7 @@ class FeishuService:
                     if fail_log:
                         fail_log.status = 'failed'
                         fail_log.error_message = str(exc)[:2000]
+                        fail_log.leading_zero_fallback_count = fallback_counter['count']
                         fail_log.finished_at = datetime.now(timezone.utc)
                         fail_db.commit()
                 finally:
@@ -487,6 +510,7 @@ class FeishuService:
 
         # Build employee_no -> employee_id mapping (handles leading-zero mismatch)
         emp_map = self._build_employee_map()
+        fallback_counter: dict[str, int] = {'count': 0}
 
         synced = 0
         skipped = 0
@@ -496,7 +520,7 @@ class FeishuService:
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no)
+                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
                 if employee_id is None:
                     logger.warning('Performance sync: employee_no=%s not found, skipping', emp_no)
                     skipped += 1
@@ -553,7 +577,14 @@ class FeishuService:
                 failed += 1
 
         self.db.commit()
-        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
+        return {
+            'synced': synced,
+            'skipped': skipped,
+            'failed': failed,
+            'total': total,
+            'leading_zero_fallback_count': fallback_counter['count'],
+        }
 
     # ------------------------------------------------------------------
     # Salary adjustments sync (ELIGIMP-02)
@@ -585,6 +616,7 @@ class FeishuService:
         records = self._fetch_all_records(token, app_token, table_id, field_mapping)
 
         emp_map = self._build_employee_map()
+        fallback_counter: dict[str, int] = {'count': 0}
 
         synced = 0
         updated = 0
@@ -595,7 +627,7 @@ class FeishuService:
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no)
+                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
                 if employee_id is None:
                     skipped += 1
                     continue
@@ -662,7 +694,15 @@ class FeishuService:
                 failed += 1
 
         self.db.commit()
-        return {'synced': synced, 'updated': updated, 'skipped': skipped, 'failed': failed, 'total': total}
+        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
+        return {
+            'synced': synced,
+            'updated': updated,
+            'skipped': skipped,
+            'failed': failed,
+            'total': total,
+            'leading_zero_fallback_count': fallback_counter['count'],
+        }
 
     # ------------------------------------------------------------------
     # Hire info sync (ELIGIMP-02)
@@ -693,6 +733,7 @@ class FeishuService:
         records = self._fetch_all_records(token, app_token, table_id, field_mapping)
 
         emp_map = self._build_employee_map()
+        fallback_counter: dict[str, int] = {'count': 0}
 
         synced = 0
         skipped = 0
@@ -702,7 +743,7 @@ class FeishuService:
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no)
+                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
                 if employee_id is None:
                     skipped += 1
                     continue
@@ -753,7 +794,14 @@ class FeishuService:
                 failed += 1
 
         self.db.commit()
-        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
+        return {
+            'synced': synced,
+            'skipped': skipped,
+            'failed': failed,
+            'total': total,
+            'leading_zero_fallback_count': fallback_counter['count'],
+        }
 
     # ------------------------------------------------------------------
     # Non-statutory leave sync (ELIGIMP-02)
@@ -785,6 +833,7 @@ class FeishuService:
         records = self._fetch_all_records(token, app_token, table_id, field_mapping)
 
         emp_map = self._build_employee_map()
+        fallback_counter: dict[str, int] = {'count': 0}
 
         synced = 0
         skipped = 0
@@ -794,7 +843,7 @@ class FeishuService:
         for record in records:
             try:
                 emp_no = record.get('employee_no')
-                employee_id = self._lookup_employee(emp_map, emp_no)
+                employee_id = self._lookup_employee(emp_map, emp_no, fallback_counter=fallback_counter)
                 if employee_id is None:
                     skipped += 1
                     continue
@@ -855,7 +904,14 @@ class FeishuService:
                 failed += 1
 
         self.db.commit()
-        return {'synced': synced, 'skipped': skipped, 'failed': failed, 'total': total}
+        # EMPNO-04 / D-03: 暴露前导零容忍匹配计数（等价于 sync_log.leading_zero_fallback_count = fallback_counter['count']）
+        return {
+            'synced': synced,
+            'skipped': skipped,
+            'failed': failed,
+            'total': total,
+            'leading_zero_fallback_count': fallback_counter['count'],
+        }
 
     # ------------------------------------------------------------------
     # Bitable field listing (D-07)
