@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import axios from 'axios';
+
 import { FieldMappingTable } from '../components/attendance/FieldMappingTable';
 import { AppShell } from '../components/layout/AppShell';
 import { createFeishuConfig, getFeishuConfig, updateFeishuConfig } from '../services/feishuService';
@@ -157,6 +159,38 @@ export function FeishuConfigPage() {
         setSuccessMessage('配置已创建');
       }
     } catch (err: unknown) {
+      // EMPNO-03: 优先识别字段类型校验失败的 422 错误，给出具体文案
+      if (axios.isAxiosError(err) && err.response?.status === 422) {
+        const detail = err.response.data?.detail ?? err.response.data;
+        if (detail && typeof detail === 'object' && detail.error === 'invalid_field_type') {
+          const actual = detail.actual ?? '未知';
+          const field = detail.field ?? 'employee_no';
+          if (field === 'employee_no') {
+            setErrorMessage(
+              `工号字段类型必须为文本（当前为 ${actual}），请在飞书多维表格中将该字段改为「文本」类型后重试`,
+            );
+            setErrors((prev) => ({
+              ...prev,
+              field_mapping: '工号字段类型必须为文本',
+            }));
+          } else {
+            setErrorMessage(`字段类型校验失败：${field} 应为文本，当前为 ${actual}`);
+          }
+          return;
+        }
+        if (detail && typeof detail === 'object' && detail.error === 'field_not_found_in_bitable') {
+          setErrorMessage(
+            `飞书多维表格中未找到字段「${detail.feishu_field_name ?? ''}」，请检查字段名是否拼写一致`,
+          );
+          return;
+        }
+        if (detail && typeof detail === 'object' && detail.error === 'bitable_fields_fetch_failed') {
+          setErrorMessage(
+            `无法校验飞书字段类型：${detail.message ?? '请稍后重试'}`,
+          );
+          return;
+        }
+      }
       if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {

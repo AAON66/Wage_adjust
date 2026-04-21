@@ -82,6 +82,11 @@ export function SyncStatusCard({ syncStatus, onRefresh }: SyncStatusCardProps) {
               {syncStatus.unmatched_count} 条记录因工号不匹配被跳过
             </p>
           ) : null}
+          {syncStatus && syncStatus.leading_zero_fallback_count > 0 ? (
+            <p className="mt-2 text-sm" style={{ color: 'var(--color-warning, #FF7D00)' }}>
+              {syncStatus.leading_zero_fallback_count} 条记录通过前导零容忍匹配成功，建议排查飞书源数据格式
+            </p>
+          ) : null}
         </div>
         <button className="chip-button" onClick={onRefresh} type="button">
           刷新状态

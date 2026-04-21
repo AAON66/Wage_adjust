@@ -788,6 +788,7 @@ export interface SyncLogRead {
   skipped_count: number;
   unmatched_count: number;
   failed_count: number;
+  leading_zero_fallback_count: number;
   error_message: string | null;
   unmatched_employee_nos: string[] | null;
   started_at: string;
