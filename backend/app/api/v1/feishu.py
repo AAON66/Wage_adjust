@@ -4,11 +4,12 @@ import json
 import logging
 import threading
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from backend.app.core.database import SessionLocal
 from backend.app.dependencies import get_db, require_roles
+from backend.app.models.feishu_sync_log import FeishuSyncLog
 from backend.app.models.user import User
 from backend.app.scheduler.feishu_scheduler import reload_scheduler
 from backend.app.schemas.feishu import (
@@ -20,6 +21,7 @@ from backend.app.schemas.feishu import (
     SyncLogRead,
     SyncTriggerRequest,
     SyncTriggerResponse,
+    SyncTypeLiteral,
 )
 from backend.app.services.feishu_service import FeishuConfigValidationError, FeishuService
 
@@ -229,13 +231,21 @@ def trigger_sync(
 
 @router.get('/sync-logs', response_model=list[SyncLogRead])
 def get_sync_logs(
-    limit: int = 20,
+    sync_type: SyncTypeLiteral | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
     db: Session = Depends(get_db),
     _current_user: User = Depends(require_roles('admin', 'hrbp')),
 ) -> list[SyncLogRead]:
-    """查看同步日志列表（admin + hrbp）。"""
+    """Phase 31 / D-05 / D-06: 同步日志列表（admin + hrbp）。
+
+    Query params:
+    - sync_type: 可选，按 SyncTypeLiteral 白名单过滤；非白名单值由 Pydantic 返回 422
+    - page: 页码，默认 1（ge=1）
+    - page_size: 页大小，默认 20（ge=1 le=100，防 DoS）
+    """
     service = FeishuService(db)
-    logs = service.get_sync_logs(limit=limit)
+    logs = service.get_sync_logs(sync_type=sync_type, page=page, page_size=page_size)
     return [_sync_log_to_read(log) for log in logs]
 
 

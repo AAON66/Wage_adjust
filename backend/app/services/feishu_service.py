@@ -1649,15 +1649,34 @@ class FeishuService:
         self.db.refresh(config)
         return config
 
-    def get_sync_logs(self, limit: int = 20) -> list[FeishuSyncLog]:
-        """获取同步日志列表，按时间倒序。"""
-        return list(
-            self.db.execute(
-                select(FeishuSyncLog)
-                .order_by(FeishuSyncLog.created_at.desc())
-                .limit(limit)
-            ).scalars().all()
-        )
+    def get_sync_logs(
+        self,
+        *,
+        sync_type: str | None = None,
+        page: int = 1,
+        page_size: int = 20,
+        limit: int | None = None,
+    ) -> list[FeishuSyncLog]:
+        """Phase 31 / D-05 / D-06: 列出同步日志（可按 sync_type 过滤 + 分页）。
+
+        - 无参调用：返回 page=1 page_size=20 的最新日志（向后兼容 AttendanceManagement 轮询）
+        - limit 参数保留向后兼容（旧调用 get_sync_logs(limit=20)）：有 limit 时忽略
+          page/page_size，只取前 limit 条
+        - started_at desc 排序（与旧 created_at desc 等价 —— 落库时 started_at=now
+          与 created_at 只差 ms；Phase 31 明确以 started_at 排序因为它是业务语义时间）
+        - offset 分页（Phase 31 不引入游标分页）
+
+        非白名单 sync_type 不抛异常，直接走 where 过滤返回空列表；白名单校验由调用
+        方（API 层的 Pydantic Literal 或 service 的 _VALID_SYNC_TYPES）负责。
+        """
+        stmt = select(FeishuSyncLog).order_by(FeishuSyncLog.started_at.desc())
+        if sync_type is not None:
+            stmt = stmt.where(FeishuSyncLog.sync_type == sync_type)
+        if limit is not None:
+            stmt = stmt.limit(limit)
+        else:
+            stmt = stmt.offset((page - 1) * page_size).limit(page_size)
+        return list(self.db.execute(stmt).scalars().all())
 
     def is_sync_running(self, sync_type: str | None = None) -> bool:
         """Phase 31 / D-15: per-sync_type 分桶锁检查。
