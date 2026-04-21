@@ -1,9 +1,22 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
+
+
+# Phase 31 / D-01: 五类同步（白名单） — 供 service/API/frontend 共同引用，避免字符串散落。
+SyncTypeLiteral = Literal[
+    'attendance',
+    'performance',
+    'salary_adjustments',
+    'hire_info',
+    'non_statutory_leave',
+]
+
+# Phase 31 / D-09: 同步状态收紧（新增 partial） — 供 service/API/frontend 共同引用。
+SyncStatusLiteral = Literal['running', 'success', 'partial', 'failed']
 
 
 class FieldMappingItem(BaseModel):
@@ -65,17 +78,19 @@ class SyncTriggerResponse(BaseModel):
 
 
 class SyncLogRead(BaseModel):
-    """同步日志响应。"""
+    """同步日志响应。Phase 31 新增 sync_type / mapping_failed_count + status 收紧为 Literal。"""
     model_config = ConfigDict(from_attributes=True)
 
     id: str
+    sync_type: SyncTypeLiteral               # NEW (D-01)
     mode: str
-    status: str
+    status: SyncStatusLiteral                # NARROWED (D-09): running / success / partial / failed
     total_fetched: int
     synced_count: int
     updated_count: int
     skipped_count: int
     unmatched_count: int
+    mapping_failed_count: int = 0            # NEW (D-02)
     failed_count: int
     leading_zero_fallback_count: int = 0
     error_message: Optional[str]

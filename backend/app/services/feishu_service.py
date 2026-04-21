@@ -322,6 +322,7 @@ class FeishuService:
         """同步考勤数据（full 或 incremental），单事务提交。"""
         now = datetime.now(timezone.utc)
         sync_log = FeishuSyncLog(
+            sync_type='attendance',  # Phase 31 / D-01: 区分五类同步
             mode=mode,
             status='running',
             total_fetched=0,
@@ -1150,6 +1151,7 @@ class FeishuService:
         # All retries failed — record final error
         now = datetime.now(timezone.utc)
         final_log = FeishuSyncLog(
+            sync_type='attendance',  # Phase 31 / D-01: 区分五类同步
             mode=mode,
             status='failed',
             total_fetched=0,

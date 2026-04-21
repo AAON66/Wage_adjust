@@ -66,6 +66,7 @@ def _sync_log_to_read(log) -> SyncLogRead:
 
     return SyncLogRead(
         id=log.id,
+        sync_type=log.sync_type,  # Phase 31 / D-01
         mode=log.mode,
         status=log.status,
         total_fetched=log.total_fetched,
@@ -73,6 +74,7 @@ def _sync_log_to_read(log) -> SyncLogRead:
         updated_count=log.updated_count,
         skipped_count=log.skipped_count,
         unmatched_count=log.unmatched_count,
+        mapping_failed_count=log.mapping_failed_count,  # Phase 31 / D-02
         failed_count=log.failed_count,
         leading_zero_fallback_count=log.leading_zero_fallback_count,
         error_message=log.error_message,

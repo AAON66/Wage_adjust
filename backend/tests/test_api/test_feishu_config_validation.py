@@ -195,6 +195,7 @@ def test_sync_logs_response_includes_leading_zero_fallback_count(
     admin_client: TestClient, db_session: Session,
 ) -> None:
     log = FeishuSyncLog(
+        sync_type='attendance',  # Phase 31 / D-01
         mode='full',
         status='success',
         total_fetched=100,
