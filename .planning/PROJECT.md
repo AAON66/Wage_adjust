@@ -76,13 +76,13 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ Celery+Redis async foundation: shared worker DB lifecycle, health endpoint, Docker-backed runtime proof, requirements closure — v1.2 Phase 19
 - ✓ Employee company field: shared backend/frontend contract, import overwrite-clear-preserve semantics, admin form editing, detail-only visibility — validated in Phase 20
 - ✓ Login page Canvas particle background: full-viewport animated particles with distance-threshold linking, mouse repulsion, HiDPI, prefers-reduced-motion, and visibilitychange pause — validated in Phase 28 (LOGIN-02/03)
+- ✓ 工号前导零写入路径统一：Excel 模板/读入、飞书 `_map_fields` 去 int 误用、手动表单 Pydantic str 约束、飞书 bitable 字段类型 422 校验、容忍匹配计数器 `leading_zero_fallback_count` 与 SyncStatusCard 黄色提示 — 验证于 Phase 30 (EMPNO-01/02/03/04)；存量数据修补按 Phase 30 Success Criterion 4 显式不在范围内
 
 ### Active (v1.4 in progress)
 
 - [ ] 员工端调薪资格自助可见：随时在员工页面展示资格状态与未通过规则明细
 - [ ] 绩效导入链路：新增「绩效管理」页面（导入/列表/历史）+ 修复调薪资格导入页的绩效分支
 - [ ] 绩效档次与历史展示：评估详情/调薪建议展示历史绩效；员工端显示 1/2/3 档（20/70/10，全公司对比）
-- [ ] 工号前导零保留：Excel / 飞书 / 手动录入统一按字符串保留，存量数据修补
 - [ ] 调薪资格导入功能修复：飞书同步成功但未落库根因；重复导入覆盖更新；Excel 模板下载与导入可用
 - [ ] Phase 11 导航菜单验证补齐：SUMMARY.md + UAT 清单验证
 
@@ -207,6 +207,7 @@ Layered monorepo: React SPA → FastAPI REST (`/api/v1/`) → Service layer → 
 **Known issues / tech debt:**
 - filter-before-paginate for eligibility batch query won't scale beyond ~10k employees — needs server-side cursor pagination
 - Phase 11 nav restructuring code is in the repo but planning artifacts are incomplete (no SUMMARY.md); functionality requires verification
+- 工号前导零存量数据未修补：Phase 30 只修复写入路径；DB 已有的 `1234` vs `01234` 历史差异需单独一次性清洗任务（暂无 owner/时间表）
 
 ---
 
@@ -228,4 +229,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-20 after v1.4 milestone kickoff*
+*Last updated: 2026-04-21 after Phase 30 工号前导零修复 completion*
