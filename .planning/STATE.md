@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 员工端体验完善与导入链路稳定性
-status: defining_requirements
-stopped_at: v1.4 requirements not yet defined
-last_updated: "2026-04-20T08:00:00.000Z"
-last_activity: 2026-04-20 — v1.4 milestone started
+status: planned
+stopped_at: v1.4 roadmap created, ready to plan Phase 30
+last_updated: "2026-04-21T00:00:00.000Z"
+last_activity: 2026-04-21 — v1.4 roadmap created (8 phases, 26 requirements, 100% coverage)
 progress:
-  total_phases: 0
+  total_phases: 8
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -26,12 +26,34 @@ See: .planning/PROJECT.md (updated 2026-04-20)
 ## Current Position
 
 Milestone: v1.4 started 2026-04-20
-Phase: Not started (defining requirements)
+Phase: Phase 30: 工号前导零修复 (1 of 8)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-20 — Milestone v1.4 started
+Status: Planned (roadmap created, ready to plan Phase 30)
+Last activity: 2026-04-21 — ROADMAP.md created with 8 phases (30-37), all 26 REQ-IDs mapped
 
-Progress: [░░░░░░░░░░] 0% (v1.4: 0/0 phases)
+Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0 (v1.4)
+- Average duration: —
+- Total execution time: —
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 30. 工号前导零修复 | 0/? | — | — |
+| 31. 飞书同步可观测性 | 0/? | — | — |
+| 32. 调薪资格导入功能补齐 | 0/? | — | — |
+| 33. 绩效档次纯引擎 | 0/? | — | — |
+| 34. 绩效管理服务与 API | 0/? | — | — |
+| 35. 员工端自助体验 | 0/? | — | — |
+| 36. 历史绩效展示 | 0/? | — | — |
+| 37. Phase 11 导航验证补齐 | 0/? | — | — |
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
@@ -48,20 +70,27 @@ Progress: [░░░░░░░░░░] 0% (v1.4: 0/0 phases)
 - 绩效档次按全公司范围 20/70/10 分档（v1.4 决策）
 - 员工端调薪资格随时可见（不绑定活动周期；v1.4 决策）
 - 绩效导入采用「独立绩效管理页 + 现有资格导入页修复」双轨方案（v1.4 决策）
+- 绩效分档算法：`PERCENT_RANK()` 口径 + ties 同档（v1.4 SUMMARY 决议 Conflict 1）
+- `performance_tier_min_sample_size` 默认 50，配置化（v1.4 SUMMARY 决议 Conflict 2）
+- 档位缓存 v1.4 MVP 用 `@lru_cache(year)` + 显式 `invalidate_tier_cache(year)`；快照表 schema 预留留空（v1.4 SUMMARY 决议 Conflict 3）
+- 存量工号不迁移，仅修复未来写入路径（EMPNO-04，Phase 30）
+- 员工端自助路由无参数（`/eligibility/me`、`/performance/me/tier`），不接受 `{employee_id}` 变体（ESELF-04，Phase 35）
 
 ### Pending Todos (surviving into next milestone)
 
 - boto3 Python 3.9 支持 2026-04-29 EOL — 未并入 v1.4，需单独跟踪 3.10+ 迁移
 - 资格批量查询游标分页 — 大数据量性能瓶颈，暂缓
-- Phase 11 导航菜单重构 — 已纳入 v1.4 验证补齐
+- 存量工号数据修补（EMPNO-05）— v1.4 决定不做，留 v1.5+
 
 ### Blockers/Concerns
 
 - Pillow 10.4.0 可能缺少 11+ 中独有的安全补丁 — 过渡期 3.9 可接受
 - numpy 2.0.2 vs 2.2.1 pandas 行为差异 — v1.2 Phase 18 已发布但仍在观察
+- `EligibilityMaskingService` 脱敏文案需合规审阅（v1.4 Phase 35 上线前门槛）
+- 档位刷新触发策略（自动 vs 手动）Phase 34 plan 阶段最终确认
 
 ## Session Continuity
 
-Last session: 2026-04-20T08:00:00.000Z
-Stopped at: v1.4 requirements not yet defined
-Next step: Gather requirements and spawn roadmapper
+Last session: 2026-04-21T00:00:00.000Z
+Stopped at: v1.4 ROADMAP.md 创建完成，Phase 30-37 结构 + 26 REQ-ID 映射 + STATE.md 同步
+Next step: `/gsd-plan-phase 30` 开始规划 Phase 30（工号前导零修复）

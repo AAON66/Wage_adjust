@@ -106,43 +106,53 @@ v1.4 明确不做的功能。
 
 ## Traceability
 
-由 Roadmapper 在创建 ROADMAP.md 时填充。
+由 Roadmapper 在 ROADMAP.md 创建时填充。
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ESELF-01 | — | Pending |
-| ESELF-02 | — | Pending |
-| ESELF-03 | — | Pending |
-| ESELF-04 | — | Pending |
-| ESELF-05 | — | Pending |
-| PERF-01 | — | Pending |
-| PERF-02 | — | Pending |
-| PERF-03 | — | Pending |
-| PERF-04 | — | Pending |
-| PERF-05 | — | Pending |
-| PERF-06 | — | Pending |
-| PERF-07 | — | Pending |
-| PERF-08 | — | Pending |
-| EMPNO-01 | — | Pending |
-| EMPNO-02 | — | Pending |
-| EMPNO-03 | — | Pending |
-| EMPNO-04 | — | Pending |
-| IMPORT-01 | — | Pending |
-| IMPORT-02 | — | Pending |
-| IMPORT-03 | — | Pending |
-| IMPORT-04 | — | Pending |
-| IMPORT-05 | — | Pending |
-| IMPORT-06 | — | Pending |
-| IMPORT-07 | — | Pending |
-| NAV-04 | — | Pending |
-| NAV-05 | — | Pending |
+| ESELF-01 | Phase 35 | Pending |
+| ESELF-02 | Phase 35 | Pending |
+| ESELF-03 | Phase 35 | Pending |
+| ESELF-04 | Phase 35 | Pending |
+| ESELF-05 | Phase 35 | Pending |
+| PERF-01 | Phase 34 | Pending |
+| PERF-02 | Phase 34 | Pending |
+| PERF-03 | Phase 33 | Pending |
+| PERF-04 | Phase 33 | Pending |
+| PERF-05 | Phase 34 | Pending |
+| PERF-06 | Phase 33 | Pending |
+| PERF-07 | Phase 36 | Pending |
+| PERF-08 | Phase 34 | Pending |
+| EMPNO-01 | Phase 30 | Pending |
+| EMPNO-02 | Phase 30 | Pending |
+| EMPNO-03 | Phase 30 | Pending |
+| EMPNO-04 | Phase 30 | Pending |
+| IMPORT-01 | Phase 32 | Pending |
+| IMPORT-02 | Phase 32 | Pending |
+| IMPORT-03 | Phase 31 | Pending |
+| IMPORT-04 | Phase 31 | Pending |
+| IMPORT-05 | Phase 32 | Pending |
+| IMPORT-06 | Phase 32 | Pending |
+| IMPORT-07 | Phase 32 | Pending |
+| NAV-04 | Phase 37 | Pending |
+| NAV-05 | Phase 37 | Pending |
 
 **Coverage:**
 - v1.4 requirements: 26 total
-- Mapped to phases: 0（pending roadmap）
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0 ✓
+
+**Phase distribution:**
+- Phase 30 (工号前导零修复): 4 requirements — EMPNO-01/02/03/04
+- Phase 31 (飞书同步可观测性): 2 requirements — IMPORT-03/04
+- Phase 32 (调薪资格导入功能补齐): 5 requirements — IMPORT-01/02/05/06/07
+- Phase 33 (绩效档次纯引擎): 3 requirements — PERF-03/04/06
+- Phase 34 (绩效管理服务与 API): 4 requirements — PERF-01/02/05/08
+- Phase 35 (员工端自助体验): 5 requirements — ESELF-01/02/03/04/05
+- Phase 36 (历史绩效展示): 1 requirement — PERF-07
+- Phase 37 (Phase 11 导航验证补齐): 2 requirements — NAV-04/05
 
 ---
 
 *Requirements defined: 2026-04-21*
-*Last updated: 2026-04-21 after v1.4 kickoff*
+*Last updated: 2026-04-21 after v1.4 roadmap creation (8 phases, 100% coverage)*
