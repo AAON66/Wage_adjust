@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import csv
+import io
 import json
 import logging
 import threading
@@ -205,13 +207,20 @@ def trigger_sync(
 
     service = FeishuService(db)
 
-    # Concurrent sync guard — also expire stale 'running' logs older than 30 min
+    # D-17: Concurrent sync guard — also expire stale 'running' logs older than 30 min
+    # (covers all 5 sync_types uniformly per Plan 02 is_sync_running upgrade)
     service.expire_stale_running_logs(timeout_minutes=30)
 
-    if service.is_sync_running():
+    # D-15 / D-16: per-sync_type bucket lock. trigger_sync only serves attendance;
+    # other sync_types are triggered via Celery feishu_sync_eligibility_task.
+    if service.is_sync_running(sync_type='attendance'):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={'error': 'sync_in_progress', 'message': '同步正在进行中，请稍后再试'},
+            detail={
+                'error': 'sync_in_progress',
+                'sync_type': 'attendance',
+                'message': '考勤同步正在进行中，请稍后再试',
+            },
         )
 
     # Launch background thread (sync_attendance creates its own log)
@@ -247,6 +256,52 @@ def get_sync_logs(
     service = FeishuService(db)
     logs = service.get_sync_logs(sync_type=sync_type, page=page, page_size=page_size)
     return [_sync_log_to_read(log) for log in logs]
+
+
+@router.get('/sync-logs/{log_id}/unmatched.csv')
+def download_unmatched_csv(
+    log_id: str,
+    db: Session = Depends(get_db),
+    _current_user: User = Depends(require_roles('admin', 'hrbp')),
+) -> Response:
+    """Phase 31 / D-08: 下载未匹配工号 CSV（admin + hrbp）。
+
+    - 单列 header: employee_no
+    - 前 20 行（unmatched_employee_nos[:20]）— 若无则仅 header
+    - Content-Type: text/csv; charset=utf-8
+    - Content-Disposition: attachment; filename=sync-log-{log_id}-unmatched.csv
+    """
+    log = db.get(FeishuSyncLog, log_id)
+    if log is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='sync log not found',
+        )
+
+    nos: list[str] = []
+    if log.unmatched_employee_nos:
+        try:
+            parsed = json.loads(log.unmatched_employee_nos)
+            if isinstance(parsed, list):
+                nos = [str(x) for x in parsed]
+        except (json.JSONDecodeError, TypeError):
+            logger.warning(
+                'Failed to parse unmatched_employee_nos for log_id=%s', log_id
+            )
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(['employee_no'])
+    for no in nos[:20]:
+        writer.writerow([no])
+
+    return Response(
+        content=buf.getvalue(),
+        media_type='text/csv; charset=utf-8',
+        headers={
+            'Content-Disposition': f'attachment; filename=sync-log-{log_id}-unmatched.csv',
+        },
+    )
 
 
 @router.get('/sync-status', response_model=SyncLogRead | None)
