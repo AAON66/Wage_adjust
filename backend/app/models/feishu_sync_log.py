@@ -24,6 +24,9 @@ class FeishuSyncLog(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
     skipped_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     unmatched_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     failed_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # D-03/D-04: 本次同步中通过 _build_employee_map 的 lstrip('0') 容忍匹配命中的记录数。
+    # 数值 > 0 不降级同步状态，UI 层以黄色文字提示建议排查飞书源数据格式。
+    leading_zero_fallback_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default='0')
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     unmatched_employee_nos: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
