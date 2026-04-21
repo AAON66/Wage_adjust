@@ -4,8 +4,9 @@ import json
 import logging
 import re
 import time
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Tuple
+from typing import Callable, Tuple
 
 import httpx
 from sqlalchemy import select
@@ -25,6 +26,63 @@ from backend.app.models.feishu_sync_log import FeishuSyncLog
 from backend.app.schemas.feishu import FeishuConfigCreate, FeishuConfigUpdate, FieldMappingItem
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Phase 31 / D-01 / D-11 / D-14: Sync observability infrastructure
+# ---------------------------------------------------------------------------
+
+_VALID_SYNC_TYPES: frozenset[str] = frozenset({
+    'attendance',
+    'performance',
+    'salary_adjustments',
+    'hire_info',
+    'non_statutory_leave',
+})
+
+
+@dataclass(frozen=True, slots=True)
+class _SyncCounters:
+    """Phase 31 / D-11: 业务 sync fn 统一返回的 counters dataclass。
+
+    Helper `_with_sync_log` 把这些字段映射到 `FeishuSyncLog` 列，
+    避免 dict key 拼写错误在 runtime 才暴露。
+    """
+
+    success: int = 0                        # 新增记录数（对应 log.synced_count）
+    updated: int = 0                        # 更新现有记录数
+    unmatched: int = 0                      # 工号未匹配到 employee
+    mapping_failed: int = 0                 # D-02: 字段类型/格式转换失败
+    failed: int = 0                         # upsert / commit 异常
+    leading_zero_fallback: int = 0          # Phase 30: lstrip('0') 命中计数
+    total_fetched: int = 0                  # 飞书拉取总数
+    unmatched_nos: tuple[str, ...] = ()     # 前 100 个未匹配工号
+
+
+def _derive_status(c: _SyncCounters) -> str:
+    """Phase 31 / D-14: partial 派生硬切规则。
+
+    若 unmatched + mapping_failed + failed > 0 则 partial，否则 success。
+    leading_zero_fallback 不参与派生 — 它代表「救回来的」成功匹配（Pitfall E）。
+    """
+    if c.unmatched + c.mapping_failed + c.failed > 0:
+        return 'partial'
+    return 'success'
+
+
+def _apply_counters_to_log(log: FeishuSyncLog, c: _SyncCounters) -> None:
+    """Phase 31: 把 _SyncCounters 映射到 FeishuSyncLog 列（helper 终态阶段调用）。"""
+    log.total_fetched = c.total_fetched
+    log.synced_count = c.success
+    log.updated_count = c.updated
+    log.unmatched_count = c.unmatched
+    log.mapping_failed_count = c.mapping_failed
+    log.failed_count = c.failed
+    log.leading_zero_fallback_count = c.leading_zero_fallback
+    log.status = _derive_status(c)
+    log.finished_at = datetime.now(timezone.utc)
+    if c.unmatched_nos:
+        log.unmatched_employee_nos = json.dumps(list(c.unmatched_nos))
 
 
 class FeishuConfigValidationError(ValueError):
@@ -313,6 +371,124 @@ class FeishuService:
                     fallback_counter['count'] = fallback_counter.get('count', 0) + 1
                 return map_id
         return None
+
+    # ------------------------------------------------------------------
+    # Phase 31 / D-10 / D-13: unified sync-log lifecycle helper
+    # ------------------------------------------------------------------
+
+    def _with_sync_log(
+        self,
+        sync_type: str,
+        fn: Callable,
+        *,
+        triggered_by: str | None = None,
+        mode: str = 'full',
+        **kwargs,
+    ) -> str:
+        """Phase 31 / D-10 / D-13: 统一的 sync log 生命周期调度。
+
+        Returns sync_log_id. 调用方通过 `self.db.get(FeishuSyncLog, sync_log_id)`
+        获取终态对象（注意 self.db 可能持有过期数据，需要 `expire_all` / 在独立 session 查）。
+
+        Semantics:
+          - Stage 1: 独立 SessionLocal() 创建 status='running' log（commit 独立于 self.db）
+          - Stage 2: 调用 fn(sync_log_id=..., **kwargs) → 期望返回 _SyncCounters
+          - Stage 3: 独立 SessionLocal() 写终态（success / partial / failed）
+          - 业务 fn 抛异常 → log.status='failed' + error_message，然后重抛业务异常
+          - 独立 session 写 log 本身抛异常 → logger.exception 不 reraise（避免覆盖业务异常，Pitfall A）
+        """
+        if sync_type not in _VALID_SYNC_TYPES:
+            raise ValueError(
+                f'Unknown sync_type: {sync_type!r}; valid: {sorted(_VALID_SYNC_TYPES)}'
+            )
+
+        # Stage 1: 独立 session 创建 running log
+        started_at = datetime.now(timezone.utc)
+        log_db = SessionLocal()
+        try:
+            sync_log = FeishuSyncLog(
+                sync_type=sync_type,
+                mode=mode,
+                status='running',
+                total_fetched=0,
+                synced_count=0,
+                updated_count=0,
+                skipped_count=0,
+                unmatched_count=0,
+                mapping_failed_count=0,
+                failed_count=0,
+                leading_zero_fallback_count=0,
+                started_at=started_at,
+                triggered_by=triggered_by,
+            )
+            log_db.add(sync_log)
+            log_db.commit()
+            sync_log_id = sync_log.id
+        finally:
+            log_db.close()
+
+        # Stage 2: 业务 fn（使用 self.db；fn 内部应 self.db.commit()）
+        counters: _SyncCounters | None = None
+        business_exc: Exception | None = None
+        try:
+            counters = fn(sync_log_id=sync_log_id, **kwargs)
+            if not isinstance(counters, _SyncCounters):
+                raise TypeError(
+                    f'Sync fn for sync_type={sync_type!r} returned '
+                    f'{type(counters).__name__}, expected _SyncCounters'
+                )
+        except Exception as exc:
+            business_exc = exc
+            try:
+                self.db.rollback()
+            except Exception:
+                logger.exception(
+                    'Business session rollback failed for sync_log_id=%s', sync_log_id
+                )
+
+        # Stage 3: 独立 session 写终态
+        try:
+            finalize_db = SessionLocal()
+        except Exception:
+            logger.exception(
+                'Failed to open finalize session for FeishuSyncLog %s', sync_log_id
+            )
+            finalize_db = None  # type: ignore[assignment]
+
+        if finalize_db is not None:
+            try:
+                log_row = finalize_db.get(FeishuSyncLog, sync_log_id)
+                if log_row is None:
+                    logger.error(
+                        'FeishuSyncLog %s disappeared before finalization', sync_log_id
+                    )
+                elif business_exc is not None:
+                    log_row.status = 'failed'
+                    log_row.error_message = str(business_exc)[:2000]
+                    log_row.finished_at = datetime.now(timezone.utc)
+                    finalize_db.commit()
+                else:
+                    assert counters is not None
+                    _apply_counters_to_log(log_row, counters)
+                    finalize_db.commit()
+            except Exception:
+                logger.exception(
+                    'Failed to finalize FeishuSyncLog %s', sync_log_id
+                )
+                # Swallow — do NOT overwrite business_exc (Pitfall A)
+            finally:
+                try:
+                    finalize_db.close()
+                except Exception:
+                    logger.exception(
+                        'Failed to close finalize session for FeishuSyncLog %s',
+                        sync_log_id,
+                    )
+
+        if business_exc is not None:
+            raise business_exc
+
+        return sync_log_id
 
     # ------------------------------------------------------------------
     # Core sync logic (single transaction)
@@ -1300,11 +1476,18 @@ class FeishuService:
             ).scalars().all()
         )
 
-    def is_sync_running(self) -> bool:
-        """检查是否有正在运行的同步任务（防并发同步）。"""
-        return self.db.execute(
-            select(FeishuSyncLog).where(FeishuSyncLog.status == 'running').limit(1)
-        ).scalar_one_or_none() is not None
+    def is_sync_running(self, sync_type: str | None = None) -> bool:
+        """Phase 31 / D-15: per-sync_type 分桶锁检查。
+
+        传 sync_type 时仅查该 type 的 status='running' 记录（同 type 互斥）；
+        不传时查所有 running（保留向后兼容，现有 /feishu/sync trigger_sync 调用仍有效）。
+
+        非白名单 sync_type 不抛异常，返回 False（让调用方决定是否拒绝）。
+        """
+        stmt = select(FeishuSyncLog).where(FeishuSyncLog.status == 'running')
+        if sync_type is not None:
+            stmt = stmt.where(FeishuSyncLog.sync_type == sync_type)
+        return self.db.execute(stmt.limit(1)).scalar_one_or_none() is not None
 
     def expire_stale_running_logs(self, timeout_minutes: int = 30) -> int:
         """将超时的 running 日志标记为 failed，防止僵死日志永久阻塞同步。"""
