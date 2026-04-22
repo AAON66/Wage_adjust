@@ -294,7 +294,9 @@ class PerformanceService:
                 str(k): float(v) for k, v in result.actual_distribution.items()
             }
             snapshot.skipped_invalid_grades = result.skipped_invalid_grades
-            # updated_at 由 UpdatedAtMixin.onupdate 自动刷新
+            # 显式刷新 updated_at — UpdatedAtMixin.onupdate 在所有字段值未变时不触发，
+            # 但 HR 「最近重算」时间戳必须反映按钮最后点击时间（gap from Phase 34 UAT Item 5）
+            snapshot.updated_at = datetime.now(timezone.utc)
 
             self.db.add(snapshot)
             self.db.commit()

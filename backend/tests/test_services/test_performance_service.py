@@ -302,6 +302,48 @@ def test_recompute_tiers_updates_existing_snapshot(db_session, employee_factory)
     assert len(rows) == 1
 
 
+def test_recompute_tiers_idempotent_call_still_refreshes_updated_at(
+    db_session, employee_factory,
+):
+    """Phase 34 UAT Item 5 gap closure: 重复调用 recompute_tiers（无数据变化）也必须刷新 updated_at。
+
+    根因：SQLAlchemy UpdatedAtMixin.onupdate 只在字段值变化时触发。
+    当业务数据不变时（idempotent recompute），updated_at 不会自动刷新，
+    导致 HR UI 的「最近重算」时间戳不能反映按钮最后点击时间。
+    修复：recompute_tiers 在 commit 前显式 snapshot.updated_at = datetime.now(UTC)。
+    """
+    import time
+    cache = _make_mock_cache()
+    _make_records(db_session, employee_factory, year=2026, count=60, grade='B')
+    service = PerformanceService(db_session, cache=cache)
+
+    service.recompute_tiers(2026)
+    snap1 = db_session.scalar(
+        select(PerformanceTierSnapshot).where(PerformanceTierSnapshot.year == 2026)
+    )
+    first_updated_at = snap1.updated_at
+    assert first_updated_at is not None
+
+    # Sleep ≥ 10ms 确保下一次 datetime.now() 至少差 10 微秒（防止 SQLite datetime 精度问题）
+    time.sleep(0.01)
+    db_session.expire_all()
+
+    # 重新调 recompute_tiers — 业务数据完全没变（同 60 条 grade='B' records）
+    service.recompute_tiers(2026)
+    snap2 = db_session.scalar(
+        select(PerformanceTierSnapshot).where(PerformanceTierSnapshot.year == 2026)
+    )
+    second_updated_at = snap2.updated_at
+    assert second_updated_at is not None
+    assert second_updated_at > first_updated_at, (
+        f'updated_at 应在每次 recompute_tiers 调用后刷新（即使业务数据不变），'
+        f'first={first_updated_at}, second={second_updated_at}'
+    )
+    # 业务数据仍正确
+    assert snap2.sample_size == 60
+    assert snap2.id == snap1.id  # 同一行
+
+
 def test_recompute_tiers_calls_engine_with_grades(db_session, employee_factory):
     cache = _make_mock_cache()
     _make_records(db_session, employee_factory, year=2026, count=55, grade='A')
