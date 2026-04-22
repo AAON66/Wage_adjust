@@ -1000,3 +1000,109 @@ export interface TaskStatusResponse {
   result?: unknown;
   error?: string;
 }
+
+// ===================== Phase 32 调薪资格导入 (IMPORT-01/02/05/06/07) =====================
+
+/** 调薪资格导入支持的 4 种数据类型（与后端 ImportType enum 一一对应）。 */
+export type EligibilityImportType =
+  | 'performance_grades'
+  | 'salary_adjustments'
+  | 'hire_info'
+  | 'non_statutory_leave';
+
+/**
+ * ImportJob 状态机 union — Phase 32 加 'previewing' / 'cancelled'
+ * （解决 Pitfall 2 stricter typing：旧 `ImportJobRecord.status` 不含两阶段提交所需新状态）。
+ *
+ * 状态流：pending → previewing → processing → completed / partial / failed / cancelled
+ */
+export type ImportJobStatus =
+  | 'pending'
+  | 'previewing'
+  | 'processing'
+  | 'completed'
+  | 'failed'
+  | 'partial'
+  | 'cancelled';
+
+/** 覆盖模式：merge=空值保留旧值；replace=空值清空字段（破坏性，需二次确认）。 */
+export type OverwriteMode = 'merge' | 'replace';
+
+/** Preview 单行的动作分类（D-08）。 */
+export type PreviewRowAction = 'insert' | 'update' | 'no_change' | 'conflict';
+
+/** 字段级 diff（D-08）：old 旧值 / new 新值并排展示。 */
+export interface FieldDiff {
+  old: unknown | null;
+  new: unknown | null;
+}
+
+/** Preview 单行结果（D-07 / D-08）。 */
+export interface PreviewRow {
+  /** Excel 行号（含表头偏移；与 HR 看到的行号一致：pandas idx + 2） */
+  row_number: number;
+  action: PreviewRowAction;
+  employee_no: string;
+  fields: Record<string, FieldDiff>;
+  conflict_reason?: string | null;
+}
+
+/** Preview 4 色计数（D-08）。 */
+export interface PreviewCounters {
+  insert: number;
+  update: number;
+  no_change: number;
+  conflict: number;
+}
+
+/** D-07: preview 端点返回结构。 */
+export interface PreviewResponse {
+  job_id: string;
+  import_type: EligibilityImportType;
+  file_name: string;
+  total_rows: number;
+  counters: PreviewCounters;
+  rows: PreviewRow[];
+  rows_truncated: boolean;
+  truncated_count: number;
+  /** ISO datetime 字符串；preview 暂存文件过期时间（D-17） */
+  preview_expires_at: string;
+  /** 暂存文件 sha256，confirm 阶段后端会再次校验防外部篡改（T-32-14） */
+  file_sha256: string;
+}
+
+/** confirm 端点请求体（job_id 在 URL path）。 */
+export interface ConfirmRequest {
+  overwrite_mode: OverwriteMode;
+  /** replace 模式下必须为 true（与前端二次确认 modal 的 checkbox 对应；D-11） */
+  confirm_replace?: boolean;
+}
+
+/** confirm 端点返回结构（执行结果汇总）。 */
+export interface ConfirmResponse {
+  job_id: string;
+  status: Extract<ImportJobStatus, 'completed' | 'partial' | 'failed'>;
+  total_rows: number;
+  inserted_count: number;
+  updated_count: number;
+  no_change_count: number;
+  failed_count: number;
+  execution_duration_ms: number;
+}
+
+/** D-18: GET /excel/active?import_type=X 返回（前端轮询锁状态）。 */
+export interface ActiveJobResponse {
+  active: boolean;
+  job_id?: string | null;
+  status?: Extract<ImportJobStatus, 'previewing' | 'processing'> | null;
+  /** ISO datetime 字符串 */
+  created_at?: string | null;
+  file_name?: string | null;
+}
+
+/** 409 错误响应 detail 结构（D-16 + Plan 04）；body 顶层即为此结构（无 detail 包裹）。 */
+export interface ImportConflictDetail {
+  error: 'import_in_progress';
+  import_type: EligibilityImportType;
+  message: string;
+}
