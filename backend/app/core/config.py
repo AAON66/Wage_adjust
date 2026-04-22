@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     # Performance tier engine threshold (D-10 — Phase 33)
     performance_tier_min_sample_size: int = 50
 
+    # Performance tier cache & recompute (Phase 34 D-02 / D-03)
+    performance_tier_redis_prefix: str = 'tier_summary'
+    performance_tier_redis_ttl_seconds: int = 86_400
+    performance_tier_recompute_timeout_seconds: int = 5
+
     log_level: str = "INFO"
     log_format: str = "json"
 
