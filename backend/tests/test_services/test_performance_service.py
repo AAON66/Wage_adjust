@@ -9,8 +9,9 @@
 """
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
 from sqlalchemy import select
@@ -19,6 +20,7 @@ from sqlalchemy.exc import OperationalError
 from backend.app.engines import PerformanceTierConfig, PerformanceTierEngine
 from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.performance_tier_snapshot import PerformanceTierSnapshot
+from backend.app.schemas.performance import MyTierResponse
 from backend.app.services.exceptions import (
     TierRecomputeBusyError,
     TierRecomputeFailedError,
@@ -466,3 +468,180 @@ def test_list_available_years_empty_returns_current_year(db_session):
     service = PerformanceService(db_session)
     years = service.list_available_years()
     assert years == [date.today().year]
+
+
+# ==== Phase 35 ESELF-03: get_my_tier 用例 ====
+# NOTE: datetime / UUID / MyTierResponse 已在文件顶部 import 区提升，section 内不再 inline import。
+
+
+def test_get_my_tier_returns_no_snapshot_when_db_empty(db_session, employee_factory):
+    """分支 A：全库无任何 PerformanceTierSnapshot → reason='no_snapshot'。"""
+    emp = employee_factory(employee_no='E35001')
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert isinstance(result, MyTierResponse)
+    assert result.year is None
+    assert result.tier is None
+    assert result.reason == 'no_snapshot'
+    assert result.data_updated_at is None
+
+
+def test_get_my_tier_returns_insufficient_sample_when_flag_true(db_session, employee_factory):
+    """分支 B：当前年快照 insufficient_sample=True → reason='insufficient_sample'，tier=None。"""
+    current_year = datetime.now().year
+    emp = employee_factory(employee_no='E35002')
+    snap = PerformanceTierSnapshot(
+        year=current_year,
+        tiers_json={},
+        sample_size=5,
+        insufficient_sample=True,
+        distribution_warning=False,
+        actual_distribution_json={},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    db_session.refresh(snap)
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert result.year == current_year
+    assert result.tier is None
+    assert result.reason == 'insufficient_sample'
+    assert result.data_updated_at is not None
+    assert result.data_updated_at == snap.updated_at
+
+
+def test_get_my_tier_returns_tier_when_employee_in_tiers_json(db_session, employee_factory):
+    """分支 C：当前年快照命中 + tiers_json[str(uuid)] == 2 → tier=2, reason=None。"""
+    current_year = datetime.now().year
+    emp = employee_factory(employee_no='E35003')
+    snap = PerformanceTierSnapshot(
+        year=current_year,
+        tiers_json={str(emp.id): 2},
+        sample_size=100,
+        insufficient_sample=False,
+        distribution_warning=False,
+        actual_distribution_json={'1': 0.2, '2': 0.7, '3': 0.1},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert result.year == current_year
+    assert result.tier == 2
+    assert result.reason is None
+
+
+def test_get_my_tier_accepts_uuid_object_and_stringifies_key(db_session, employee_factory):
+    """str(UUID) lookup：调用方传 UUID 对象时，内部 str(employee_id) 匹配 tiers_json str key。"""
+    current_year = datetime.now().year
+    emp = employee_factory(employee_no='E35004')
+    emp_uuid = UUID(emp.id) if isinstance(emp.id, str) else emp.id
+    snap = PerformanceTierSnapshot(
+        year=current_year,
+        tiers_json={str(emp.id): 1},
+        sample_size=80,
+        insufficient_sample=False,
+        distribution_warning=False,
+        actual_distribution_json={'1': 0.25, '2': 0.65, '3': 0.10},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
+    # 传 UUID 对象也应命中
+    result_uuid = service.get_my_tier(emp_uuid)
+    assert result_uuid.tier == 1
+    # 传 str 也应命中
+    result_str = service.get_my_tier(str(emp.id))
+    assert result_str.tier == 1
+
+
+def test_get_my_tier_returns_not_ranked_when_key_missing(db_session, employee_factory):
+    """分支 D-1：key 不存在于 tiers_json → reason='not_ranked'。"""
+    current_year = datetime.now().year
+    emp = employee_factory(employee_no='E35005')
+    other_emp = employee_factory(employee_no='E35006')
+    snap = PerformanceTierSnapshot(
+        year=current_year,
+        tiers_json={str(other_emp.id): 1},  # 仅 other，不含 emp
+        sample_size=60,
+        insufficient_sample=False,
+        distribution_warning=False,
+        actual_distribution_json={'1': 0.2, '2': 0.7, '3': 0.1},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert result.year == current_year
+    assert result.tier is None
+    assert result.reason == 'not_ranked'
+    assert result.data_updated_at is not None
+
+
+def test_get_my_tier_returns_not_ranked_when_value_is_none(db_session, employee_factory):
+    """分支 D-2：tiers_json[str(uuid)] is None → reason='not_ranked'。"""
+    current_year = datetime.now().year
+    emp = employee_factory(employee_no='E35007')
+    snap = PerformanceTierSnapshot(
+        year=current_year,
+        tiers_json={str(emp.id): None},
+        sample_size=60,
+        insufficient_sample=False,
+        distribution_warning=False,
+        actual_distribution_json={},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert result.tier is None
+    assert result.reason == 'not_ranked'
+
+
+def test_get_my_tier_falls_back_to_latest_year_when_current_missing(db_session, employee_factory):
+    """分支 E (fallback)：当前年无快照 → 使用 ORDER BY year DESC 最新年快照。"""
+    current_year = datetime.now().year
+    older_year = current_year - 2  # 绝对不等于 current_year
+    emp = employee_factory(employee_no='E35008')
+    snap = PerformanceTierSnapshot(
+        year=older_year,
+        tiers_json={str(emp.id): 3},
+        sample_size=50,
+        insufficient_sample=False,
+        distribution_warning=False,
+        actual_distribution_json={'1': 0.2, '2': 0.7, '3': 0.1},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert result.year == older_year  # ← fallback 到旧年
+    assert result.tier == 3
+    assert result.reason is None
+
+
+def test_get_my_tier_invariant_tier_implies_reason_none(db_session, employee_factory):
+    """不变式：tier in {1,2,3} → reason 必为 None（D-04 契约）。"""
+    current_year = datetime.now().year
+    emp = employee_factory(employee_no='E35009')
+    snap = PerformanceTierSnapshot(
+        year=current_year,
+        tiers_json={str(emp.id): 2},
+        sample_size=100,
+        insufficient_sample=False,
+        distribution_warning=False,
+        actual_distribution_json={},
+        skipped_invalid_grades=0,
+    )
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
+    result = service.get_my_tier(str(emp.id))
+    assert result.tier in {1, 2, 3}
+    assert result.reason is None, f'tier={result.tier} 时 reason 必须为 None'
