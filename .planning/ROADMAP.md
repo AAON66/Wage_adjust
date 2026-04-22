@@ -91,7 +91,7 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
 - [x] **Phase 30: 工号前导零修复** - Excel/飞书/手动三链路统一按字符串处理 employee_no，修复下游数据键源头 (EMPNO-01/02/03/04) (completed 2026-04-21)
 - [x] **Phase 31: 飞书同步可观测性** - 四个同步方法统一写入 `FeishuSyncLog` 五类计数器，HR 可自助诊断「假成功」问题 (IMPORT-03/04) (completed 2026-04-21)
 - [x] **Phase 32: 调薪资格导入功能补齐** - 补齐 hire_info/non_statutory_leave 两类导入、Excel 模板下载、覆盖语义、并发互斥、Preview+diff (IMPORT-01/02/05/06/07) (completed 2026-04-22)
-- [ ] **Phase 32.1: 员工端调薪资格自助可见 (紧急 MVP)** - 员工在 MyReview 顶部看到本人调薪资格（4 态徽章 + 4 条规则全展开 + 数据更新时间戳），无参数路由 `/eligibility/me` 防越权 (ESELF-01/02/04/05；ESELF-03 绩效档次推迟到 Phase 35)
+- [x] **Phase 32.1: 员工端调薪资格自助可见 (紧急 MVP)** - 员工在 MyReview 顶部看到本人调薪资格（4 态徽章 + 4 条规则全展开 + 数据更新时间戳），无参数路由 `/eligibility/me` 防越权 (ESELF-01/02/04/05；ESELF-03 绩效档次推迟到 Phase 35) (completed 2026-04-22)
 - [ ] **Phase 33: 绩效档次纯引擎** - `PerformanceTierEngine` 按 `PERCENT_RANK` 口径分档，ties 同档、样本不足返回 null、分布偏离告警 (PERF-03/04/06)
 - [ ] **Phase 34: 绩效管理服务与 API** - 新增「绩效管理」页面 + `/api/v1/performance` 路由 + 档次缓存/快照 + 导入回调触发重算 (PERF-01/02/05/08)
 - [ ] **Phase 35: 员工端自助体验** - 在 32.1 已建好的「调薪资格」panel 下方追加绩效档次徽章 + 完整无参数路由 `/performance/me/tier` (ESELF-03)
@@ -160,8 +160,8 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
   4. 员工 A 不能通过任何路径拿到员工 B 的资格 —— `/eligibility/me` 端点无 path 参数（actor 由 JWT subject 决定），`/eligibility/{employee_id}` 仍仅 admin/hrbp/manager 可调
   5. 页面右上角显示「数据更新于 YYYY-MM-DD HH:MM」（zh-CN locale，无秒）；data_updated_at 取 employee/performance/salary_adjustment/non_statutory_leave 四个数据源 updated_at 的最大值
 **Plans**: 2 plans
-- [ ] 32.1-01-PLAN.md — 后端：EligibilityResultSchema 加 data_updated_at + Service 层 compute_data_updated_at + GET /api/v1/eligibility/me 端点 + 5 用例 API 测试
-- [ ] 32.1-02-PLAN.md — 前端：EligibilityResultWithTimestamp 类型 + fetchMyEligibility service + MyEligibilityPanel 组件（4 态 + 4 色规则行 + 时间戳 + 错误态）+ MyReview 集成 + 浏览器 UAT 4 项
+- [x] 32.1-01-PLAN.md — 后端：EligibilityResultSchema 加 data_updated_at + Service 层 compute_data_updated_at + GET /api/v1/eligibility/me 端点 + 5 用例 API 测试
+- [x] 32.1-02-PLAN.md — 前端：EligibilityResultWithTimestamp 类型 + fetchMyEligibility service + MyEligibilityPanel 组件（4 态 + 4 色规则行 + 时间戳 + 错误态）+ MyReview 集成 + 浏览器 UAT 4 项
 
 ### Phase 33: 绩效档次纯引擎
 **Goal**: 系统能根据排序后的绩效列表计算每个员工的 1/2/3 档（20/70/10），ties 归入同档，小样本下返回 null，分布偏离硬切比例时产生告警信号
@@ -261,7 +261,7 @@ Phases execute in numeric order: 30 → 31 → 32 → 32.1 → 33 → 34 → 35 
 | 30. 工号前导零修复 | v1.4 | 4/4 | Complete    | 2026-04-21 |
 | 31. 飞书同步可观测性 | v1.4 | 4/4 | Complete    | 2026-04-21 |
 | 32. 调薪资格导入功能补齐 | v1.4 | 6/6 | Complete    | 2026-04-22 |
-| 32.1. 员工端资格自助 (紧急 MVP) | v1.4 | 0/2 | Not started | — |
+| 32.1. 员工端资格自助 (紧急 MVP) | v1.4 | 2/2 | Complete    | 2026-04-22 |
 | 33. 绩效档次纯引擎 | v1.4 | 0/? | Not started | — |
 | 34. 绩效管理服务与 API | v1.4 | 0/? | Not started | — |
 | 35. 员工端自助体验 | v1.4 | 0/? | Not started | — |

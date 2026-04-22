@@ -4,13 +4,13 @@ milestone: v1.4
 milestone_name: 员工端体验完善与导入链路稳定性
 status: executing
 stopped_at: Phase 32.1 context gathered
-last_updated: "2026-04-22T02:20:12.097Z"
+last_updated: "2026-04-22T03:18:02.663Z"
 last_activity: 2026-04-22
 progress:
   total_phases: 9
-  completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  completed_phases: 4
+  total_plans: 16
+  completed_plans: 16
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- with every decision explainable and traceable
-**Current focus:** Phase 32 — 调薪资格导入功能补齐
+**Current focus:** Phase 32.1 — employee-eligibility-visibility
 
 ## Current Position
 
 Milestone: v1.4 started 2026-04-20
 Phase: 33
 Plan: Not started
-Status: Executing Phase 32
+Status: Executing Phase 32.1
 Last activity: 2026-04-22
 
 Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
@@ -37,7 +37,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
 
 **Velocity:**
 
-- Total plans completed: 14 (v1.4)
+- Total plans completed: 16 (v1.4)
 - Average duration: —
 - Total execution time: —
 
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
 | 30 | 4 | - | - |
 | 31 | 4 | - | - |
 | 32 | 6 | - | - |
+| 32.1 | 2 | - | - |
 
 *Updated after each plan completion*
 
