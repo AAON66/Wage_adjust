@@ -1436,6 +1436,351 @@ class ImportService:
         return results
 
     # ==================================================================
+    # Phase 32-03 D-06 / D-07 / D-08 / D-09: 两阶段提交之 preview 阶段
+    # ==================================================================
+
+    def _detect_in_file_conflicts(
+        self,
+        import_type: str,
+        dataframe: pd.DataFrame,
+    ) -> dict[int, str]:
+        """D-09: 同一批文件内业务键重复检测。
+
+        按 _BUSINESS_KEYS 中定义的业务键分组，count > 1 的 group 内所有行
+        都返回 conflict reason。pandas dropna=False 保证 NaN 也参与分组
+        （避免空值被分组忽略）。
+
+        Returns: {pandas_idx: conflict_reason} 仅含冲突行
+        """
+        keys = self._BUSINESS_KEYS.get(import_type)
+        if not keys or not all(k in dataframe.columns for k in keys):
+            return {}
+        grouped = dataframe.groupby(keys, dropna=False)
+        conflicts: dict[int, str] = {}
+        for key_tuple, group in grouped:
+            if len(group) > 1:
+                if not isinstance(key_tuple, tuple):
+                    key_tuple = (key_tuple,)
+                key_str = ', '.join(
+                    f'{k}={v}' for k, v in zip(keys, key_tuple)
+                )
+                reason = (
+                    f'同文件内 ({key_str}) 出现 {len(group)} 次，'
+                    f'请仅保留一行后重新上传'
+                )
+                for idx in group.index:
+                    conflicts[int(idx)] = reason
+        return conflicts
+
+    def _build_row_diff(
+        self,
+        import_type: str,
+        row: 'pd.Series',
+    ) -> tuple[str, dict[str, dict]]:
+        """D-08: 逐行算 diff，返回 (action, fields_dict)。
+
+        简化策略：仅查 DB 现状对比新值，**不真正落库**（preview 是只读阶段）。
+
+        各 import_type 的查询逻辑：
+          - hire_info: 找 Employee by employee_no，对比 hire_date / last_salary_adjustment_date
+          - non_statutory_leave: 找 NonStatutoryLeave by (employee_id, year)
+          - performance_grades: 找 PerformanceRecord by (employee_id, year)
+          - salary_adjustments: 找 SalaryAdjustmentRecord by (employee_id, adjustment_date, adjustment_type)
+
+        action 取值：'insert' | 'update' | 'no_change' | 'conflict'
+        ('conflict' 仅在员工不存在或字段解析失败时返回；同文件冲突由
+        _detect_in_file_conflicts 提前拦截，不会进到本函数。)
+        """
+        emp_no = str(row.get('employee_no', '')).strip()
+        if not emp_no:
+            return 'no_change', {}
+
+        emp = self.db.execute(
+            select(Employee).where(Employee.employee_no == emp_no)
+        ).scalar_one_or_none()
+        if emp is None:
+            return 'conflict', {}
+
+        if import_type == 'hire_info':
+            try:
+                new_hire = self._parse_excel_date(row.get('hire_date'))
+                new_last_adj = self._parse_excel_date(
+                    row.get('last_salary_adjustment_date')
+                )
+            except ValueError:
+                return 'conflict', {}
+            old_hire = emp.hire_date
+            old_last_adj = emp.last_salary_adjustment_date
+            fields: dict[str, dict] = {}
+            changed = False
+            if new_hire is not None and new_hire != old_hire:
+                fields['hire_date'] = {
+                    'old': old_hire.isoformat() if old_hire else None,
+                    'new': new_hire.isoformat(),
+                }
+                changed = True
+            if new_last_adj is not None and new_last_adj != old_last_adj:
+                fields['last_salary_adjustment_date'] = {
+                    'old': old_last_adj.isoformat() if old_last_adj else None,
+                    'new': new_last_adj.isoformat(),
+                }
+                changed = True
+            if not changed:
+                return 'no_change', {}
+            return 'update', fields
+
+        if import_type == 'non_statutory_leave':
+            try:
+                year = int(float(str(row.get('year', '')).strip()))
+            except (ValueError, TypeError):
+                return 'conflict', {}
+            existing = self.db.execute(
+                select(NonStatutoryLeave).where(
+                    NonStatutoryLeave.employee_id == emp.id,
+                    NonStatutoryLeave.year == year,
+                )
+            ).scalar_one_or_none()
+            new_days_str = str(row.get('total_days', '')).strip()
+            raw_type = row.get('leave_type')
+            new_type = (
+                str(raw_type).strip()
+                if raw_type is not None and str(raw_type).strip()
+                else None
+            )
+            if existing is None:
+                return 'insert', {
+                    'year': {'old': None, 'new': year},
+                    'total_days': {'old': None, 'new': new_days_str or None},
+                    'leave_type': {'old': None, 'new': new_type},
+                }
+            try:
+                new_days = Decimal(new_days_str) if new_days_str else None
+            except InvalidOperation:
+                return 'conflict', {}
+            fields = {}
+            if new_days is not None and new_days != existing.total_days:
+                fields['total_days'] = {
+                    'old': str(existing.total_days),
+                    'new': str(new_days),
+                }
+            if new_type is not None and new_type != existing.leave_type:
+                fields['leave_type'] = {
+                    'old': existing.leave_type,
+                    'new': new_type,
+                }
+            return ('update' if fields else 'no_change'), fields
+
+        if import_type == 'performance_grades':
+            try:
+                year = int(float(str(row.get('year', '')).strip()))
+            except (ValueError, TypeError):
+                return 'conflict', {}
+            existing = self.db.execute(
+                select(PerformanceRecord).where(
+                    PerformanceRecord.employee_id == emp.id,
+                    PerformanceRecord.year == year,
+                )
+            ).scalar_one_or_none()
+            new_grade = str(row.get('grade', '')).strip()
+            if existing is None:
+                return 'insert', {'grade': {'old': None, 'new': new_grade}}
+            if existing.grade == new_grade:
+                return 'no_change', {}
+            return 'update', {'grade': {'old': existing.grade, 'new': new_grade}}
+
+        if import_type == 'salary_adjustments':
+            try:
+                adj_date = self._parse_excel_date(row.get('adjustment_date'))
+            except ValueError:
+                return 'conflict', {}
+            raw_type = row.get('adjustment_type')
+            adj_type = (
+                str(raw_type).strip()
+                if raw_type is not None and str(raw_type).strip()
+                else None
+            )
+            if not adj_date or not adj_type:
+                return 'conflict', {}
+            # 与 _import_salary_adjustments 一致，做中文标签映射
+            adj_type_code = self._ADJ_TYPE_MAP.get(adj_type, adj_type.lower())
+            existing = self.db.execute(
+                select(SalaryAdjustmentRecord).where(
+                    SalaryAdjustmentRecord.employee_id == emp.id,
+                    SalaryAdjustmentRecord.adjustment_date == adj_date,
+                    SalaryAdjustmentRecord.adjustment_type == adj_type_code,
+                )
+            ).scalar_one_or_none()
+            new_amount_str = str(row.get('amount', '')).strip()
+            if existing is None:
+                return 'insert', {
+                    'amount': {
+                        'old': None,
+                        'new': new_amount_str or None,
+                    }
+                }
+            old_amount_str = (
+                str(existing.amount) if existing.amount is not None else None
+            )
+            if old_amount_str == (new_amount_str or None):
+                return 'no_change', {}
+            return 'update', {
+                'amount': {
+                    'old': old_amount_str,
+                    'new': new_amount_str or None,
+                }
+            }
+
+        return 'no_change', {}
+
+    def build_preview(
+        self,
+        *,
+        import_type: str,
+        file_name: str,
+        raw_bytes: bytes,
+        actor_id: str | None = None,
+    ) -> 'PreviewResponse':  # type: ignore[name-defined]
+        """D-06 + D-07 + D-08 + D-09: preview 阶段（两阶段提交之第一步）。
+
+        流程：
+          1) 解析 xlsx → dataframe
+          2) 创建 ImportJob status='previewing' + 落盘暂存文件 + 算 sha256
+          3) 检测同文件内业务键冲突
+          4) 逐行算 diff（insert/update/no_change/conflict）
+          5) 按优先级截断到 200 行（conflict > insert > update > no_change）
+          6) 写 result_summary.preview = {counters, rows, file_sha256, expires_at}
+          7) 返回 PreviewResponse
+
+        Raises:
+            ValueError: import_type 不支持 / 文件为空 / 行数超限
+        """
+        # 延迟 import 避免循环：schemas/import_preview.py 仅 service 用
+        from backend.app.schemas.import_preview import (
+            FieldDiff,
+            PreviewCounters,
+            PreviewResponse,
+            PreviewRow,
+        )
+
+        normalized_type = import_type.strip().lower()
+        if normalized_type not in self.SUPPORTED_TYPES:
+            raise ValueError(
+                self._localize_error_message('Unsupported import type.')
+            )
+        if not raw_bytes:
+            raise ValueError(
+                self._localize_error_message('Uploaded file is empty.')
+            )
+
+        # 解析 xlsx
+        dataframe = self._load_table(file_name, raw_bytes)
+        if len(dataframe) > self.MAX_ROWS:
+            raise ValueError(
+                f'单次导入不能超过 {self.MAX_ROWS} 行，请分批导入。'
+            )
+        dataframe = self._normalize_columns(normalized_type, dataframe)
+
+        # 创建 ImportJob status='previewing'（默认 overwrite_mode='merge'，
+        # confirm 阶段按用户选择更新）
+        job = ImportJob(
+            file_name=file_name,
+            import_type=normalized_type,
+            status='previewing',
+            total_rows=len(dataframe),
+            success_rows=0,
+            failed_rows=0,
+            result_summary={},
+            overwrite_mode='merge',
+            actor_id=actor_id,
+        )
+        self.db.add(job)
+        self.db.commit()
+        self.db.refresh(job)
+
+        # 暂存文件 + 算 sha256（防 confirm 阶段被外部篡改 / T-32-14）
+        file_sha256 = self._save_staged_file(job.id, raw_bytes)
+
+        # 检测同文件冲突
+        conflicts = self._detect_in_file_conflicts(normalized_type, dataframe)
+
+        rows_all: list[PreviewRow] = []
+        counters = {
+            'insert': 0, 'update': 0, 'no_change': 0, 'conflict': 0,
+        }
+
+        for pandas_idx, row in dataframe.iterrows():
+            row_no = int(pandas_idx) + 2  # +2: pandas idx 0 = Excel 第二行（含表头）
+            emp_no = str(row.get('employee_no', '')).strip()
+
+            if pandas_idx in conflicts:
+                rows_all.append(PreviewRow(
+                    row_number=row_no,
+                    action='conflict',
+                    employee_no=emp_no,
+                    fields={},
+                    conflict_reason=conflicts[pandas_idx],
+                ))
+                counters['conflict'] += 1
+                continue
+
+            try:
+                action, fields = self._build_row_diff(normalized_type, row)
+            except Exception as exc:
+                rows_all.append(PreviewRow(
+                    row_number=row_no,
+                    action='conflict',
+                    employee_no=emp_no,
+                    fields={},
+                    conflict_reason=f'行解析失败: {exc}',
+                ))
+                counters['conflict'] += 1
+                continue
+
+            counters[action] += 1
+            rows_all.append(PreviewRow(
+                row_number=row_no,
+                action=action,
+                employee_no=emp_no,
+                fields={k: FieldDiff(**v) for k, v in fields.items()},
+            ))
+
+        # 截断策略（D-08）：conflict > insert > update > no_change 优先级保留
+        priority = {'conflict': 0, 'insert': 1, 'update': 2, 'no_change': 3}
+        rows_sorted = sorted(rows_all, key=lambda r: priority[r.action])
+        rows_kept = rows_sorted[:200]
+        rows_truncated = len(rows_all) > 200
+
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=60)
+
+        # 把 preview 结果存入 ImportJob.result_summary（confirm 时只更新 execution 部分）
+        job.result_summary = {
+            'preview': {
+                'counters': counters,
+                'rows': [r.model_dump() for r in rows_kept],
+                'rows_truncated': rows_truncated,
+                'truncated_count': max(0, len(rows_all) - 200),
+                'file_sha256': file_sha256,
+                'preview_expires_at': expires_at.isoformat(),
+            },
+            'supported_types': sorted(self.SUPPORTED_TYPES),
+        }
+        self.db.commit()
+        self.db.refresh(job)
+
+        return PreviewResponse(
+            job_id=job.id,
+            import_type=normalized_type,
+            file_name=file_name,
+            total_rows=len(dataframe),
+            counters=PreviewCounters(**counters),
+            rows=rows_kept,
+            rows_truncated=rows_truncated,
+            truncated_count=max(0, len(rows_all) - 200),
+            preview_expires_at=expires_at,
+            file_sha256=file_sha256,
+        )
+
+    # ==================================================================
     # Phase 32-03 D-16 / D-17: 并发锁 + 双时限僵尸清理
     # ==================================================================
 
