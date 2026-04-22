@@ -92,7 +92,7 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
 - [x] **Phase 31: 飞书同步可观测性** - 四个同步方法统一写入 `FeishuSyncLog` 五类计数器，HR 可自助诊断「假成功」问题 (IMPORT-03/04) (completed 2026-04-21)
 - [x] **Phase 32: 调薪资格导入功能补齐** - 补齐 hire_info/non_statutory_leave 两类导入、Excel 模板下载、覆盖语义、并发互斥、Preview+diff (IMPORT-01/02/05/06/07) (completed 2026-04-22)
 - [x] **Phase 32.1: 员工端调薪资格自助可见 (紧急 MVP)** - 员工在 MyReview 顶部看到本人调薪资格（4 态徽章 + 4 条规则全展开 + 数据更新时间戳），无参数路由 `/eligibility/me` 防越权 (ESELF-01/02/04/05；ESELF-03 绩效档次推迟到 Phase 35) (completed 2026-04-22)
-- [ ] **Phase 33: 绩效档次纯引擎** - `PerformanceTierEngine` 按 `PERCENT_RANK` 口径分档，ties 同档、样本不足返回 null、分布偏离告警 (PERF-03/04/06)
+- [x] **Phase 33: 绩效档次纯引擎** - `PerformanceTierEngine` 按 `PERCENT_RANK` 口径分档，ties 同档、样本不足返回 null、分布偏离告警 (PERF-03/04/06) (completed 2026-04-22)
 - [ ] **Phase 34: 绩效管理服务与 API** - 新增「绩效管理」页面 + `/api/v1/performance` 路由 + 档次缓存/快照 + 导入回调触发重算 (PERF-01/02/05/08)
 - [ ] **Phase 35: 员工端自助体验** - 在 32.1 已建好的「调薪资格」panel 下方追加绩效档次徽章 + 完整无参数路由 `/performance/me/tier` (ESELF-03)
 - [ ] **Phase 36: 历史绩效展示** - `EvaluationDetail` 与 `SalaryDetail` 复用 `PerformanceHistoryPanel`，按 `cycle_start_date` 倒序展示含部门快照的历史绩效 (PERF-07)
@@ -174,7 +174,7 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
   4. 当实际分档分布偏离 20/70/10 超过 ±5% 时，引擎输出结构里带 `distribution_warning=true` 标志，供上层 UI 在 HR 端顶部显示黄色 warning 横幅
   5. 单元测试覆盖 20+ 用例：ties、全员同分、samples=0/1/2/3、分布偏离、`min_sample_size` 可配置化
 **Plans**: 1 plan
-- [ ] 33-01-PLAN.md — PerformanceTierEngine 纯引擎 + PerformanceTierConfig + TierAssignmentResult dataclass + Settings.performance_tier_min_sample_size 配置 + 29 用例单测 + engines 包导出 wiring
+- [x] 33-01-PLAN.md — PerformanceTierEngine 纯引擎 + PerformanceTierConfig + TierAssignmentResult dataclass + Settings.performance_tier_min_sample_size 配置 + 29 用例单测 + engines 包导出 wiring
 
 ### Phase 34: 绩效管理服务与 API
 **Goal**: HR 有独立「绩效管理」页面（列表 + 导入 + 档次分布），档次在导入完成后自动刷新，HR 也能手动触发重算覆盖
@@ -263,7 +263,7 @@ Phases execute in numeric order: 30 → 31 → 32 → 32.1 → 33 → 34 → 35 
 | 31. 飞书同步可观测性 | v1.4 | 4/4 | Complete    | 2026-04-21 |
 | 32. 调薪资格导入功能补齐 | v1.4 | 6/6 | Complete    | 2026-04-22 |
 | 32.1. 员工端资格自助 (紧急 MVP) | v1.4 | 2/2 | Complete    | 2026-04-22 |
-| 33. 绩效档次纯引擎 | v1.4 | 0/? | Not started | — |
+| 33. 绩效档次纯引擎 | v1.4 | 1/1 | Complete    | 2026-04-22 |
 | 34. 绩效管理服务与 API | v1.4 | 0/? | Not started | — |
 | 35. 员工端自助体验 | v1.4 | 0/? | Not started | — |
 | 36. 历史绩效展示 | v1.4 | 0/? | Not started | — |
