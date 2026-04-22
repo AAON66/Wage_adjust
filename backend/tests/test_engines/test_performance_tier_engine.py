@@ -235,59 +235,37 @@ def test_d4_three_invalid_grades_mixed(engine: PerformanceTierEngine) -> None:
 
 
 # --- E. Distribution warning (D-03/D-04/D-05) ---
+#
+# 注：D-01 4-branch 算法下，tier 1 自然占比下界为 20%（任何 first_pct < 20% 的相邻分组
+# 都会被 D-01 首位扩张吸入 1 档）。所以 14.99% / 15% 等下界场景无法通过端到端构造达到。
+# 我们对 _check_distribution_warning 边界逻辑（D-03）做白盒测试，对端到端 distribution
+# 通过自然分布（20/70/10、25/65/10、26/64/10 等）验证。
 
-def test_e1_tier1_exact_15_percent_no_warning(engine: PerformanceTierEngine) -> None:
-    # 1 档实际占比恰 15.0% — 边界含等
-    # 构造：100 人，前 15 人 grade='A'（→ 1 档），70 人 grade='B'（→ 2 档），15 人 grade='D'（→ 3 档）
-    emps: list[tuple[str, str]] = []
-    emps.extend([(f'A_{i:02d}', 'A') for i in range(15)])
-    emps.extend([(f'B_{i:02d}', 'B') for i in range(70)])
-    emps.extend([(f'D_{i:02d}', 'D') for i in range(15)])
-    result = engine.assign(emps)
-    # A: first=0% last=14% → 分支 (b) → 1 档
-    # B: first=15% last=84% → 不横跨, first 不 < 20% → 分支 (d) → median=49.5% → 2 档
-    # D: first=85% last=99% → 不横跨, first 不 < 20%, first 不 >= 90% → 分支 (d) → median=92% >= 90% → 3 档
-    assert result.actual_distribution[1] == 0.15
-    assert result.distribution_warning is False
+def test_e1_warning_logic_exact_15_no_warning(engine: PerformanceTierEngine) -> None:
+    # D-03 白盒：1 档 15.0% (= 20% - 5% 下界含等) → 不告警
+    warning = engine._check_distribution_warning({1: 0.15, 2: 0.70, 3: 0.15})
+    assert warning is False
 
 
-def test_e2_tier1_below_15_warning(engine: PerformanceTierEngine) -> None:
-    # 1 档 < 15% 触发 warning
-    # 构造 14 人 A → 1 档（仅 14%）
-    emps: list[tuple[str, str]] = []
-    emps.extend([(f'A_{i:02d}', 'A') for i in range(14)])
-    emps.extend([(f'B_{i:02d}', 'B') for i in range(71)])
-    emps.extend([(f'D_{i:02d}', 'D') for i in range(15)])
-    result = engine.assign(emps)
-    assert result.actual_distribution[1] == 0.14
-    assert result.distribution_warning is True
+def test_e2_warning_logic_below_15_triggers_warning(engine: PerformanceTierEngine) -> None:
+    # D-03 白盒：1 档 14.99% (< 15% 下界) → 告警
+    warning = engine._check_distribution_warning({1: 0.1499, 2: 0.7001, 3: 0.15})
+    assert warning is True
 
 
-def test_e3_tier1_exact_25_percent_no_warning(engine: PerformanceTierEngine) -> None:
-    # 1 档 25% 边界
-    # 构造 25 人 A → 1 档（D-01 ties 首位扩张：first=0% last=24% < 20%? last 24% > 20% but first<20% non-cross → 分支 (b) → 1 档）
-    emps: list[tuple[str, str]] = []
-    emps.extend([(f'A_{i:02d}', 'A') for i in range(25)])
-    emps.extend([(f'B_{i:02d}', 'B') for i in range(60)])
-    emps.extend([(f'D_{i:02d}', 'D') for i in range(15)])
-    result = engine.assign(emps)
-    assert result.actual_distribution[1] == 0.25
-    assert result.distribution_warning is False
+def test_e3_warning_logic_exact_25_no_warning(engine: PerformanceTierEngine) -> None:
+    # D-03 白盒：1 档 25.0% (= 20% + 5% 上界含等) → 不告警
+    warning = engine._check_distribution_warning({1: 0.25, 2: 0.65, 3: 0.10})
+    assert warning is False
 
 
-def test_e4_tier1_above_25_warning(engine: PerformanceTierEngine) -> None:
-    # 1 档 > 25% 触发 warning
-    # 构造 26 人 A → 1 档
-    emps: list[tuple[str, str]] = []
-    emps.extend([(f'A_{i:02d}', 'A') for i in range(26)])
-    emps.extend([(f'B_{i:02d}', 'B') for i in range(59)])
-    emps.extend([(f'D_{i:02d}', 'D') for i in range(15)])
-    result = engine.assign(emps)
-    assert result.actual_distribution[1] == 0.26
-    assert result.distribution_warning is True
+def test_e4_warning_logic_above_25_triggers_warning(engine: PerformanceTierEngine) -> None:
+    # D-03 白盒：1 档 25.01% (> 25% 上界) → 告警
+    warning = engine._check_distribution_warning({1: 0.2501, 2: 0.6499, 3: 0.10})
+    assert warning is True
 
 
-def test_e5_all_tiers_in_range_no_warning(engine: PerformanceTierEngine) -> None:
+def test_e5_e2e_uniform_20_70_10_no_warning(engine: PerformanceTierEngine) -> None:
     # 三档全部在 [15-25, 65-75, 5-15] 区间
     # 构造 20/70/10 完美分布
     emps: list[tuple[str, str]] = []
@@ -308,6 +286,18 @@ def test_e6_insufficient_sample_forces_warning_false(engine: PerformanceTierEngi
     assert result.distribution_warning is False
 
 
+def test_e7_e2e_tier1_above_25_triggers_warning(engine: PerformanceTierEngine) -> None:
+    # 端到端：1 档 26% > 25% 触发 warning
+    # 26 A + 64 B + 10 D = 100; A → 1 档（26%）
+    emps: list[tuple[str, str]] = []
+    emps.extend([(f'A_{i:02d}', 'A') for i in range(26)])
+    emps.extend([(f'B_{i:02d}', 'B') for i in range(64)])
+    emps.extend([(f'D_{i:02d}', 'D') for i in range(10)])
+    result = engine.assign(emps)
+    assert result.actual_distribution[1] == 0.26
+    assert result.distribution_warning is True
+
+
 # --- F. 配置覆盖 (D-10/D-11) ---
 
 def test_f1_custom_min_sample_size_10(engine: PerformanceTierEngine) -> None:
@@ -320,16 +310,15 @@ def test_f1_custom_min_sample_size_10(engine: PerformanceTierEngine) -> None:
 
 
 def test_f2_custom_distribution_tolerance_10_percent(engine: PerformanceTierEngine) -> None:
-    # 自定义 tolerance=0.10 → 1 档 12% 不触发 warning（10% 容差 → [10%, 30%]）
-    # 构造 12 人 A，73 人 B，15 人 D
+    # 自定义 tolerance=0.10 → 容差 [10%, 30%] / [60%, 80%] / [0%, 20%]
+    # 白盒：tier 1 = 12% 在 [10%, 30%] 内不触发 warning（默认 5% 时会触发）
     custom = PerformanceTierEngine(PerformanceTierConfig(distribution_tolerance=0.10))
-    emps: list[tuple[str, str]] = []
-    emps.extend([(f'A_{i:02d}', 'A') for i in range(12)])
-    emps.extend([(f'B_{i:02d}', 'B') for i in range(73)])
-    emps.extend([(f'D_{i:02d}', 'D') for i in range(15)])
-    result = custom.assign(emps)
-    assert result.actual_distribution[1] == 0.12
-    assert result.distribution_warning is False
+    warning = custom._check_distribution_warning({1: 0.12, 2: 0.78, 3: 0.10})
+    assert warning is False
+    # 默认 tolerance=0.05 同样输入会触发（确认 tolerance 真起作用）
+    default_engine = PerformanceTierEngine()
+    default_warning = default_engine._check_distribution_warning({1: 0.12, 2: 0.78, 3: 0.10})
+    assert default_warning is True
 
 
 # --- G. 不变量 / 结构 ---
