@@ -201,7 +201,11 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
   2. 任何时候员工都看不到具体排名、具体百分位、同档其他人名单
   3. 所有员工自助端点都是无参数路由（`/eligibility/me` 已存在；`/performance/me/tier` 本期新增）
   4. 32.1 已完成的 `MyEligibilityPanel` 组件结构不重构，仅在其后追加 `MyPerformanceTierBadge` 组件
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 35-01-schema-service-PLAN.md — 后端 MyTierResponse schema + PerformanceService.get_my_tier + Service 层 ≥ 7 pytest 用例
+- [ ] 35-02-api-handler-PLAN.md — 后端 GET /performance/me/tier handler（替换 TODO）+ API 层 ≥ 5 pytest 用例（4 角色 + 422 + 404 + info leak 负向断言）
+- [ ] 35-03-frontend-types-service-PLAN.md — 前端 MyTierResponse interface + fetchMyTier service
+- [ ] 35-04-component-integration-PLAN.md — MyPerformanceTierBadge 组件 + MyReview.tsx 挂载 + 浏览器 UAT 11 项
 **UI hint**: yes
 
 ### Phase 36: 历史绩效展示
