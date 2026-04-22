@@ -4,8 +4,8 @@ milestone: v1.4
 milestone_name: 员工端体验完善与导入链路稳定性
 status: executing
 stopped_at: Phase 35 context gathered
-last_updated: "2026-04-22T09:30:24.417Z"
-last_activity: 2026-04-22 -- Phase 36 planning complete
+last_updated: "2026-04-22T09:43:14.606Z"
+last_activity: 2026-04-22 -- Phase 35 planning complete
 progress:
   total_phases: 9
   completed_phases: 6
@@ -21,15 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-20)
 
 **Core value:** HR can run a complete, auditable salary review cycle -- with every decision explainable and traceable
-**Current focus:** Phase 34 — performance-management-service-and-api
+**Current focus:** Phase 36 — historical-performance-display
 
 ## Current Position
 
 Milestone: v1.4 started 2026-04-20
-Phase: 35
-Plan: Not started
+Phase: 36 (historical-performance-display) — EXECUTING
+Plan: 1 of 4
 Status: Ready to execute
-Last activity: 2026-04-22 -- Phase 36 planning complete
+Last activity: 2026-04-22 -- Phase 35 planning complete
 
 Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
 
