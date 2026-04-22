@@ -79,10 +79,10 @@ Without this system, salary decisions around AI capability are ad hoc, inconsist
 - ✓ 工号前导零写入路径统一：Excel 模板/读入、飞书 `_map_fields` 去 int 误用、手动表单 Pydantic str 约束、飞书 bitable 字段类型 422 校验、容忍匹配计数器 `leading_zero_fallback_count` 与 SyncStatusCard 黄色提示 — 验证于 Phase 30 (EMPNO-01/02/03/04)；存量数据修补按 Phase 30 Success Criterion 4 显式不在范围内
 - ✓ 飞书同步可观测性：`FeishuSyncLog` 扩展 `sync_type` + `mapping_failed_count`；`FeishuService` 抽出 `_with_sync_log` helper + `_SyncCounters` dataclass 统一 5 类同步的 log 生命周期；`unmatched + mapping_failed + failed > 0 → partial` 硬切派生；per-sync_type 锁（409 不写 log）；HR 独立「同步日志」页面含 6 Tab + 5 色 badge + CSV 下载 + 详情抽屉 — 验证于 Phase 31 (IMPORT-03/04)；代码层 12/12 must-haves 全绿，9 项浏览器 UAT 留在 `31-HUMAN-UAT.md`
 - ✓ 调薪资格导入功能补齐：`ImportService` 扩 6 类（含 `hire_info` / `non_statutory_leave`，复用 D-02/D-03 飞书同步字段映射 + Excel 序列号日期双分支）；4 类资格 import 全支持 `overwrite_mode='merge'|'replace'`；两阶段提交（preview + 暂存 sha256 + confirm + cancel）；per-import_type 锁（409 不写 log）+ APScheduler `expire_stale_import_jobs` 双时限清理；`AuditLog` 用真实字段 `target_type='import_job'` / `target_id` / `operator_id` 写 `import_confirmed`；`SalaryAdjustmentRecord` 加 `(employee_id, adjustment_date, adjustment_type)` UniqueConstraint，`_import_salary_adjustments` 改 upsert；前端 `ExcelImportPanel` 7 态 discriminated union + 6 个独立子组件（PreviewCountersStrip / PreviewDiffTable / OverwriteModeRadio / ReplaceModeConfirmModal / ImportActiveJobBanner / ImportPreviewPanel）+ blob 下载；旧 `POST /excel` 标 deprecated — 验证于 Phase 32 (IMPORT-01/02/05/06/07)；13/13 must-haves 全绿，4/4 浏览器 UAT 通过（截图归档 `.planning/phases/32-eligibility-import-completion/uat-screenshots/`），2 个 minor a11y defect（focus trap 未过滤 disabled、ESC 后焦点未恢复）记录在 32-VERIFICATION.md followup
+- ✓ 员工端调薪资格自助可见：后端 `GET /api/v1/eligibility/me`（无参，复用 `EligibilityService.check_employee()`，`require_roles` 仅允许 `employee` 等已登录角色，越权天然不可达 — `/eligibility/{id}` 仍限 admin/hrbp/manager，employee 无法绕过）；`EligibilityResultSchema` 扩 `data_updated_at` 字段取 4 数据源 (employee.updated_at / salary_adjustment / performance / leave) 的 `max(updated_at)`；前端 `MyEligibilityPanel` 组件（302 行，11 个 data-testid）以 5 态 discriminated union（loading/success/unbound/employee_missing/error）覆盖 4 态徽章 + 4 色规则行（eligible 绿 / ineligible 红 / data_missing 灰 / manual_review 黄）+ zh-CN 时间戳「数据更新于 YYYY 年 M 月 D 日 HH:MM」+ 重试按钮；MyReview 顶部独立 section（line 545，独立于 employee 匹配）；detail 文本完全脱敏（无 ISO 日期、无薪资数字）— 验证于 Phase 32.1 (ESELF-01/02/04/05)；11/11 must-haves 全绿，4/4 浏览器 UAT 通过（Playwright 自动化），ESELF-03 绩效档次推迟到 Phase 35
 
 ### Active (v1.4 in progress)
 
-- [ ] 员工端调薪资格自助可见：随时在员工页面展示资格状态与未通过规则明细
 - [ ] 绩效导入链路：新增「绩效管理」页面（导入/列表/历史）+ 修复调薪资格导入页的绩效分支
 - [ ] 绩效档次与历史展示：评估详情/调薪建议展示历史绩效；员工端显示 1/2/3 档（20/70/10，全公司对比）
 - [ ] Phase 11 导航菜单验证补齐：SUMMARY.md + UAT 清单验证
@@ -230,4 +230,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-22 after Phase 32 调薪资格导入功能补齐 completion*
+*Last updated: 2026-04-22 after Phase 32.1 员工端调薪资格自助可见 completion*
