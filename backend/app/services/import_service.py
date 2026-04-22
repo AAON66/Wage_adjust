@@ -1,17 +1,21 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import io
 import logging
 import re
 from collections.abc import Callable
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 
 import pandas as pd
 from fastapi import UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from backend.app.core.config import get_settings
 from backend.app.models.audit_log import AuditLog
 from backend.app.models.certification import Certification
 from backend.app.models.department import Department
@@ -32,6 +36,23 @@ class ImportService:
         'hire_info', 'non_statutory_leave',
     }
     MAX_ROWS = 5000  # D-06: 单次导入最大行数
+
+    # Phase 32-03 D-16 / D-17：ImportJob 状态常量
+    # 持锁的状态（is_import_running 命中这些）
+    _LOCKING_STATUSES = frozenset({'previewing', 'processing'})
+    # 终态（不持锁，永远不会被 expire_stale 回收）
+    _TERMINAL_STATUSES = frozenset({'completed', 'failed', 'partial', 'cancelled'})
+
+    # Phase 32-03 D-09 / D-14: 业务键映射（4 类资格 import_type 使用，
+    # 与 _import_* 内部上 upsert/查询逻辑保持一致；preview 阶段同文件冲突检测复用）
+    # 与飞书同步 _sync_salary_adjustments_body line 947-952 业务键完全对齐
+    _BUSINESS_KEYS = {
+        'performance_grades': ['employee_no', 'year'],
+        'salary_adjustments': ['employee_no', 'adjustment_date', 'adjustment_type'],
+        'hire_info': ['employee_no'],
+        'non_statutory_leave': ['employee_no', 'year'],
+    }
+
     REQUIRED_COLUMNS = {
         'employees': ['employee_no', 'name', 'department', 'job_family', 'job_level'],
         'certifications': ['employee_no', 'certification_type', 'certification_stage', 'bonus_rate', 'issued_at'],
@@ -826,7 +847,8 @@ class ImportService:
         *,
         overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
     ) -> list[dict[str, object]]:
-        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
+        # 业务键定义在类常量 _BUSINESS_KEYS（Phase 32-03 已抽取）
+        # preview 阶段同文件冲突检测复用同一份 key 列表
         results: list[dict[str, object]] = []
         for index, row in dataframe.iterrows():
             row_no = int(index) + 1
@@ -938,7 +960,8 @@ class ImportService:
           - merge：空保留旧值
           - replace：空清空旧值
         """
-        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
+        # 业务键定义在类常量 _BUSINESS_KEYS（Phase 32-03 已抽取）
+        # preview 阶段同文件冲突检测复用同一份 key 列表
         results: list[dict[str, object]] = []
 
         for index, row in dataframe.iterrows():
@@ -1087,7 +1110,8 @@ class ImportService:
         replace 模式：必填字段（hire_date）为空 → row failed；时间戳类的可选字段
         last_salary_adjustment_date 也保留旧值（CONTEXT D-子提示：时间戳无 NULL 语义）。
         """
-        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
+        # 业务键定义在类常量 _BUSINESS_KEYS（Phase 32-03 已抽取）
+        # preview 阶段同文件冲突检测复用同一份 key 列表
         results: list[dict[str, object]] = []
 
         # 内联自查 employee_no → Employee（决议 Warning 2：不引入 IdentityBindingService 跨服务方法）
@@ -1229,7 +1253,8 @@ class ImportService:
           - 已存在：merge 空字段保留旧值；replace 可选字段 leave_type 空时清空、必填字段
             total_days 空时 row failed
         """
-        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
+        # 业务键定义在类常量 _BUSINESS_KEYS（Phase 32-03 已抽取）
+        # preview 阶段同文件冲突检测复用同一份 key 列表
         results: list[dict[str, object]] = []
 
         employee_nos = [
@@ -1409,3 +1434,173 @@ class ImportService:
         self.db.flush()
         self.db.commit()
         return results
+
+    # ==================================================================
+    # Phase 32-03 D-16 / D-17: 并发锁 + 双时限僵尸清理
+    # ==================================================================
+
+    def is_import_running(self, import_type: str | None = None) -> bool:
+        """D-16: 检测同 import_type 是否有活跃 job（previewing 或 processing 状态）。
+
+        per-import_type 分桶锁：传 import_type 时只查该 type 的活跃 job
+        （4 类资格 import_type 互不影响，可并行）；不传时全局检查。
+        """
+        stmt = select(ImportJob).where(
+            ImportJob.status.in_(list(self._LOCKING_STATUSES))
+        )
+        if import_type is not None:
+            stmt = stmt.where(ImportJob.import_type == import_type)
+        return self.db.execute(stmt.limit(1)).scalar_one_or_none() is not None
+
+    def get_active_job(self, import_type: str) -> ImportJob | None:
+        """D-18: 取该 import_type 的活跃 job（最多一条；多条时返回最新创建的）。"""
+        stmt = (
+            select(ImportJob)
+            .where(
+                ImportJob.status.in_(list(self._LOCKING_STATUSES)),
+                ImportJob.import_type == import_type,
+            )
+            .order_by(ImportJob.created_at.desc())
+            .limit(1)
+        )
+        return self.db.execute(stmt).scalar_one_or_none()
+
+    def expire_stale_import_jobs(
+        self,
+        *,
+        processing_timeout_minutes: int = 30,
+        previewing_timeout_minutes: int = 60,
+    ) -> dict[str, int]:
+        """D-17: 双时限僵尸清理。
+
+        - processing 超过 30 分钟 → 'failed'，写 result_summary.error='timeout'
+        - previewing 超过 60 分钟 → 'cancelled'，删除暂存文件并写 cancellation_reason
+
+        终态（completed/failed/partial/cancelled）保持不动。
+
+        Returns: {'processing': N, 'previewing': M} 实际清理数量
+        """
+        now = datetime.now(timezone.utc)
+        expired = {'processing': 0, 'previewing': 0}
+
+        # processing 30min → failed
+        cutoff_p = now - timedelta(minutes=processing_timeout_minutes)
+        stale_p = list(
+            self.db.execute(
+                select(ImportJob).where(
+                    ImportJob.status == 'processing',
+                    ImportJob.created_at < cutoff_p,
+                )
+            ).scalars().all()
+        )
+        for job in stale_p:
+            job.status = 'failed'
+            existing = job.result_summary or {}
+            job.result_summary = {
+                **existing,
+                'error': 'timeout',
+                'expired_at': now.isoformat(),
+            }
+        expired['processing'] = len(stale_p)
+
+        # previewing 60min → cancelled + 删暂存文件
+        cutoff_v = now - timedelta(minutes=previewing_timeout_minutes)
+        stale_v = list(
+            self.db.execute(
+                select(ImportJob).where(
+                    ImportJob.status == 'previewing',
+                    ImportJob.created_at < cutoff_v,
+                )
+            ).scalars().all()
+        )
+        for job in stale_v:
+            job.status = 'cancelled'
+            existing = job.result_summary or {}
+            job.result_summary = {
+                **existing,
+                'cancellation_reason': 'preview_timeout',
+                'cancelled_at': now.isoformat(),
+            }
+            try:
+                self._delete_staged_file(job.id)
+            except Exception:
+                logger.exception(
+                    'Failed to delete staged file for expired job %s', job.id,
+                )
+        expired['previewing'] = len(stale_v)
+
+        if stale_p or stale_v:
+            self.db.commit()
+            logger.warning(
+                'expire_stale_import_jobs cleaned up %d processing + %d previewing',
+                expired['processing'], expired['previewing'],
+            )
+        return expired
+
+    # ==================================================================
+    # Phase 32-03 D-06: 暂存文件管理（含 T-32-01 路径遍历防护）
+    # ==================================================================
+
+    @staticmethod
+    def _staged_file_path(job_id: str) -> Path:
+        """安全的暂存文件路径，job_id 必须是 UUID（无路径分隔符与 .. 段）。
+
+        T-32-01 双重防护（参考 backend/app/core/storage.py LocalStorageService）：
+        1. 字符级校验：拒绝空、'/', '\\', '..'
+        2. resolve 后 is_relative_to(base_dir) 二次校验
+
+        Returns: <storage_base_dir>/imports/<job_id>.xlsx 的绝对路径
+        Raises: ValueError 当 job_id 不安全
+        """
+        if not job_id or '/' in job_id or '\\' in job_id or '..' in job_id:
+            raise ValueError(
+                f'Invalid job_id (path traversal blocked): {job_id!r}'
+            )
+        base = (Path(get_settings().storage_base_dir).resolve() / 'imports').resolve()
+        base.mkdir(parents=True, exist_ok=True)
+        target = (base / f'{job_id}.xlsx').resolve()
+        if not target.is_relative_to(base):
+            # 字符级 + resolve 双重防护后理论上不会到这里；保底再校验一次
+            raise ValueError(
+                f'Staged file path traversal escape detected: {job_id!r}'
+            )
+        return target
+
+    def _save_staged_file(self, job_id: str, content: bytes) -> str:
+        """存盘 + 返回 sha256（preview 阶段写入 result_summary.preview.file_sha256）。"""
+        path = self._staged_file_path(job_id)
+        path.write_bytes(content)
+        return hashlib.sha256(content).hexdigest()
+
+    def _read_staged_file(
+        self,
+        job_id: str,
+        *,
+        expected_sha256: str | None = None,
+    ) -> bytes:
+        """读取暂存文件，可选校验 hash（T-32-14: confirm 阶段防外部篡改）。
+
+        Raises:
+            ValueError: 文件不存在 / hash 不匹配
+        """
+        path = self._staged_file_path(job_id)
+        if not path.exists():
+            raise ValueError(
+                f'Staged file for job {job_id} not found (expired or deleted)'
+            )
+        content = path.read_bytes()
+        if expected_sha256 is not None:
+            actual = hashlib.sha256(content).hexdigest()
+            if actual != expected_sha256:
+                raise ValueError(
+                    f'Staged file hash mismatch for job {job_id}: '
+                    f'expected {expected_sha256[:8]}..., got {actual[:8]}... '
+                    f'(file modified externally; please re-upload)'
+                )
+        return content
+
+    def _delete_staged_file(self, job_id: str) -> None:
+        """删除暂存文件（不存在不报错）。"""
+        path = self._staged_file_path(job_id)
+        if path.exists():
+            path.unlink()
