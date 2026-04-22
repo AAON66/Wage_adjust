@@ -173,7 +173,8 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
   3. 输入人数为 0 / 1 / 2 / 3 等边界样本时引擎不抛异常，行为与「样本不足」分支一致
   4. 当实际分档分布偏离 20/70/10 超过 ±5% 时，引擎输出结构里带 `distribution_warning=true` 标志，供上层 UI 在 HR 端顶部显示黄色 warning 横幅
   5. 单元测试覆盖 20+ 用例：ties、全员同分、samples=0/1/2/3、分布偏离、`min_sample_size` 可配置化
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 33-01-PLAN.md — PerformanceTierEngine 纯引擎 + PerformanceTierConfig + TierAssignmentResult dataclass + Settings.performance_tier_min_sample_size 配置 + 29 用例单测 + engines 包导出 wiring
 
 ### Phase 34: 绩效管理服务与 API
 **Goal**: HR 有独立「绩效管理」页面（列表 + 导入 + 档次分布），档次在导入完成后自动刷新，HR 也能手动触发重算覆盖
