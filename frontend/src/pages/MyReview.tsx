@@ -11,6 +11,7 @@ import { FileList } from '../components/evaluation/FileList';
 import { FileUploadPanel } from '../components/evaluation/FileUploadPanel';
 import { SalaryResultCard } from '../components/evaluation/SalaryResultCard';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
+import { MyEligibilityPanel } from '../components/eligibility/MyEligibilityPanel';
 import { AppShell } from '../components/layout/AppShell';
 import { useAuth } from '../hooks/useAuth';
 import { fetchApprovalHistory } from '../services/approvalService';
@@ -537,6 +538,11 @@ export function MyReviewPage() {
     >
       {errorMessage ? <p className="surface px-5 py-4 text-sm" style={{ color: "var(--color-danger)" }}>{errorMessage}</p> : null}
       {isLoading ? <p className="px-2 text-sm text-steel">正在加载个人评估中心...</p> : null}
+
+      {/* Phase 32.1 ESELF-01/02/04/05: 员工自助调薪资格 panel
+          位置：在「当前角色 actions」标头之后、「材料与提交概览」section 之前（D-10）
+          独立于 employee 匹配 —— panel 直接调 /eligibility/me 由 user.employee_id 决定 */}
+      <MyEligibilityPanel />
 
       {(() => {
         const currentDuplicate = fileQueue.find((i) => i.status === 'currentDuplicate');
