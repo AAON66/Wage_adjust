@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v1.4
 milestone_name: 员工端体验完善与导入链路稳定性
 status: executing
-stopped_at: Phase 32 UI-SPEC approved
-last_updated: "2026-04-22T01:58:12.682Z"
+stopped_at: Phase 32.1 context gathered
+last_updated: "2026-04-22T02:20:12.097Z"
 last_activity: 2026-04-22
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 3
   total_plans: 14
   completed_plans: 14
@@ -61,6 +61,10 @@ Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
 
 ## Accumulated Context
 
+### Roadmap Evolution
+
+- Phase 32.1 inserted after Phase 32: 员工端调薪资格自助可见 (URGENT) — 紧急上线，先于 Phase 35 完整版交付 MVP（仅资格状态徽章 + 未通过规则展示，不含绩效档次）
+
 ### Decisions (carried across milestones)
 
 - AES-256-GCM for PII encryption (Phase 01)
@@ -95,6 +99,6 @@ Progress: [░░░░░░░░░░] 0% (v1.4: 0/8 phases)
 
 ## Session Continuity
 
-Last session: 2026-04-21T07:14:34.764Z
-Stopped at: Phase 32 UI-SPEC approved
+Last session: 2026-04-22T02:20:12.093Z
+Stopped at: Phase 32.1 context gathered
 Next step: `/gsd-plan-phase 30` 开始规划 Phase 30（工号前导零修复）
