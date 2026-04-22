@@ -7,6 +7,7 @@ import type {
   EligibilityOverrideDecisionPayload,
   DepartmentListResponse,
   EligibilityResult,
+  EligibilityResultWithTimestamp,
 } from '../types/api';
 
 export interface EligibilityBatchParams {
@@ -79,6 +80,16 @@ export async function fetchEmployeeEligibility(
   const response = await api.get<EligibilityResult>(
     `/eligibility/${employeeId}`,
   );
+  return response.data;
+}
+
+/**
+ * Phase 32.1 D-18: 员工自助查询本人调薪资格（无参数路由）
+ * 后端端点：GET /api/v1/eligibility/me
+ * 错误码：401 未鉴权 / 422 未绑定员工 / 404 档案缺失 / 500 内部错误
+ */
+export async function fetchMyEligibility(): Promise<EligibilityResultWithTimestamp> {
+  const response = await api.get<EligibilityResultWithTimestamp>('/eligibility/me');
   return response.data;
 }
 

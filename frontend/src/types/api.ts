@@ -924,6 +924,15 @@ export interface EligibilityResult {
   rules: EligibilityRuleResult[];
 }
 
+/**
+ * Phase 32.1 D-19: GET /api/v1/eligibility/me 返回扩展类型
+ * data_updated_at: ISO 8601 字符串，源自 max(employee/performance/salary_adjustment/leave .updated_at)
+ * null 时前端展示「数据从未更新」
+ */
+export type EligibilityResultWithTimestamp = EligibilityResult & {
+  data_updated_at: string | null;
+};
+
 export interface EligibilityBatchItem {
   employee_id: string;
   employee_no: string;
