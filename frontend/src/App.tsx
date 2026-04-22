@@ -21,6 +21,7 @@ import { FeishuConfigPage } from "./pages/FeishuConfig";
 import { ImportCenterPage } from "./pages/ImportCenter";
 import { LoginPage } from "./pages/Login";
 import { MyReviewPage } from "./pages/MyReview";
+import { PerformanceManagementPage } from "./pages/PerformanceManagementPage";
 import { SalarySimulatorPage } from "./pages/SalarySimulator";
 import { SettingsPage } from "./pages/Settings";
 import { SharingRequestsPage } from "./pages/SharingRequests";
@@ -462,6 +463,7 @@ export default function App() {
             <Route element={<ImportCenterPage />} path="/import-center" />
             <Route element={<AttendanceManagementPage />} path="/attendance" />
             <Route element={<SyncLogsPage />} path="/feishu/sync-logs" />
+            <Route element={<PerformanceManagementPage />} path="/performance" />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>

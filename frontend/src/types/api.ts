@@ -1097,6 +1097,15 @@ export interface ConfirmResponse {
   no_change_count: number;
   failed_count: number;
   execution_duration_ms: number;
+  /**
+   * Phase 34 W-1：仅 import_type=performance_grades 时填充；其他类型为 null。
+   * - completed → 5 秒内重算成功
+   * - in_progress → 5 秒超时后台继续
+   * - busy_skipped → 撞上 HR 手动重算锁（D-06）
+   * - failed → 重算异常（D-04 已落库不阻塞）
+   * - skipped → 不适用（非 performance_grades 路径）
+   */
+  tier_recompute_status?: 'completed' | 'in_progress' | 'busy_skipped' | 'failed' | 'skipped' | null;
 }
 
 /** D-18: GET /excel/active?import_type=X 返回（前端轮询锁状态）。 */
@@ -1114,4 +1123,100 @@ export interface ImportConflictDetail {
   error: 'import_in_progress';
   import_type: EligibilityImportType;
   message: string;
+}
+
+// ===================== Phase 34 绩效管理 (PERF-01/02/05/08) =====================
+
+/** D-09：tiers_count 4 键（含 'none' 未分档键） */
+export interface TierCounts {
+  '1': number;
+  '2': number;
+  '3': number;
+  none: number;
+}
+
+/** D-09：actual_distribution 仅含 1/2/3 三个分档比例 */
+export interface ActualDistribution {
+  '1': number;
+  '2': number;
+  '3': number;
+}
+
+/** GET /api/v1/performance/tier-summary 响应（D-09 平铺 9 字段） */
+export interface TierSummaryResponse {
+  year: number;
+  /** ISO datetime（UTC） */
+  computed_at: string;
+  sample_size: number;
+  insufficient_sample: boolean;
+  distribution_warning: boolean;
+  tiers_count: TierCounts;
+  actual_distribution: ActualDistribution;
+  skipped_invalid_grades: number;
+}
+
+/** 单条绩效记录（GET /api/v1/performance/records 列表项） */
+export interface PerformanceRecordItem {
+  id: string;
+  employee_id: string;
+  employee_no: string;
+  employee_name: string;
+  year: number;
+  /** A / B / C / D / E */
+  grade: string;
+  /** manual / excel / feishu */
+  source: string;
+  /** D-07：可空。null 时 UI 显示「—」 */
+  department_snapshot: string | null;
+  /** ISO datetime */
+  created_at: string;
+}
+
+/** GET /api/v1/performance/records 响应 */
+export interface PerformanceRecordsListResponse {
+  items: PerformanceRecordItem[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+/** POST /api/v1/performance/records 请求体 */
+export interface PerformanceRecordCreatePayload {
+  employee_id: string;
+  year: number;
+  grade: string;
+  source?: 'manual' | 'excel' | 'feishu';
+}
+
+/** POST /api/v1/performance/recompute-tiers 响应 */
+export interface RecomputeTriggerResponse {
+  year: number;
+  /** ISO datetime */
+  computed_at: string;
+  sample_size: number;
+  insufficient_sample: boolean;
+  distribution_warning: boolean;
+  message: string;
+}
+
+/** D-10：404 no_snapshot 错误 detail 结构 */
+export interface NoSnapshotErrorDetail {
+  error: 'no_snapshot';
+  message: string;
+  year: number;
+  hint: string;
+}
+
+/** D-06：409 tier_recompute_busy 错误 detail 结构 */
+export interface TierRecomputeBusyDetail {
+  error: 'tier_recompute_busy';
+  message: string;
+  year: number;
+  retry_after_seconds: number;
+}
+
+/** B-3：GET /api/v1/performance/available-years 响应 */
+export interface AvailableYearsResponse {
+  years: number[];
 }

@@ -6,6 +6,8 @@
 interface IconProps {
   size?: number;
   className?: string;
+  /** B-4 修复：支持 UI-SPEC §6.2/§9 的 `<WarningIcon style={{...}}/>` / `<ChartIcon style={{...}}/>` 用法 */
+  style?: React.CSSProperties;
 }
 
 const defaults: Required<Pick<IconProps, 'size'>> = { size: 16 };
@@ -23,7 +25,7 @@ function svg(props: IconProps, children: React.ReactNode) {
       strokeWidth={1.75}
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ flexShrink: 0 }}
+      style={{ flexShrink: 0, ...props.style }}
     >
       {children}
     </svg>
@@ -118,6 +120,21 @@ export function IconEdit(p: IconProps = {}) {
 /** 🔗 文件共享 */
 export function IconShare(p: IconProps = {}) {
   return svg(p, <><circle cx="17" cy="5" r="3" /><circle cx="17" cy="19" r="3" /><circle cx="7" cy="12" r="3" /><path d="M9.5 10.5L14.5 6.5M9.5 13.5L14.5 17.5" /></>);
+}
+
+/** 🔄 Phase 34: 重算档次按钮（loading 时套 animate-spin） */
+export function RefreshIcon(p: IconProps = {}) {
+  return svg(p, <><path d="M21 12a9 9 0 1 1-3.5-7.1" /><polyline points="21 4 21 10 15 10" /></>);
+}
+
+/** ⚠ Phase 34: 档次分布偏离警告横幅 */
+export function WarningIcon(p: IconProps = {}) {
+  return svg(p, <><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><circle cx="12" cy="17" r="0.5" /></>);
+}
+
+/** 📊 Phase 34: 空状态「立即生成档次」CTA 图标 */
+export function ChartIcon(p: IconProps = {}) {
+  return svg(p, <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="3" y1="21" x2="21" y2="21" /></>);
 }
 
 /** Icon name → component mapping */

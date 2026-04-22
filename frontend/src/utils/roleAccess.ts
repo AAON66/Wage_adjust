@@ -46,6 +46,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
         { title: '调薪资格', description: '查看资格状态、特殊申请与数据导入管理。', href: '/eligibility', icon: 'shield' },
         { title: '考勤管理', description: '查看考勤数据与飞书同步。', href: '/attendance', icon: 'calendar' },
         { title: '共享申请', description: '查看和管理文件共享申请', href: '/sharing-requests', icon: 'share' },
+        { title: '绩效管理', description: 'HR 端：导入绩效记录、查看档次分布、手动触发重算。', href: '/performance', icon: 'bar-chart' },
       ],
     },
     {
@@ -84,6 +85,7 @@ const ROLE_MODULES: Record<string, MenuGroup[]> = {
         { title: '调薪资格', description: '查看资格状态、特殊申请与数据导入管理。', href: '/eligibility', icon: 'shield' },
         { title: '考勤管理', description: '查看考勤数据与同步状态。', href: '/attendance', icon: 'calendar' },
         { title: '共享申请', description: '查看和管理文件共享申请', href: '/sharing-requests', icon: 'share' },
+        { title: '绩效管理', description: 'HR 端：导入绩效记录、查看档次分布、手动触发重算。', href: '/performance', icon: 'bar-chart' },
       ],
     },
     {
