@@ -305,6 +305,60 @@ def create_salary_adjustment_record(
 
 
 # ------------------------------------------------------------------
+# Phase 32.1 ESELF-01/02/04/05: Employee self-service eligibility endpoint
+# 必须注册在 /{employee_id} 系列之前，FastAPI 按声明顺序匹配，
+# 否则 'me' 会被 /{employee_id} 当作 employee_id 参数捕获（T-32.1-04）。
+#
+# Employee-facing endpoint — RuleResult.detail must remain desensitized (D-09).
+# 当前 4 条规则的 detail 已为月数/等级字符/天数（无 YYYY-MM-DD / 无薪资数字）；
+# 任何后续修改 RuleResult.detail 的 phase 必须保留这一脱敏属性。
+# ------------------------------------------------------------------
+
+@router.get('/me', response_model=EligibilityResultSchema)
+def get_my_eligibility(
+    reference_date: date | None = None,
+    year: int | None = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> EligibilityResultSchema:
+    """员工自助查询本人调薪资格（ESELF-01/02/04/05）。
+
+    - 无参数路由 → ESELF-04 横向越权天然不可达（T-32.1-01 mitigation）
+    - 复用 EligibilityService.check_employee（D-06，不新增引擎逻辑）
+    - 返回 EligibilityResultSchema，含 data_updated_at（D-15/D-16）
+    """
+    if current_user.employee_id is None:
+        # T-32.1-02 mitigation: 显式 422 + 中文 detail，避免 200+empty payload 让前端误判合格
+        raise HTTPException(
+            status_code=422,
+            detail='您尚未绑定员工信息，请前往「账号设置」完成绑定',
+        )
+
+    service = EligibilityService(db)
+    # check_employee 在 employee 不存在时抛 HTTPException(404, '员工未找到')
+    result = service.check_employee(
+        current_user.employee_id,
+        reference_date=reference_date,
+        year=year,
+    )
+    data_updated_at = service.compute_data_updated_at(current_user.employee_id)
+
+    return EligibilityResultSchema(
+        overall_status=result.overall_status,
+        rules=[
+            {
+                'rule_code': r.rule_code,
+                'rule_label': r.rule_label,
+                'status': r.status,
+                'detail': r.detail,
+            }
+            for r in result.rules
+        ],
+        data_updated_at=data_updated_at,
+    )
+
+
+# ------------------------------------------------------------------
 # Sub-resource endpoints (hardened with require_roles + AccessScopeService)
 # ------------------------------------------------------------------
 
