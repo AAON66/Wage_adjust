@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -80,3 +81,21 @@ class AvailableYearsResponse(BaseModel):
     """
 
     years: list[int]
+
+
+class MyTierResponse(BaseModel):
+    """Phase 35 ESELF-03: 员工自助档次响应（D-04 精简 4 字段契约）。
+
+    语义不变式（Service 层保证 + 单测验证）：
+      - tier is None → reason 必非空（三种语义：insufficient_sample / no_snapshot / not_ranked）
+      - tier in {1, 2, 3} → reason 必为 None
+
+    不引入 display_label 预渲染字段 —— 文案本地化职责归前端（D-04）。
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    year: int | None
+    tier: Literal[1, 2, 3] | None
+    reason: Literal['insufficient_sample', 'no_snapshot', 'not_ranked'] | None
+    data_updated_at: datetime | None
