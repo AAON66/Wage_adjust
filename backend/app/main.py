@@ -116,6 +116,13 @@ async def lifespan(_: FastAPI):
     except Exception:
         logger.warning('Failed to start Feishu scheduler, attendance sync disabled', exc_info=True)
 
+    # Phase 32 D-17: Import scheduler — 每 15 分钟清理 import 僵尸 job
+    try:
+        from backend.app.scheduler import import_scheduler
+        import_scheduler.start_import_scheduler(interval_minutes=15)
+    except Exception:
+        logger.warning('Failed to start import scheduler, stale import cleanup disabled', exc_info=True)
+
     logger.info('Starting %s v%s', settings.app_name, settings.app_version)
     yield
 
@@ -123,6 +130,13 @@ async def lifespan(_: FastAPI):
     try:
         from backend.app.scheduler.feishu_scheduler import stop_scheduler
         stop_scheduler()
+    except Exception:
+        pass
+
+    # Stop import scheduler
+    try:
+        from backend.app.scheduler import import_scheduler
+        import_scheduler.stop_import_scheduler()
     except Exception:
         pass
 
