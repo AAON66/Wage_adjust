@@ -17,6 +17,7 @@ from backend.app.models.certification import Certification
 from backend.app.models.department import Department
 from backend.app.models.employee import Employee
 from backend.app.models.import_job import ImportJob
+from backend.app.models.non_statutory_leave import NonStatutoryLeave
 from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.salary_adjustment_record import SalaryAdjustmentRecord
 from backend.app.services.identity_binding_service import IdentityBindingService
@@ -25,13 +26,20 @@ logger = logging.getLogger(__name__)
 
 
 class ImportService:
-    SUPPORTED_TYPES = {'employees', 'certifications', 'performance_grades', 'salary_adjustments'}
+    # Phase 32 D-01: SUPPORTED_TYPES 扩展为 6 类（加 hire_info / non_statutory_leave）
+    SUPPORTED_TYPES = {
+        'employees', 'certifications', 'performance_grades', 'salary_adjustments',
+        'hire_info', 'non_statutory_leave',
+    }
     MAX_ROWS = 5000  # D-06: 单次导入最大行数
     REQUIRED_COLUMNS = {
         'employees': ['employee_no', 'name', 'department', 'job_family', 'job_level'],
         'certifications': ['employee_no', 'certification_type', 'certification_stage', 'bonus_rate', 'issued_at'],
         'performance_grades': ['employee_no', 'year', 'grade'],
         'salary_adjustments': ['employee_no', 'adjustment_date', 'adjustment_type'],
+        # Phase 32 D-02 / D-03
+        'hire_info': ['employee_no', 'hire_date'],
+        'non_statutory_leave': ['employee_no', 'year', 'total_days'],
     }
     COLUMN_ALIASES = {
         'employees': {
@@ -65,6 +73,20 @@ class ImportService:
             '调薪类型': 'adjustment_type',
             '调薪金额': 'amount',
         },
+        # Phase 32 D-02
+        'hire_info': {
+            '员工工号': 'employee_no',
+            '入职日期': 'hire_date',
+            '末次调薪日期': 'last_salary_adjustment_date',
+            '历史调薪日期': 'last_salary_adjustment_date',  # 兼容飞书同步既有标签
+        },
+        # Phase 32 D-03
+        'non_statutory_leave': {
+            '员工工号': 'employee_no',
+            '年度': 'year',
+            '假期天数': 'total_days',
+            '假期类型': 'leave_type',
+        },
     }
     # D-09: 模板工号列预设文本格式的预填充行数（覆盖表头 + 示例 + 至少 100 行空行，
     # 避免 HR 新增数据时 Excel 重新识别列类型）。
@@ -78,6 +100,9 @@ class ImportService:
         'certifications': ['employee_no', 'certification_type', 'certification_stage'],
         'performance_grades': ['employee_no'],
         'salary_adjustments': ['employee_no'],
+        # Phase 32 D-09
+        'hire_info': ['employee_no'],
+        'non_statutory_leave': ['employee_no'],
     }
 
     # D-07: 检测 Excel 工号列被错识别为数字后 pandas dtype=str 得到 '1234.0' 形态
@@ -108,6 +133,11 @@ class ImportService:
         'adjustment_date': '调薪日期',
         'adjustment_type': '调薪类型',
         'amount': '调薪金额',
+        # Phase 32
+        'hire_date': '入职日期',
+        'last_salary_adjustment_date': '末次调薪日期',
+        'total_days': '假期天数',
+        'leave_type': '假期类型',
     }
 
     def __init__(
@@ -190,11 +220,16 @@ class ImportService:
         *,
         import_type: str,
         upload: UploadFile,
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
         progress_callback: Callable[[int, int, int], None] | None = None,
     ) -> ImportJob:
         normalized_type = import_type.strip().lower()
         if normalized_type not in self.SUPPORTED_TYPES:
             raise ValueError(self._localize_error_message('Unsupported import type.'))
+        # Phase 32 D-12: overwrite_mode 仅接受 merge / replace
+        normalized_mode = (overwrite_mode or 'merge').strip().lower()
+        if normalized_mode not in ('merge', 'replace'):
+            raise ValueError(f'overwrite_mode 必须是 merge 或 replace，当前值：{overwrite_mode!r}')
         file_name = upload.filename or f'{normalized_type}.csv'
         raw_bytes = upload.file.read()
         if not raw_bytes:
@@ -208,6 +243,8 @@ class ImportService:
             success_rows=0,
             failed_rows=0,
             result_summary={'rows': []},
+            overwrite_mode=normalized_mode,
+            actor_id=self._operator_id,
         )
         self.db.add(job)
         self.db.commit()
@@ -220,7 +257,7 @@ class ImportService:
                 raise ValueError(f'单次导入不能超过 {self.MAX_ROWS} 行，请分批导入。')
             if progress_callback:
                 progress_callback(0, len(dataframe), 0)
-            row_results = self._dispatch_import(normalized_type, dataframe)
+            row_results = self._dispatch_import(normalized_type, dataframe, overwrite_mode=normalized_mode)
             job.total_rows = len(row_results)
             job.success_rows = sum(1 for item in row_results if item['status'] == 'success')
             job.failed_rows = sum(1 for item in row_results if item['status'] == 'failed')
@@ -269,6 +306,12 @@ class ImportService:
         elif normalized_type == 'salary_adjustments':
             writer.writerow(['员工工号', '调薪日期', '调薪类型', '调薪金额'])
             writer.writerow(['EMP-1001', '2025-06-01', '年度调薪', '2000'])
+        elif normalized_type == 'hire_info':
+            writer.writerow(['员工工号', '入职日期', '末次调薪日期'])
+            writer.writerow(['EMP-1001', '2026-01-15', '2025-06-01'])
+        elif normalized_type == 'non_statutory_leave':
+            writer.writerow(['员工工号', '年度', '假期天数', '假期类型'])
+            writer.writerow(['EMP-1001', '2026', '10.5', '事假'])
         # UTF-8 BOM helps Excel on Windows open Chinese CSVs correctly.
         content = output.getvalue().encode('utf-8-sig')
         return f'{normalized_type}_template.csv', content, 'text/csv; charset=utf-8'
@@ -302,6 +345,14 @@ class ImportService:
         elif normalized_type == 'salary_adjustments':
             headers = ['员工工号', '调薪日期', '调薪类型', '调薪金额']
             example = ['02651', '2025-06-01', '年度调薪', '2000']
+        elif normalized_type == 'hire_info':
+            # Phase 32 D-02
+            headers = ['员工工号', '入职日期', '末次调薪日期']
+            example = ['02651', '2026-01-15', '2025-06-01']
+        elif normalized_type == 'non_statutory_leave':
+            # Phase 32 D-03
+            headers = ['员工工号', '年度', '假期天数', '假期类型']
+            example = ['02651', 2026, 10.5, '事假']
         else:
             headers = []
             example = []
@@ -418,6 +469,39 @@ class ImportService:
         media_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         return f'{job.import_type}_{job.id}_report.xlsx', content, media_type
 
+    @staticmethod
+    def _parse_excel_date(value):
+        """Phase 32 Pitfall 1：解析 Excel 单元格日期值。
+
+        ImportService 用 ``pd.read_excel(..., dtype=str)`` 读入数据，因此 Excel 序列号日期
+        会被转成字符串（如 '45292'）。本 helper 处理三类输入：
+
+        1. ``None`` / 空字符串 → 返回 ``None``
+        2. 已是 ``date`` / ``datetime`` 实例 → 直接返回 date
+        3. 数值 / 5-6 位纯数字字符串 → 视为 Excel 序列号（origin='1899-12-30'）
+        4. 其余字符串 → 走 ``pd.to_datetime`` 通用解析（支持 ISO 8601 等）
+
+        无法解析时抛 ``ValueError``，由调用方捕获并写入 row failed 结果。
+        """
+        from datetime import date as _date, datetime as _datetime
+        if value is None:
+            return None
+        if isinstance(value, _datetime):
+            return value.date()
+        if isinstance(value, _date):
+            return value
+        if isinstance(value, (int, float)):
+            return pd.to_datetime(value, unit='D', origin='1899-12-30').date()
+        s = str(value).strip()
+        if not s:
+            return None
+        if s.isdigit() and 5 <= len(s) <= 6:
+            return pd.to_datetime(int(s), unit='D', origin='1899-12-30').date()
+        try:
+            return pd.to_datetime(s).date()
+        except Exception as exc:
+            raise ValueError(f'日期格式无效: {value!r} ({exc})') from exc
+
     def _load_table(self, file_name: str, raw_bytes: bytes) -> pd.DataFrame:
         suffix = file_name.lower().rsplit('.', 1)[-1] if '.' in file_name else ''
         if suffix == 'csv':
@@ -435,7 +519,13 @@ class ImportService:
             return pd.read_excel(io.BytesIO(raw_bytes), engine='openpyxl', dtype=str).fillna('')
         raise ValueError(self._localize_error_message('Unsupported file format. Please upload CSV for now.'))
 
-    def _dispatch_import(self, import_type: str, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+    def _dispatch_import(
+        self,
+        import_type: str,
+        dataframe: pd.DataFrame,
+        *,
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
+    ) -> list[dict[str, object]]:
         # row_index 语义（全局约定）：pandas DataFrame 0-based index 加 1 = 数据行号（不含 Excel 表头）。
         # HR 对照 Excel 时需加 1（row_index=2 对应 Excel 第 3 行）。Phase 30 内不扩大改动。
         dataframe = self._normalize_columns(import_type, dataframe)
@@ -468,9 +558,15 @@ class ImportService:
         if import_type == 'employees':
             results.extend(self._import_employees(dataframe))
         elif import_type == 'performance_grades':
-            results.extend(self._import_performance_grades(dataframe))
+            results.extend(self._import_performance_grades(dataframe, overwrite_mode=overwrite_mode))
         elif import_type == 'salary_adjustments':
-            results.extend(self._import_salary_adjustments(dataframe))
+            results.extend(self._import_salary_adjustments(dataframe, overwrite_mode=overwrite_mode))
+        elif import_type == 'hire_info':
+            # Phase 32 D-02
+            results.extend(self._import_hire_info(dataframe, overwrite_mode=overwrite_mode))
+        elif import_type == 'non_statutory_leave':
+            # Phase 32 D-03
+            results.extend(self._import_non_statutory_leave(dataframe, overwrite_mode=overwrite_mode))
         else:
             results.extend(self._import_certifications(dataframe))
         return results
@@ -724,7 +820,12 @@ class ImportService:
     # Performance grades import (D-07/ELIG-09)
     # ------------------------------------------------------------------
 
-    def _import_performance_grades(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+    def _import_performance_grades(
+        self,
+        dataframe: pd.DataFrame,
+        *,
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05; 行为细化在 Task 2
+    ) -> list[dict[str, object]]:
         results: list[dict[str, object]] = []
         for index, row in dataframe.iterrows():
             try:
@@ -792,7 +893,12 @@ class ImportService:
         '专项调薪': 'special',
     }
 
-    def _import_salary_adjustments(self, dataframe: pd.DataFrame) -> list[dict[str, object]]:
+    def _import_salary_adjustments(
+        self,
+        dataframe: pd.DataFrame,
+        *,
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05; 行为细化在 Task 2
+    ) -> list[dict[str, object]]:
         results: list[dict[str, object]] = []
         for index, row in dataframe.iterrows():
             try:
@@ -860,3 +966,342 @@ class ImportService:
         if '调薪金额' in msg:
             return '调薪金额'
         return ''
+
+    # ------------------------------------------------------------------
+    # Phase 32 D-02: Hire info import (IMPORT-01)
+    # ------------------------------------------------------------------
+
+    def _import_hire_info(
+        self,
+        dataframe: pd.DataFrame,
+        *,
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
+    ) -> list[dict[str, object]]:
+        """D-02 + IMPORT-05：导入入职信息到 Employee 表，业务键 = employee_id。
+
+        merge 模式：空字段保留旧值。
+        replace 模式：必填字段（hire_date）为空 → row failed；时间戳类的可选字段
+        last_salary_adjustment_date 也保留旧值（CONTEXT D-子提示：时间戳无 NULL 语义）。
+        """
+        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
+        results: list[dict[str, object]] = []
+
+        # 内联自查 employee_no → Employee（决议 Warning 2：不引入 IdentityBindingService 跨服务方法）
+        employee_nos = [
+            str(v).strip()
+            for v in dataframe.get('employee_no', [])
+            if v is not None and str(v).strip()
+        ]
+        emp_rows = (
+            self.db.execute(
+                select(Employee).where(Employee.employee_no.in_(employee_nos))
+            ).scalars().all()
+            if employee_nos else []
+        )
+        emp_map: dict[str, Employee] = {e.employee_no: e for e in emp_rows}
+
+        for index, row in dataframe.iterrows():
+            row_no = int(index) + 1
+            emp_no = str(row.get('employee_no', '')).strip()
+            if not emp_no:
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': '',
+                    'error': '员工工号为必填字段',
+                    'message': '员工工号为必填字段',
+                    'error_column': '员工工号',
+                })
+                continue
+
+            employee = emp_map.get(emp_no)
+            if employee is None:
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': emp_no,
+                    'error': f'未找到员工工号 "{emp_no}"',
+                    'message': f'未找到员工工号 "{emp_no}"',
+                    'error_column': '员工工号',
+                })
+                continue
+
+            raw_hire = row.get('hire_date')
+            raw_last_adj = row.get('last_salary_adjustment_date') if 'last_salary_adjustment_date' in dataframe.columns else None
+
+            try:
+                new_hire = self._parse_excel_date(raw_hire)
+            except ValueError as exc:
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': emp_no,
+                    'error': f'入职日期格式无效: {raw_hire!r}',
+                    'message': f'入职日期格式无效: {raw_hire!r}',
+                    'error_column': '入职日期',
+                })
+                continue
+
+            try:
+                new_last_adj = self._parse_excel_date(raw_last_adj)
+            except ValueError as exc:
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': emp_no,
+                    'error': f'末次调薪日期格式无效: {raw_last_adj!r}',
+                    'message': f'末次调薪日期格式无效: {raw_last_adj!r}',
+                    'error_column': '末次调薪日期',
+                })
+                continue
+
+            # D-12：replace 模式必填字段 hire_date 空 → failed（不允许清空）
+            if new_hire is None and overwrite_mode == 'replace':
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': emp_no,
+                    'error': '替换模式下入职日期为必填字段，不允许清空',
+                    'message': '替换模式下入职日期为必填字段，不允许清空',
+                    'error_column': '入职日期',
+                })
+                continue
+
+            old_hire = employee.hire_date
+            old_last_adj = employee.last_salary_adjustment_date
+            did_change = False
+
+            if new_hire is not None and new_hire != old_hire:
+                employee.hire_date = new_hire
+                did_change = True
+
+            # last_salary_adjustment_date：merge 与 replace 都保留旧值（时间戳无 NULL 清空语义）
+            if new_last_adj is not None and new_last_adj != old_last_adj:
+                employee.last_salary_adjustment_date = new_last_adj
+                did_change = True
+
+            results.append({
+                'row_index': row_no,
+                'row': row_no,
+                'status': 'success',
+                'employee_no': emp_no,
+                'action': 'update' if did_change else 'no_change',
+                'message': '入职信息导入成功。' if did_change else '无字段变化，跳过更新。',
+                'fields': {
+                    'hire_date': {
+                        'old': old_hire.isoformat() if old_hire else None,
+                        'new': new_hire.isoformat() if new_hire else None,
+                    },
+                    'last_salary_adjustment_date': {
+                        'old': old_last_adj.isoformat() if old_last_adj else None,
+                        'new': new_last_adj.isoformat() if new_last_adj else None,
+                    },
+                },
+            })
+
+        self.db.flush()
+        self.db.commit()
+        return results
+
+    # ------------------------------------------------------------------
+    # Phase 32 D-03: Non-statutory leave import (IMPORT-01)
+    # ------------------------------------------------------------------
+
+    def _import_non_statutory_leave(
+        self,
+        dataframe: pd.DataFrame,
+        *,
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
+    ) -> list[dict[str, object]]:
+        """D-03 + IMPORT-05：导入非法定假期到 NonStatutoryLeave 表，业务键 = (employee_id, year)。
+
+        upsert 语义：
+          - 第一次见到 (employee_id, year)：insert
+          - 已存在：merge 空字段保留旧值；replace 可选字段 leave_type 空时清空、必填字段
+            total_days 空时 row failed
+        """
+        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
+        results: list[dict[str, object]] = []
+
+        employee_nos = [
+            str(v).strip()
+            for v in dataframe.get('employee_no', [])
+            if v is not None and str(v).strip()
+        ]
+        emp_rows = (
+            self.db.execute(
+                select(Employee).where(Employee.employee_no.in_(employee_nos))
+            ).scalars().all()
+            if employee_nos else []
+        )
+        emp_map: dict[str, Employee] = {e.employee_no: e for e in emp_rows}
+
+        for index, row in dataframe.iterrows():
+            row_no = int(index) + 1
+            emp_no = str(row.get('employee_no', '')).strip()
+            if not emp_no:
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': '',
+                    'error': '员工工号为必填字段',
+                    'message': '员工工号为必填字段',
+                    'error_column': '员工工号',
+                })
+                continue
+
+            employee = emp_map.get(emp_no)
+            if employee is None:
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': emp_no,
+                    'error': f'未找到员工工号 "{emp_no}"',
+                    'message': f'未找到员工工号 "{emp_no}"',
+                    'error_column': '员工工号',
+                })
+                continue
+
+            # year: 三层转换防 '2026.0' 等浮点字符串
+            raw_year = row.get('year')
+            try:
+                year = int(float(str(raw_year).strip()))
+            except (ValueError, TypeError):
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'failed',
+                    'employee_no': emp_no,
+                    'error': f'年度字段无效: {raw_year!r}',
+                    'message': f'年度字段无效: {raw_year!r}',
+                    'error_column': '年度',
+                })
+                continue
+
+            # total_days: Decimal 精度（Pitfall 8）
+            raw_days = row.get('total_days')
+            total_days_decimal: Decimal | None = None
+            if raw_days is None or str(raw_days).strip() == '':
+                if overwrite_mode == 'replace':
+                    results.append({
+                        'row_index': row_no,
+                        'row': row_no,
+                        'status': 'failed',
+                        'employee_no': emp_no,
+                        'error': '替换模式下假期天数为必填字段',
+                        'message': '替换模式下假期天数为必填字段',
+                        'error_column': '假期天数',
+                    })
+                    continue
+            else:
+                try:
+                    total_days_decimal = Decimal(str(raw_days).strip())
+                except InvalidOperation:
+                    results.append({
+                        'row_index': row_no,
+                        'row': row_no,
+                        'status': 'failed',
+                        'employee_no': emp_no,
+                        'error': f'假期天数格式无效: {raw_days!r}',
+                        'message': f'假期天数格式无效: {raw_days!r}',
+                        'error_column': '假期天数',
+                    })
+                    continue
+
+            raw_leave_type = row.get('leave_type') if 'leave_type' in dataframe.columns else None
+            leave_type: str | None
+            if raw_leave_type is None or str(raw_leave_type).strip() == '':
+                leave_type = None
+            else:
+                leave_type = str(raw_leave_type).strip()
+
+            existing = self.db.execute(
+                select(NonStatutoryLeave).where(
+                    NonStatutoryLeave.employee_id == employee.id,
+                    NonStatutoryLeave.year == year,
+                )
+            ).scalar_one_or_none()
+
+            if existing is None:
+                if total_days_decimal is None:
+                    # 新增记录时假期天数必须有值
+                    results.append({
+                        'row_index': row_no,
+                        'row': row_no,
+                        'status': 'failed',
+                        'employee_no': emp_no,
+                        'error': '新增记录时假期天数为必填',
+                        'message': '新增记录时假期天数为必填',
+                        'error_column': '假期天数',
+                    })
+                    continue
+                record = NonStatutoryLeave(
+                    employee_id=employee.id,
+                    employee_no=emp_no,
+                    year=year,
+                    total_days=total_days_decimal,
+                    leave_type=leave_type,
+                    source='excel',
+                )
+                self.db.add(record)
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'success',
+                    'employee_no': emp_no,
+                    'action': 'insert',
+                    'message': '非法定假期记录新增成功。',
+                    'fields': {
+                        'year': {'old': None, 'new': year},
+                        'total_days': {'old': None, 'new': str(total_days_decimal)},
+                        'leave_type': {'old': None, 'new': leave_type},
+                    },
+                })
+            else:
+                old_days = existing.total_days
+                old_type = existing.leave_type
+                did_change = False
+
+                # total_days：必填字段，merge 空保留 / replace 空已在上方拦截
+                if total_days_decimal is not None and total_days_decimal != old_days:
+                    existing.total_days = total_days_decimal
+                    did_change = True
+
+                # leave_type：可选字段
+                #   merge：空保留旧值
+                #   replace：空清空旧值（如果有的话）
+                if leave_type is None:
+                    if overwrite_mode == 'replace' and old_type is not None:
+                        existing.leave_type = None
+                        did_change = True
+                else:
+                    if leave_type != old_type:
+                        existing.leave_type = leave_type
+                        did_change = True
+
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'success',
+                    'employee_no': emp_no,
+                    'action': 'update' if did_change else 'no_change',
+                    'message': '非法定假期记录更新成功。' if did_change else '无字段变化，跳过更新。',
+                    'fields': {
+                        'total_days': {
+                            'old': str(old_days) if old_days is not None else None,
+                            'new': str(total_days_decimal) if total_days_decimal is not None else str(old_days),
+                        },
+                        'leave_type': {'old': old_type, 'new': leave_type},
+                    },
+                })
+
+        self.db.flush()
+        self.db.commit()
+        return results

@@ -21,3 +21,32 @@
 - **Phase 32 字段是否在警告中**: 经过 `grep -E "overwrite_mode|actor_id|uq_salary_adj|import_job|32_01"` 验证，**没有**任何 Phase 32 字段被 alembic check 标记
 - **建议**: 单独开 chore plan 修复 model server_default 与 Alembic 历史迁移的对齐问题
 - **不在 32-01 修复**：scope boundary，pre-existing drift
+
+---
+
+## 32-02 Discovery — Additional Pre-existing Failures（不在 32-02 范围）
+
+### 3. `test_approval_service.py::test_submit_decide_and_list_workflow`
+
+- **状态**: 用 `git stash` 还原本 plan 改动后仍然 fail，证实与 32-02 无关
+- **症状**: `assert len(my_items) == 1, got 0`
+- **建议**: 单独 spike 修复
+- **不在 32-02 修复**：scope boundary
+
+### 4. `test_dashboard_service.py::test_dashboard_service_returns_overview_distribution_and_heatmap`
+
+- **状态**: pre-existing（stash 验证）
+- **不在 32-02 修复**：scope boundary
+
+### 5. `test_integration_service.py::test_integration_service_returns_public_payload_sources`
+
+- **状态**: pre-existing（stash 验证）
+- **不在 32-02 修复**：scope boundary
+
+### 6. `test_api/test_import_207.py` 全部 7 个测试 + `test_import_api.py` 2 个测试
+
+- **状态**: pre-existing（stash 验证 — 9 个失败均出现在 32-02 改动前）
+- **症状**: HTTP 207 partial success 行为与某些 API 响应字段未 match
+- **可能原因**: 与 wave 0 ImportJob schema 扩展（新增 overwrite_mode/actor_id NOT NULL 列）相关，但本 plan 已沿用 32-01 的迁移基线，未引入新破坏
+- **建议**: 由 32-04（API 端到端）plan owner 在补 confirm/cancel 接口时一并审视
+- **不在 32-02 修复**：scope boundary（API 层在 32-04 收口）
