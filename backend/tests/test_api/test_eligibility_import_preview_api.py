@@ -95,7 +95,11 @@ def test_preview_endpoint_returns_preview_response(
 def test_preview_409_when_running(
     client_hrbp, _api_context, xlsx_factory, tmp_uploads_dir,
 ):
-    """同 import_type 已有 previewing job → 409 + detail.error='import_in_progress'。"""
+    """同 import_type 已有 previewing job → 409 + body.error='import_in_progress'。
+
+    注意 main.py http_exception_handler：HTTPException(detail=dict) 时 body 就是
+    detail dict 本身（不再嵌套 'detail' key）。
+    """
     _seed_import_job(_api_context, import_type='hire_info', status='previewing')
     data = xlsx_factory['hire_info']()
     resp = client_hrbp.post(
@@ -104,8 +108,8 @@ def test_preview_409_when_running(
     )
     assert resp.status_code == 409
     body = resp.json()
-    assert body['detail']['error'] == 'import_in_progress'
-    assert body['detail']['import_type'] == 'hire_info'
+    assert body['error'] == 'import_in_progress'
+    assert body['import_type'] == 'hire_info'
 
 
 def test_preview_different_type_not_blocked(
