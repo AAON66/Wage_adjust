@@ -824,10 +824,12 @@ class ImportService:
         self,
         dataframe: pd.DataFrame,
         *,
-        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05; 行为细化在 Task 2
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
     ) -> list[dict[str, object]]:
+        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
         results: list[dict[str, object]] = []
         for index, row in dataframe.iterrows():
+            row_no = int(index) + 1
             try:
                 with self.db.begin_nested():  # SAVEPOINT
                     employee_no = str(row['employee_no']).strip()
@@ -836,7 +838,25 @@ class ImportService:
                         raise ValueError(f'未找到员工工号 "{employee_no}"')
 
                     year = int(row['year'])
-                    grade = str(row['grade']).strip().upper()
+
+                    # Phase 32 D-12: grade 是必填字段
+                    raw_grade = row.get('grade')
+                    grade_str = str(raw_grade).strip() if raw_grade is not None else ''
+                    if not grade_str:
+                        if overwrite_mode == 'replace':
+                            raise ValueError('替换模式下绩效等级为必填字段，不允许清空')
+                        # merge：跳过不更新，作为 no_change 处理
+                        results.append({
+                            'row_index': row_no,
+                            'row': row_no,
+                            'status': 'success',
+                            'employee_no': employee_no,
+                            'action': 'no_change',
+                            'message': '绩效等级为空，merge 模式下保留旧值。',
+                        })
+                        continue
+
+                    grade = grade_str.upper()
                     if grade not in ('A', 'B', 'C', 'D', 'E'):
                         raise ValueError(f'绩效等级 "{grade}" 不合法，请填写 A/B/C/D/E')
 
@@ -848,9 +868,11 @@ class ImportService:
                         )
                     )
                     if existing is not None:
+                        old_grade = existing.grade
                         existing.grade = grade
                         existing.source = 'excel'
                         self.db.add(existing)
+                        action = 'update' if old_grade != grade else 'no_change'
                     else:
                         record = PerformanceRecord(
                             employee_id=employee.id,
@@ -860,14 +882,24 @@ class ImportService:
                             source='excel',
                         )
                         self.db.add(record)
+                        action = 'insert'
                     self.db.flush()
-                results.append({'row_index': int(index) + 1, 'status': 'success', 'message': '绩效记录导入成功。'})
+                results.append({
+                    'row_index': row_no,
+                    'row': row_no,
+                    'status': 'success',
+                    'employee_no': employee_no,
+                    'action': action,
+                    'message': '绩效记录导入成功。' if action != 'no_change' else '无字段变化，跳过更新。',
+                })
             except Exception as exc:
                 self.db.expire_all()
                 results.append({
-                    'row_index': int(index) + 1,
+                    'row_index': row_no,
+                    'row': row_no,
                     'status': 'failed',
                     'message': str(exc),
+                    'error': str(exc),
                     'error_column': self._detect_perf_error_column(exc),
                 })
         self.db.commit()
@@ -897,25 +929,42 @@ class ImportService:
         self,
         dataframe: pd.DataFrame,
         *,
-        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05; 行为细化在 Task 2
+        overwrite_mode: str = 'merge',  # Phase 32 IMPORT-05
     ) -> list[dict[str, object]]:
+        """Phase 32 D-14 / Pitfall 4：改 upsert by (employee_id, adjustment_date, adjustment_type)，
+        与飞书同步 _sync_salary_adjustments_body 业务键对齐。
+
+        amount 是可选字段：
+          - merge：空保留旧值
+          - replace：空清空旧值
+        """
+        # Phase 32-03 will refactor to _BUSINESS_KEYS lookup
         results: list[dict[str, object]] = []
+
         for index, row in dataframe.iterrows():
+            row_no = int(index) + 1
             try:
                 with self.db.begin_nested():  # SAVEPOINT
                     employee_no = str(row['employee_no']).strip()
-                    employee = self.db.scalar(select(Employee).where(Employee.employee_no == employee_no))
+                    employee = self.db.scalar(
+                        select(Employee).where(Employee.employee_no == employee_no)
+                    )
                     if employee is None:
                         raise ValueError(f'未找到员工工号 "{employee_no}"')
 
-                    # Parse adjustment_date
+                    # Parse adjustment_date with Phase 32 _parse_excel_date helper
+                    raw_date = row['adjustment_date']
                     try:
-                        adjustment_date = pd.to_datetime(row['adjustment_date']).date()
-                    except Exception:
-                        raise ValueError(f'调薪日期格式无效: "{row["adjustment_date"]}"')
+                        adjustment_date = self._parse_excel_date(raw_date)
+                    except ValueError:
+                        raise ValueError(f'调薪日期格式无效: "{raw_date}"')
+                    if adjustment_date is None:
+                        raise ValueError('调薪日期为必填字段')
 
                     # Parse adjustment_type with Chinese-to-code mapping
                     raw_type = str(row['adjustment_type']).strip()
+                    if not raw_type:
+                        raise ValueError('调薪类型为必填字段')
                     adj_type = self._ADJ_TYPE_MAP.get(raw_type, raw_type.lower())
                     if adj_type not in ('probation', 'annual', 'special'):
                         raise ValueError(
@@ -932,24 +981,79 @@ class ImportService:
                             except InvalidOperation:
                                 raise ValueError(f'调薪金额格式无效: "{raw_amount}"')
 
-                    # Append (not upsert) -- multiple adjustments are expected
-                    record = SalaryAdjustmentRecord(
-                        employee_id=employee.id,
-                        employee_no=employee_no,
-                        adjustment_date=adjustment_date,
-                        adjustment_type=adj_type,
-                        amount=amount,
-                        source='excel',
+                    # D-14: upsert by (employee_id, adjustment_date, adjustment_type)
+                    existing = self.db.scalar(
+                        select(SalaryAdjustmentRecord).where(
+                            SalaryAdjustmentRecord.employee_id == employee.id,
+                            SalaryAdjustmentRecord.adjustment_date == adjustment_date,
+                            SalaryAdjustmentRecord.adjustment_type == adj_type,
+                        )
                     )
-                    self.db.add(record)
-                    self.db.flush()
-                results.append({'row_index': int(index) + 1, 'status': 'success', 'message': '调薪记录导入成功。'})
+
+                    if existing is None:
+                        record = SalaryAdjustmentRecord(
+                            employee_id=employee.id,
+                            employee_no=employee_no,
+                            adjustment_date=adjustment_date,
+                            adjustment_type=adj_type,
+                            amount=amount,
+                            source='excel',
+                        )
+                        self.db.add(record)
+                        self.db.flush()
+                        results.append({
+                            'row_index': row_no,
+                            'row': row_no,
+                            'status': 'success',
+                            'employee_no': employee_no,
+                            'action': 'insert',
+                            'message': '调薪记录新增成功。',
+                            'fields': {
+                                'amount': {'old': None, 'new': str(amount) if amount is not None else None},
+                            },
+                        })
+                    else:
+                        old_amount = existing.amount
+                        did_change = False
+                        # amount 是可选字段
+                        #   merge：空保留 / 非空覆盖
+                        #   replace：空清空 / 非空覆盖
+                        if amount is None:
+                            if overwrite_mode == 'replace' and old_amount is not None:
+                                existing.amount = None
+                                did_change = True
+                        else:
+                            if amount != old_amount:
+                                existing.amount = amount
+                                did_change = True
+                        existing.source = 'excel'
+                        self.db.flush()
+                        results.append({
+                            'row_index': row_no,
+                            'row': row_no,
+                            'status': 'success',
+                            'employee_no': employee_no,
+                            'action': 'update' if did_change else 'no_change',
+                            'message': '调薪记录更新成功。' if did_change else '无字段变化，跳过更新。',
+                            'fields': {
+                                'amount': {
+                                    'old': str(old_amount) if old_amount is not None else None,
+                                    'new': str(amount) if amount is not None else (
+                                        None if overwrite_mode == 'replace' else (
+                                            str(old_amount) if old_amount is not None else None
+                                        )
+                                    ),
+                                },
+                            },
+                        })
             except Exception as exc:
                 self.db.expire_all()
                 results.append({
-                    'row_index': int(index) + 1,
+                    'row_index': row_no,
+                    'row': row_no,
                     'status': 'failed',
                     'message': str(exc),
+                    'error': str(exc),
                     'error_column': self._detect_adj_error_column(exc),
                 })
         self.db.commit()
