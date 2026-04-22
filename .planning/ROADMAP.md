@@ -209,11 +209,15 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
 **Depends on**: Phase 34 (复用 `/performance/records` API + `department_snapshot` 字段)
 **Requirements**: PERF-07
 **Success Criteria** (what must be TRUE):
-  1. HR/manager 打开员工评估详情页（`EvaluationDetail`）在底部看到「历史绩效」表，四列：周期 / 绩效等级 / 评语 / 部门快照，按 `cycle_start_date` 倒序排列
-  2. 同一个员工的历史绩效面板在调薪建议详情页（`SalaryDetail`）复用展示，两处口径一致
+  1. HR/manager 打开员工评估详情页（`EvaluationDetail`）在底部看到「历史绩效」表，四列：周期 / 绩效等级 / 评语 / 部门快照，按 `cycle_start_date` 倒序排列（CONTEXT D-01：year DESC 解读）
+  2. 同一个员工的历史绩效面板在调薪建议详情页（`SalaryDetail`）复用展示，两处口径一致（CONTEXT D-07：SalaryDetailPanel 与 EvaluationDetail 同页，挂一次即两语境共用）
   3. 员工没有任何历史绩效时显示「暂无历史绩效记录」空状态，不报错不崩溃
   4. 员工在不同时期所属部门发生变化时，历史绩效表每条记录显示的 `department_snapshot` 反映该条绩效录入时员工所属的部门（不是当前部门）
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 36-01-PLAN.md — Backend Model + Alembic + Schema + ImportService 支持 comment 字段（D-02/D-03）
+- [ ] 36-02-PLAN.md — Backend Service + GET /records/by-employee/{employee_id} 端点 + 8 用例权限矩阵测试（D-04/D-05/D-06）
+- [ ] 36-03-PLAN.md — Frontend Types + performanceService + PerformanceHistoryPanel 组件（D-08）
+- [ ] 36-04-PLAN.md — Frontend EvaluationDetail 挂载 + 角色门控 + 四角色 UAT + D-10 never-do grep 验证（D-07/D-09/D-10）
 **UI hint**: yes
 
 ### Phase 37: Phase 11 导航验证补齐
