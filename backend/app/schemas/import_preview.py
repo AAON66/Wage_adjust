@@ -80,6 +80,16 @@ class ConfirmResponse(BaseModel):
     no_change_count: int
     failed_count: int
     execution_duration_ms: int
+    # Phase 34 W-1：仅 import_type=performance_grades 时填充；其他类型为 None。
+    # completed = 5 秒内重算成功；in_progress = 5 秒超时后台继续；
+    # busy_skipped = 撞上 HR 手动重算锁（D-06）；failed = 重算异常（D-04 已落库不阻塞）；
+    # skipped = 不适用（非 performance_grades 路径）
+    tier_recompute_status: Literal[
+        'completed', 'in_progress', 'busy_skipped', 'failed', 'skipped',
+    ] | None = Field(
+        default=None,
+        description='Phase 34 W-1：仅 import_type=performance_grades 时填充；其他类型为 None',
+    )
 
 
 class ActiveJobResponse(BaseModel):

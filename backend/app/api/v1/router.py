@@ -20,6 +20,7 @@ from backend.app.api.v1.files import router as files_router
 from backend.app.api.v1.handbooks import router as handbooks_router
 from backend.app.api.v1.health import router as health_router
 from backend.app.api.v1.imports import router as imports_router
+from backend.app.api.v1.performance import router as performance_router
 from backend.app.api.v1.public import router as public_router
 from backend.app.api.v1.salary import router as salary_router
 from backend.app.api.v1.sharing import router as sharing_router
@@ -49,6 +50,7 @@ api_router.include_router(eligibility_router)
 api_router.include_router(eligibility_import_router)
 api_router.include_router(imports_router)
 api_router.include_router(handbooks_router)
+api_router.include_router(performance_router)
 api_router.include_router(public_router)
 api_router.include_router(feishu_router)
 api_router.include_router(attendance_router)

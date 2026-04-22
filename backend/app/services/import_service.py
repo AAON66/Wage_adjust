@@ -893,6 +893,8 @@ class ImportService:
                         old_grade = existing.grade
                         existing.grade = grade
                         existing.source = 'excel'
+                        # Phase 34 B-1 + D-08：刷新部门快照（None 时也写 None）
+                        existing.department_snapshot = employee.department
                         self.db.add(existing)
                         action = 'update' if old_grade != grade else 'no_change'
                     else:
@@ -902,6 +904,8 @@ class ImportService:
                             year=year,
                             grade=grade,
                             source='excel',
+                            # Phase 34 B-1 + D-08：录入时部门快照（None 时也写 None）
+                            department_snapshot=employee.department,
                         )
                         self.db.add(record)
                         action = 'insert'
@@ -1930,6 +1934,15 @@ class ImportService:
         self.db.commit()
         self.db.refresh(job)
 
+        # Phase 34 D-03 / D-15 / W-1：performance_grades 导入成功后同步触发档次重算
+        # 最长阻塞 5 秒；超时后台继续；失败不阻塞 import 落库（D-04）
+        tier_recompute_status: str | None = None
+        if (
+            job.import_type == 'performance_grades'
+            and job.status in ('completed', 'partial')
+        ):
+            tier_recompute_status = self._run_tier_recompute_hook(job)
+
         return ConfirmResponse(
             job_id=job.id,
             status=job.status,
@@ -1939,7 +1952,127 @@ class ImportService:
             no_change_count=no_change,
             failed_count=failed,
             execution_duration_ms=duration_ms,
+            tier_recompute_status=tier_recompute_status,
         )
+
+    def _run_tier_recompute_hook(self, job: ImportJob) -> str:
+        """Phase 34 D-03 / D-04 / D-06：performance_grades confirm 同步重算 hook。
+
+        返回 ConfirmResponse.tier_recompute_status 字段值：
+          - 'completed'    — 5 秒内全部 year 重算成功
+          - 'in_progress'  — 5 秒超时；后台线程仍在重算
+          - 'busy_skipped' — 至少一个 year 撞上 HR 手动重算锁（D-06）
+          - 'failed'       — 至少一个 year 重算异常（D-04 已落库不阻塞）
+        """
+        # 延迟 import 避免循环依赖
+        from concurrent.futures import (
+            ThreadPoolExecutor,
+            TimeoutError as FutureTimeout,
+        )
+        from datetime import timedelta
+
+        from backend.app.core.config import get_settings as _get_settings
+        from backend.app.core.redis import get_redis as _get_redis
+        from backend.app.services.exceptions import (
+            TierRecomputeBusyError,
+            TierRecomputeFailedError,
+        )
+        from backend.app.services.performance_service import PerformanceService
+        from backend.app.services.tier_cache import TierCache
+
+        # 抽取受影响 years
+        affected_years: set[int] = set()
+        exec_rows = (
+            (job.result_summary or {}).get('execution', {}).get('rows', [])
+        )
+        for row in exec_rows:
+            year_val = row.get('year') if isinstance(row, dict) else None
+            if year_val is not None:
+                try:
+                    affected_years.add(int(year_val))
+                except (TypeError, ValueError):
+                    pass
+
+        if not affected_years:
+            # 兜底：rows 不含 year 时查 source='excel' 最近 1 分钟内的不同 year
+            one_minute_ago = datetime.now(timezone.utc) - timedelta(minutes=1)
+            year_rows = self.db.execute(
+                select(PerformanceRecord.year).where(
+                    PerformanceRecord.source == 'excel',
+                    PerformanceRecord.updated_at >= one_minute_ago,
+                ).distinct()
+            ).scalars().all()
+            affected_years = {int(y) for y in year_rows if y is not None}
+
+        if not affected_years:
+            logger.info(
+                'No affected years detected for performance_grades job %s; '
+                'skip tier recompute',
+                job.id,
+            )
+            return 'completed'
+
+        settings = _get_settings()
+        try:
+            redis_client = _get_redis()
+        except Exception:  # noqa: BLE001 — Redis 不可达走 None 降级
+            redis_client = None
+        cache = TierCache(redis_client=redis_client, settings=settings)
+        perf_service = PerformanceService(
+            self.db, settings=settings, cache=cache,
+        )
+
+        # invalidate cache for all affected years
+        try:
+            perf_service.invalidate_tier_cache(affected_years)
+        except Exception:  # noqa: BLE001
+            logger.exception(
+                'Tier cache invalidate failed for years %s', affected_years,
+            )
+
+        timeout_s = settings.performance_tier_recompute_timeout_seconds
+        busy_seen = False
+        failed_seen = False
+
+        def _do() -> None:
+            nonlocal busy_seen, failed_seen
+            for y in sorted(affected_years):
+                try:
+                    perf_service.recompute_tiers(y)
+                except TierRecomputeBusyError:
+                    busy_seen = True
+                    logger.warning(
+                        'Tier recompute busy for year %s '
+                        '(D-06 self-vs-manual collision)',
+                        y,
+                    )
+                except TierRecomputeFailedError as fe:
+                    failed_seen = True
+                    logger.warning(
+                        'Tier recompute failed for year %s: %s', y, fe.cause,
+                    )
+
+        try:
+            # ThreadPoolExecutor 不强制 shutdown 让超时后后台继续运行
+            ex = ThreadPoolExecutor(max_workers=1)
+            try:
+                fut = ex.submit(_do)
+                try:
+                    fut.result(timeout=timeout_s)
+                    if failed_seen:
+                        return 'failed'
+                    if busy_seen:
+                        return 'busy_skipped'
+                    return 'completed'
+                except FutureTimeout:
+                    # 超时：后台线程继续运行，executor 不强制 shutdown
+                    return 'in_progress'
+            finally:
+                # wait=False：不等待后台任务（D-03 让其继续完成）
+                ex.shutdown(wait=False)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception('Tier recompute hook fatal error: %s', exc)
+            return 'failed'
 
     def cancel_import(self, job_id: str) -> None:
         """HR 显式取消 preview → status='cancelled' + 删暂存文件。
