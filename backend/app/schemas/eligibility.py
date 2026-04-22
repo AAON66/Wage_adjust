@@ -25,10 +25,15 @@ class EligibilityResultSchema(BaseModel):
     - all eligible -> 'eligible'
     - any ineligible -> 'ineligible'
     - no ineligible but some data_missing -> 'pending'
+
+    Phase 32.1 D-15: data_updated_at = max(updated_at) across 4 data sources
+    (employee/performance/salary_adjustment/non_statutory_leave). None if all
+    sources missing. Rendered as ISO 8601 by Pydantic.
     """
 
     overall_status: Literal['eligible', 'ineligible', 'pending']
     rules: List[RuleResultSchema]
+    data_updated_at: Optional[datetime] = None  # Phase 32.1 D-15
 
 
 class EligibilityBatchItemSchema(BaseModel):

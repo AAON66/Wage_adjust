@@ -47,6 +47,53 @@ class EligibilityService:
         )
 
     # ------------------------------------------------------------------
+    # Data freshness timestamp (Phase 32.1 D-16, ESELF-05)
+    # ------------------------------------------------------------------
+
+    def compute_data_updated_at(self, employee_id: str) -> datetime | None:
+        """计算员工资格相关数据的最新 updated_at（Phase 32.1 D-16）。
+
+        取 4 个数据源 updated_at 的最大值：
+          - Employee.updated_at（员工档案）
+          - max(PerformanceRecord.updated_at) where employee_id（绩效）
+          - max(SalaryAdjustmentRecord.updated_at) where employee_id（调薪记录）
+          - max(NonStatutoryLeave.updated_at) where employee_id（非法定假期）
+
+        任一数据源缺失自动跳过；全部缺失返回 None（前端展示「数据从未更新」）。
+        不存在的 employee_id 也返回 None（不抛异常；端点层另做 404）。
+        """
+        candidates: list[datetime] = []
+
+        emp_updated = self.db.scalar(
+            select(Employee.updated_at).where(Employee.id == employee_id)
+        )
+        if emp_updated is not None:
+            candidates.append(emp_updated)
+
+        perf_updated = self.db.scalar(
+            select(func.max(PerformanceRecord.updated_at))
+            .where(PerformanceRecord.employee_id == employee_id)
+        )
+        if perf_updated is not None:
+            candidates.append(perf_updated)
+
+        adj_updated = self.db.scalar(
+            select(func.max(SalaryAdjustmentRecord.updated_at))
+            .where(SalaryAdjustmentRecord.employee_id == employee_id)
+        )
+        if adj_updated is not None:
+            candidates.append(adj_updated)
+
+        leave_updated = self.db.scalar(
+            select(func.max(NonStatutoryLeave.updated_at))
+            .where(NonStatutoryLeave.employee_id == employee_id)
+        )
+        if leave_updated is not None:
+            candidates.append(leave_updated)
+
+        return max(candidates) if candidates else None
+
+    # ------------------------------------------------------------------
     # Single-employee check (existing)
     # ------------------------------------------------------------------
 
