@@ -20,9 +20,12 @@ from sqlalchemy.orm import Session
 
 from backend.app.core.config import Settings
 from backend.app.core.redis import get_redis
-from backend.app.dependencies import get_app_settings, get_db, require_roles
+from backend.app.dependencies import get_app_settings, get_current_user, get_db, require_roles
+from backend.app.models.employee import Employee
+from backend.app.models.user import User
 from backend.app.schemas.performance import (
     AvailableYearsResponse,
+    MyTierResponse,
     PerformanceRecordCreateRequest,
     PerformanceRecordRead,
     PerformanceRecordsListResponse,
@@ -202,7 +205,47 @@ def get_available_years(
 
 
 # ---------------------------------------------------------------------------
-# Phase 35 保留位（本期不实现 handler，仅声明）
-# GET /api/v1/performance/me/tier — 员工自助查询本人档次
-# TODO Phase 35：在 ESELF-03 范围内交付（员工端档次徽章）
+# GET /performance/me/tier — Phase 35 ESELF-03 员工自助档次查询
+#
+# 无参数路由：actor 由 JWT subject（current_user.employee_id）决定；
+# 横向越权天然不可达（ESELF-04 红线；T-35-02-01 mitigation）。
+# 任意已登录角色均可调用（admin/hrbp/manager/employee）；
+# 不需要 require_roles —— 无 `{employee_id}` 变体即无越权面。
 # ---------------------------------------------------------------------------
+
+@router.get('/me/tier', response_model=MyTierResponse)
+def get_my_tier(
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(get_current_user),
+) -> MyTierResponse:
+    """员工自助查询本人绩效档次（Phase 35 ESELF-03）。
+
+    响应 200 + MyTierResponse，覆盖 4 语义分支：
+      - tier in {1,2,3} + reason=None：员工有档次
+      - tier=None + reason='insufficient_sample'：样本不足
+      - tier=None + reason='no_snapshot'：HR 从未录入绩效
+      - tier=None + reason='not_ranked'：命中快照但本员工未录绩效
+
+    错误态（D-06）：
+      - 未绑定员工 → 422 + '您尚未绑定员工信息'
+      - 员工档案被删 → 404 + '员工档案缺失'
+      - 其他异常 → 500（main.py 全局 handler）
+    """
+    # D-06: 未绑定员工（current_user.employee_id is None）
+    if current_user.employee_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail='您尚未绑定员工信息，请前往「账号设置」完成绑定',
+        )
+
+    # D-06: JWT 有效但 Employee 行已被删
+    employee = db.get(Employee, current_user.employee_id)
+    if employee is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='员工档案缺失，请联系 HR 核对',
+        )
+
+    service = _make_service(db, settings)
+    return service.get_my_tier(current_user.employee_id)
