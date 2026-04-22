@@ -5,7 +5,7 @@ from typing import Optional
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, Index, Numeric, String
+from sqlalchemy import Date, ForeignKey, Index, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.core.database import Base
@@ -18,6 +18,11 @@ class SalaryAdjustmentRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin
     __tablename__ = 'salary_adjustment_records'
     __table_args__ = (
         Index('ix_salary_adj_employee_date', 'employee_id', 'adjustment_date'),
+        # Phase 32 D-14 / Pitfall 4: 业务键唯一约束，对齐飞书同步 _sync_salary_adjustments_body
+        UniqueConstraint(
+            'employee_id', 'adjustment_date', 'adjustment_type',
+            name='uq_salary_adj_employee_date_type',
+        ),
     )
 
     employee_id: Mapped[str] = mapped_column(
