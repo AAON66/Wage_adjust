@@ -28,6 +28,7 @@ from backend.app.models.employee import Employee
 from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.performance_tier_snapshot import PerformanceTierSnapshot
 from backend.app.schemas.performance import (
+    MyTierResponse,
     PerformanceRecordRead,
     TierSummaryResponse,
 )
@@ -238,6 +239,86 @@ class PerformanceService:
         if self.cache is not None:
             self.cache.set_cached(year, summary.model_dump())
         return summary
+
+    # ------------------------------------------------------------------
+    # get_my_tier (Phase 35 ESELF-03 / D-13)
+    # ------------------------------------------------------------------
+
+    def get_my_tier(self, employee_id: str) -> MyTierResponse:
+        """员工自助档次查询（Phase 35 ESELF-03）。
+
+        D-01 年份定位策略：
+          1. 先查 `PerformanceTierSnapshot.year == datetime.now().year`
+          2. 未命中 fallback 到 `ORDER BY year DESC LIMIT 1`
+          3. 仍无 → 返回 `{year=None, tier=None, reason='no_snapshot', data_updated_at=None}`
+
+        D-03 三种 tier=None 语义分层：
+          - insufficient_sample: 命中快照 && snapshot.insufficient_sample is True
+          - no_snapshot:         全库完全无 snapshot 行
+          - not_ranked:          命中快照 && 非 insufficient_sample && tiers_json 无此员工或值为 None
+
+        Args:
+            employee_id: 员工 UUID 字符串；Service 层用 str() 规范化以匹配
+                tiers_json 的 str(UUID) key（Phase 33 engine 输出契约）
+
+        Returns:
+            MyTierResponse with invariants:
+              - tier is None → reason is not None
+              - tier in {1, 2, 3} → reason is None
+        """
+        # Step 1: 当前年快照
+        current_year = datetime.now().year
+        snapshot = self.db.scalar(
+            select(PerformanceTierSnapshot).where(
+                PerformanceTierSnapshot.year == current_year,
+            )
+        )
+
+        # Step 2: fallback 到最新有快照年
+        if snapshot is None:
+            snapshot = self.db.scalar(
+                select(PerformanceTierSnapshot)
+                .order_by(PerformanceTierSnapshot.year.desc())
+                .limit(1)
+            )
+
+        # Step 3: 全库无快照
+        if snapshot is None:
+            return MyTierResponse(
+                year=None,
+                tier=None,
+                reason='no_snapshot',
+                data_updated_at=None,
+            )
+
+        # Step 4: insufficient_sample 分支（全员 null）
+        if snapshot.insufficient_sample:
+            return MyTierResponse(
+                year=snapshot.year,
+                tier=None,
+                reason='insufficient_sample',
+                data_updated_at=snapshot.updated_at,
+            )
+
+        # Step 5: 从 tiers_json 查本员工 —— key 是 str(UUID)（Phase 33 契约）
+        tiers_map = snapshot.tiers_json or {}
+        raw_tier = tiers_map.get(str(employee_id))
+
+        if raw_tier in (1, 2, 3):
+            return MyTierResponse(
+                year=snapshot.year,
+                tier=raw_tier,
+                reason=None,
+                data_updated_at=snapshot.updated_at,
+            )
+
+        # not_ranked: key 不存在 / 值为 None / 值非 1/2/3
+        return MyTierResponse(
+            year=snapshot.year,
+            tier=None,
+            reason='not_ranked',
+            data_updated_at=snapshot.updated_at,
+        )
 
     # ------------------------------------------------------------------
     # recompute_tiers (D-04 / D-05 / D-06)
