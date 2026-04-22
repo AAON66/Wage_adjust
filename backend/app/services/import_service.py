@@ -1781,6 +1781,194 @@ class ImportService:
         )
 
     # ==================================================================
+    # Phase 32-03 D-06 / D-13: 两阶段提交之 confirm + cancel 阶段
+    # ==================================================================
+
+    def confirm_import(
+        self,
+        *,
+        job_id: str,
+        overwrite_mode: str,
+        confirm_replace: bool = False,
+        actor_id: str | None = None,
+        actor_role: str | None = None,
+    ) -> 'ConfirmResponse':  # type: ignore[name-defined]
+        """D-06 + D-13: confirm 阶段（两阶段提交之第二步）。
+
+        流程：
+          1) 校验 overwrite_mode（merge / replace） 与 replace 二次确认
+             （T-32-15: replace 必须 confirm_replace=True）
+          2) 校验 job 状态必须是 'previewing'（防双 confirm）
+          3) 读暂存文件 + sha256 校验（T-32-14: 防外部篡改）
+          4) 标记 job.status='processing' 并写入最终 overwrite_mode
+          5) 调 _dispatch_import 落库 → 派生 status (completed/partial/failed)
+          6) 删暂存文件
+          7) 写 AuditLog action='import_confirmed'，用真实字段名
+             operator_id/target_type/target_id（不是 D-13 文档假设的 actor_id/resource_*）
+
+        Raises:
+            ValueError: overwrite_mode 不合法 / replace 未确认 / job 不存在
+                / job 状态非 previewing / 暂存文件 hash 不匹配
+        """
+        from backend.app.schemas.import_preview import ConfirmResponse
+
+        if overwrite_mode not in ('merge', 'replace'):
+            raise ValueError(f'Invalid overwrite_mode: {overwrite_mode!r}')
+        if overwrite_mode == 'replace' and not confirm_replace:
+            raise ValueError('替换模式必须显式确认（前端二次确认未完成）')
+
+        job = self.db.execute(
+            select(ImportJob).where(ImportJob.id == job_id)
+        ).scalar_one_or_none()
+        if job is None:
+            raise ValueError(f'ImportJob {job_id} 不存在')
+        if job.status != 'previewing':
+            raise ValueError(
+                f'ImportJob {job_id} 状态为 {job.status}，'
+                f'无法确认导入（已确认或已取消）'
+            )
+
+        expected_sha = (
+            (job.result_summary or {}).get('preview', {}).get('file_sha256')
+        )
+        raw_bytes = self._read_staged_file(job_id, expected_sha256=expected_sha)
+
+        # 标记 processing + 落 overwrite_mode
+        job.status = 'processing'
+        job.overwrite_mode = overwrite_mode
+        if actor_id is not None:
+            job.actor_id = actor_id
+        self.db.commit()
+
+        start_ts = datetime.now(timezone.utc)
+        inserted = updated = no_change = failed = 0
+        duration_ms = 0
+        try:
+            dataframe = self._load_table(job.file_name, raw_bytes)
+            dataframe = self._normalize_columns(job.import_type, dataframe)
+            row_results = self._dispatch_import(
+                job.import_type, dataframe, overwrite_mode=overwrite_mode,
+            )
+            inserted = sum(
+                1 for r in row_results
+                if r.get('action') == 'insert' and r.get('status') == 'success'
+            )
+            updated = sum(
+                1 for r in row_results
+                if r.get('action') == 'update' and r.get('status') == 'success'
+            )
+            no_change = sum(
+                1 for r in row_results
+                if r.get('action') == 'no_change' and r.get('status') == 'success'
+            )
+            failed = sum(
+                1 for r in row_results if r.get('status') == 'failed'
+            )
+
+            job.total_rows = len(row_results)
+            job.success_rows = inserted + updated + no_change
+            job.failed_rows = failed
+            if failed == 0:
+                job.status = 'completed'
+            elif job.success_rows == 0:
+                job.status = 'failed'
+            else:
+                job.status = 'partial'
+            duration_ms = int(
+                (datetime.now(timezone.utc) - start_ts).total_seconds() * 1000
+            )
+            existing = job.result_summary or {}
+            job.result_summary = {
+                **existing,
+                'execution': {
+                    'rows': row_results[:200],  # 截断保护，与 preview 同口径
+                    'inserted_count': inserted,
+                    'updated_count': updated,
+                    'no_change_count': no_change,
+                    'failed_count': failed,
+                    'execution_duration_ms': duration_ms,
+                    'executed_at': datetime.now(timezone.utc).isoformat(),
+                },
+            }
+        except Exception as exc:
+            job.status = 'failed'
+            existing = job.result_summary or {}
+            job.result_summary = {
+                **existing, 'execution': {'error': str(exc)},
+            }
+            self.db.commit()
+            raise
+        finally:
+            try:
+                self._delete_staged_file(job_id)
+            except Exception:
+                logger.exception(
+                    'Failed to delete staged file for confirmed job %s', job_id,
+                )
+
+        # D-13: 写 AuditLog（**真实字段名 operator_id / target_type / target_id**）
+        # 注意：AuditLog model 字段是 operator_id/target_type/target_id，
+        # 与 D-13 文档原写的 actor_id/resource_type/resource_id 不一致 —— 用真实字段
+        audit = AuditLog(
+            operator_id=actor_id,
+            operator_role=actor_role,
+            action='import_confirmed',
+            target_type='import_job',
+            target_id=job.id,
+            detail={
+                'import_type': job.import_type,
+                'overwrite_mode': overwrite_mode,
+                'file_name': job.file_name,
+                'total_rows': job.total_rows,
+                'inserted_count': inserted,
+                'updated_count': updated,
+                'no_change_count': no_change,
+                'failed_count': failed,
+            },
+        )
+        self.db.add(audit)
+        self.db.commit()
+        self.db.refresh(job)
+
+        return ConfirmResponse(
+            job_id=job.id,
+            status=job.status,
+            total_rows=job.total_rows,
+            inserted_count=inserted,
+            updated_count=updated,
+            no_change_count=no_change,
+            failed_count=failed,
+            execution_duration_ms=duration_ms,
+        )
+
+    def cancel_import(self, job_id: str) -> None:
+        """HR 显式取消 preview → status='cancelled' + 删暂存文件。
+
+        对终态 job（completed/failed/partial/cancelled）幂等：直接返回，
+        不抛异常，不改状态。
+        """
+        job = self.db.execute(
+            select(ImportJob).where(ImportJob.id == job_id)
+        ).scalar_one_or_none()
+        if job is None:
+            raise ValueError(f'ImportJob {job_id} 不存在')
+        if job.status != 'previewing':
+            # 只能取消 previewing 状态；其他状态忽略（幂等，不改）
+            return
+        job.status = 'cancelled'
+        existing = job.result_summary or {}
+        job.result_summary = {
+            **existing, 'cancellation_reason': 'user_cancelled',
+        }
+        try:
+            self._delete_staged_file(job_id)
+        except Exception:
+            logger.exception(
+                'Failed to delete staged file for cancelled job %s', job_id,
+            )
+        self.db.commit()
+
+    # ==================================================================
     # Phase 32-03 D-16 / D-17: 并发锁 + 双时限僵尸清理
     # ==================================================================
 
