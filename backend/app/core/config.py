@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     eligibility_performance_fail_grades: str = 'C,D,E'
     eligibility_max_non_statutory_leave_days: float = 30.0
 
+    # Performance tier engine threshold (D-10 — Phase 33)
+    performance_tier_min_sample_size: int = 50
+
     log_level: str = "INFO"
     log_format: str = "json"
 
