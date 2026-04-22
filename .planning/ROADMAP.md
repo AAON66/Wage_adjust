@@ -93,7 +93,7 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
 - [x] **Phase 32: 调薪资格导入功能补齐** - 补齐 hire_info/non_statutory_leave 两类导入、Excel 模板下载、覆盖语义、并发互斥、Preview+diff (IMPORT-01/02/05/06/07) (completed 2026-04-22)
 - [x] **Phase 32.1: 员工端调薪资格自助可见 (紧急 MVP)** - 员工在 MyReview 顶部看到本人调薪资格（4 态徽章 + 4 条规则全展开 + 数据更新时间戳），无参数路由 `/eligibility/me` 防越权 (ESELF-01/02/04/05；ESELF-03 绩效档次推迟到 Phase 35) (completed 2026-04-22)
 - [x] **Phase 33: 绩效档次纯引擎** - `PerformanceTierEngine` 按 `PERCENT_RANK` 口径分档，ties 同档、样本不足返回 null、分布偏离告警 (PERF-03/04/06) (completed 2026-04-22)
-- [ ] **Phase 34: 绩效管理服务与 API** - 新增「绩效管理」页面 + `/api/v1/performance` 路由 + 档次缓存/快照 + 导入回调触发重算 (PERF-01/02/05/08)
+- [x] **Phase 34: 绩效管理服务与 API** - 新增「绩效管理」页面 + `/api/v1/performance` 路由 + 档次缓存/快照 + 导入回调触发重算 (PERF-01/02/05/08) (completed 2026-04-22)
 - [ ] **Phase 35: 员工端自助体验** - 在 32.1 已建好的「调薪资格」panel 下方追加绩效档次徽章 + 完整无参数路由 `/performance/me/tier` (ESELF-03)
 - [ ] **Phase 36: 历史绩效展示** - `EvaluationDetail` 与 `SalaryDetail` 复用 `PerformanceHistoryPanel`，按 `cycle_start_date` 倒序展示含部门快照的历史绩效 (PERF-07)
 - [ ] **Phase 37: Phase 11 导航验证补齐** - 补齐 Phase 11 `SUMMARY.md`/`VERIFICATION.md`，四角色 UAT 清单覆盖 v1.4 新增菜单（纯文档，无代码） (NAV-04/05)
@@ -187,10 +187,10 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
   4. 新录入的每条 `PerformanceRecord` 持久化员工当时的部门名称到 `department_snapshot` 字段；历史记录里能看到员工变动过部门前后的部门归属
   5. `/api/v1/performance/records` 和 `/api/v1/performance/tier-summary` 返回的数据与底层 `PerformanceRecord` 表口径一致，不同查询入口不会出现档次漂移
 **Plans**: 4 plans
-- [ ] 34-01-PLAN.md — Backend Model + Alembic Migration (PerformanceRecord.department_snapshot + PerformanceTierSnapshot table)
-- [ ] 34-02-PLAN.md — Backend Settings + TierCache + 自定义异常基础设施
-- [ ] 34-03-PLAN.md — Backend Service + 4 API 端点 + import_service hook + 25+ 测试
-- [ ] 34-04-PLAN.md — Frontend 绩效管理页面 + 7 组件 + ECharts + 路由 + 角色访问
+- [x] 34-01-PLAN.md — Backend Model + Alembic Migration (PerformanceRecord.department_snapshot + PerformanceTierSnapshot table)
+- [x] 34-02-PLAN.md — Backend Settings + TierCache + 自定义异常基础设施
+- [x] 34-03-PLAN.md — Backend Service + 4 API 端点 + import_service hook + 25+ 测试
+- [x] 34-04-PLAN.md — Frontend 绩效管理页面 + 7 组件 + ECharts + 路由 + 角色访问
 
 ### Phase 35: 员工端自助体验
 **Goal**: 员工在自己的 `MyReview` 页面能随时看到本次调薪的资格状态（三态+未通过规则）和绩效档次（1/2/3 档），不需要 HR 介入、不暴露其他员工数据
@@ -268,7 +268,7 @@ Phases execute in numeric order: 30 → 31 → 32 → 32.1 → 33 → 34 → 35 
 | 32. 调薪资格导入功能补齐 | v1.4 | 6/6 | Complete    | 2026-04-22 |
 | 32.1. 员工端资格自助 (紧急 MVP) | v1.4 | 2/2 | Complete    | 2026-04-22 |
 | 33. 绩效档次纯引擎 | v1.4 | 1/1 | Complete    | 2026-04-22 |
-| 34. 绩效管理服务与 API | v1.4 | 0/? | Not started | — |
+| 34. 绩效管理服务与 API | v1.4 | 4/4 | Complete    | 2026-04-22 |
 | 35. 员工端自助体验 | v1.4 | 0/? | Not started | — |
 | 36. 历史绩效展示 | v1.4 | 0/? | Not started | — |
 | 37. Phase 11 导航验证补齐 | v1.4 | 0/? | Not started | — |
