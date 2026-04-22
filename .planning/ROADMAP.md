@@ -186,7 +186,11 @@ Phases execute in numeric order with data-integrity-first sequencing: 30 → 31 
   3. HR 点击「重算档次」按钮可手动触发档次快照重算，UI 上显示重算完成时间戳
   4. 新录入的每条 `PerformanceRecord` 持久化员工当时的部门名称到 `department_snapshot` 字段；历史记录里能看到员工变动过部门前后的部门归属
   5. `/api/v1/performance/records` 和 `/api/v1/performance/tier-summary` 返回的数据与底层 `PerformanceRecord` 表口径一致，不同查询入口不会出现档次漂移
-**Plans**: TBD
+**Plans**: 4 plans
+- [ ] 34-01-PLAN.md — Backend Model + Alembic Migration (PerformanceRecord.department_snapshot + PerformanceTierSnapshot table)
+- [ ] 34-02-PLAN.md — Backend Settings + TierCache + 自定义异常基础设施
+- [ ] 34-03-PLAN.md — Backend Service + 4 API 端点 + import_service hook + 25+ 测试
+- [ ] 34-04-PLAN.md — Frontend 绩效管理页面 + 7 组件 + ECharts + 路由 + 角色访问
 
 ### Phase 35: 员工端自助体验
 **Goal**: 员工在自己的 `MyReview` 页面能随时看到本次调薪的资格状态（三态+未通过规则）和绩效档次（1/2/3 档），不需要 HR 介入、不暴露其他员工数据
