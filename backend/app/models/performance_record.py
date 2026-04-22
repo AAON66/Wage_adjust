@@ -24,3 +24,7 @@ class PerformanceRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Bas
     source: Mapped[str] = mapped_column(
         String(32), nullable=False, default='manual', comment='manual/excel/feishu',
     )
+    department_snapshot: Mapped[str | None] = mapped_column(
+        String(100), nullable=True,
+        comment='Phase 34 D-07：录入时员工所属部门快照；存量行 NULL 不回填',
+    )

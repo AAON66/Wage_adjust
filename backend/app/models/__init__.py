@@ -6,6 +6,7 @@ from importlib import import_module
 from pkgutil import iter_modules
 
 from backend.app.core.database import Base
+from backend.app.models.performance_tier_snapshot import PerformanceTierSnapshot
 
 
 def load_model_modules() -> None:
@@ -17,4 +18,4 @@ def load_model_modules() -> None:
         import_module(f"{package_name}.{module_info.name}")
 
 
-__all__ = ["Base", "load_model_modules"]
+__all__ = ["Base", "PerformanceTierSnapshot", "load_model_modules"]
