@@ -4,7 +4,7 @@ import { ImportResultPanel } from '../import/ImportResultPanel';
 import { ExcelImportPanel } from './ExcelImportPanel';
 import { FeishuSyncPanel } from './FeishuSyncPanel';
 import type { EligibilityImportType } from '../../services/eligibilityImportService';
-import type { ImportRowResult } from '../../types/api';
+import type { ConfirmResponse, ImportRowResult } from '../../types/api';
 
 interface ImportTabContentProps {
   importType: EligibilityImportType;
@@ -18,19 +18,23 @@ interface ImportResult {
   rows: ImportRowResult[];
 }
 
-function normalizeResult(raw: unknown): ImportResult | null {
+/**
+ * Phase 32 D-06：ExcelImportPanel 7 态机内部已 inline 显示 confirm 成功摘要
+ * （done 分支：inserted/updated/no_change/failed 计数 + 「继续导入新文件」），
+ * 因此不再需要把 ConfirmResponse 转给外层 ImportResultPanel。
+ *
+ * 此处 handleExcelComplete 仅做一次 console.info 留痕，便于排查双 Tab 场景；
+ * 仍保留 ImportResultPanel 渲染给 FeishuSyncPanel（飞书同步沿用旧 Celery 路径）。
+ */
+function normalizeFeishuResult(raw: unknown): ImportResult | null {
   if (!raw || typeof raw !== 'object') return null;
   const obj = raw as Record<string, unknown>;
-
-  // Support both Excel import format (total_rows/success_rows/failed_rows)
-  // and Feishu sync format (total/synced/skipped/failed)
-  const totalRows = typeof obj.total_rows === 'number' ? obj.total_rows
-    : typeof obj.total === 'number' ? obj.total : 0;
-  const successRows = typeof obj.success_rows === 'number' ? obj.success_rows
-    : typeof obj.synced === 'number' ? obj.synced : 0;
-  const failedRows = typeof obj.failed_rows === 'number' ? obj.failed_rows
-    : typeof obj.failed === 'number' ? obj.failed : 0;
-
+  const totalRows = typeof obj.total === 'number' ? obj.total
+    : typeof obj.total_rows === 'number' ? obj.total_rows : 0;
+  const successRows = typeof obj.synced === 'number' ? obj.synced
+    : typeof obj.success_rows === 'number' ? obj.success_rows : 0;
+  const failedRows = typeof obj.failed === 'number' ? obj.failed
+    : typeof obj.failed_rows === 'number' ? obj.failed_rows : 0;
   return {
     totalRows,
     successRows,
@@ -44,11 +48,15 @@ function normalizeResult(raw: unknown): ImportResult | null {
 }
 
 export function ImportTabContent({ importType, label }: ImportTabContentProps) {
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [feishuResult, setFeishuResult] = useState<ImportResult | null>(null);
 
-  const handleResult = (result: unknown) => {
-    const normalized = normalizeResult(result);
-    setImportResult(normalized);
+  const handleExcelComplete = (result: ConfirmResponse) => {
+    // ExcelImportPanel 内部已显示 done 分支；此处仅留痕供调试
+    console.info('Excel import completed', { importType, result });
+  };
+
+  const handleFeishuResult = (result: unknown) => {
+    setFeishuResult(normalizeFeishuResult(result));
   };
 
   const handleExportErrorReport = () => {
@@ -60,21 +68,21 @@ export function ImportTabContent({ importType, label }: ImportTabContentProps) {
       <ExcelImportPanel
         importType={importType}
         label={label}
-        onResult={handleResult}
+        onComplete={handleExcelComplete}
       />
 
       <FeishuSyncPanel
         importType={importType}
         label={label}
-        onResult={handleResult}
+        onResult={handleFeishuResult}
       />
 
-      {importResult ? (
+      {feishuResult ? (
         <ImportResultPanel
-          totalRows={importResult.totalRows}
-          successRows={importResult.successRows}
-          failedRows={importResult.failedRows}
-          rows={importResult.rows}
+          totalRows={feishuResult.totalRows}
+          successRows={feishuResult.successRows}
+          failedRows={feishuResult.failedRows}
+          rows={feishuResult.rows}
           onDownloadErrorReport={handleExportErrorReport}
         />
       ) : null}
