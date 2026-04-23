@@ -1,0 +1,581 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e108]:
+        - paragraph [ref=e109]: 管理员工作区
+        - heading "审计日志" [level=1] [ref=e110]
+        - paragraph [ref=e111]: 查看所有操作记录
+      - generic [ref=e112]:
+        - generic [ref=e114]:
+          - textbox "操作类型" [ref=e115]
+          - textbox "实体类型" [ref=e116]
+          - textbox "操作人 ID" [ref=e117]
+          - textbox "开始时间" [ref=e118]
+          - textbox "结束时间" [ref=e119]
+          - button "查询" [ref=e120] [cursor=pointer]
+        - generic [ref=e121]:
+          - table [ref=e123]:
+            - rowgroup [ref=e124]:
+              - row "时间 操作类型 实体类型 实体 ID 操作人 ID 操作人角色 请求 ID 详情" [ref=e125]:
+                - columnheader "时间" [ref=e126]
+                - columnheader "操作类型" [ref=e127]
+                - columnheader "实体类型" [ref=e128]
+                - columnheader "实体 ID" [ref=e129]
+                - columnheader "操作人 ID" [ref=e130]
+                - columnheader "操作人角色" [ref=e131]
+                - columnheader "请求 ID" [ref=e132]
+                - columnheader "详情" [ref=e133]
+            - rowgroup [ref=e134]:
+              - 'row "2026/4/22 09:28:12 admin.user.bind_employee user 35c4d6c5-12cb-4b8b-822e-00769a77f92c 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"email\":\"susan@zp.com\",\"employee_id\":\"951047b1-1188-4ce0-9730-e611fa78fed8\",\"em…" [ref=e135]':
+                - cell "2026/4/22 09:28:12" [ref=e136]
+                - cell "admin.user.bind_employee" [ref=e137]
+                - cell "user" [ref=e138]
+                - cell "35c4d6c5-12cb-4b8b-822e-00769a77f92c" [ref=e139]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e140]
+                - cell "—" [ref=e141]
+                - cell "—" [ref=e142]
+                - 'cell "{\"email\":\"susan@zp.com\",\"employee_id\":\"951047b1-1188-4ce0-9730-e611fa78fed8\",\"em…" [ref=e143]'
+              - 'row "2026/4/22 09:28:00 admin.user.create user 35c4d6c5-12cb-4b8b-822e-00769a77f92c 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"email\":\"susan@zp.com\",\"role\":\"employee\",\"id_card_no\":null,\"must_change_passwor…" [ref=e144]':
+                - cell "2026/4/22 09:28:00" [ref=e145]
+                - cell "admin.user.create" [ref=e146]
+                - cell "user" [ref=e147]
+                - cell "35c4d6c5-12cb-4b8b-822e-00769a77f92c" [ref=e148]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e149]
+                - cell "—" [ref=e150]
+                - cell "—" [ref=e151]
+                - 'cell "{\"email\":\"susan@zp.com\",\"role\":\"employee\",\"id_card_no\":null,\"must_change_passwor…" [ref=e152]'
+              - 'row "2026/4/22 09:08:04 manual_review evaluation e8c33510-45ed-4e67-ae7f-d0d26de88908 05373484-09e6-4eab-8e8e-11ecff6d9bcf admin 9ef9722b-9fe2-44ca-8931-8b39cd2487d5 {\"old_overall_score\":73.06,\"new_overall_score\":74.11,\"old_ai_level\":\"Level 3\",\"n…" [ref=e153]':
+                - cell "2026/4/22 09:08:04" [ref=e154]
+                - cell "manual_review" [ref=e155]
+                - cell "evaluation" [ref=e156]
+                - cell "e8c33510-45ed-4e67-ae7f-d0d26de88908" [ref=e157]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e158]
+                - cell "admin" [ref=e159]
+                - cell "9ef9722b-9fe2-44ca-8931-8b39cd2487d5" [ref=e160]
+                - 'cell "{\"old_overall_score\":73.06,\"new_overall_score\":74.11,\"old_ai_level\":\"Level 3\",\"n…" [ref=e161]'
+              - 'row "2026/4/21 16:03:28 admin.user.password_update user 19d41be4-b79c-4791-9435-dc9cfd35dd73 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"email\":\"jf@zp.com\",\"role\":\"employee\",\"must_change_password\":true}" [ref=e162]':
+                - cell "2026/4/21 16:03:28" [ref=e163]
+                - cell "admin.user.password_update" [ref=e164]
+                - cell "user" [ref=e165]
+                - cell "19d41be4-b79c-4791-9435-dc9cfd35dd73" [ref=e166]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e167]
+                - cell "—" [ref=e168]
+                - cell "—" [ref=e169]
+                - 'cell "{\"email\":\"jf@zp.com\",\"role\":\"employee\",\"must_change_password\":true}" [ref=e170]'
+              - 'row "2026/4/21 16:01:50 admin.user.bind_employee user 19d41be4-b79c-4791-9435-dc9cfd35dd73 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"email\":\"jf@zp.com\",\"employee_id\":\"cf01aa76-2339-46b4-a557-24e099a36398\",\"emplo…" [ref=e171]':
+                - cell "2026/4/21 16:01:50" [ref=e172]
+                - cell "admin.user.bind_employee" [ref=e173]
+                - cell "user" [ref=e174]
+                - cell "19d41be4-b79c-4791-9435-dc9cfd35dd73" [ref=e175]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e176]
+                - cell "—" [ref=e177]
+                - cell "—" [ref=e178]
+                - 'cell "{\"email\":\"jf@zp.com\",\"employee_id\":\"cf01aa76-2339-46b4-a557-24e099a36398\",\"emplo…" [ref=e179]'
+              - 'row "2026/4/21 16:01:32 admin.user.create user 19d41be4-b79c-4791-9435-dc9cfd35dd73 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"email\":\"jf@zp.com\",\"role\":\"employee\",\"id_card_no\":null,\"must_change_password\":…" [ref=e180]':
+                - cell "2026/4/21 16:01:32" [ref=e181]
+                - cell "admin.user.create" [ref=e182]
+                - cell "user" [ref=e183]
+                - cell "19d41be4-b79c-4791-9435-dc9cfd35dd73" [ref=e184]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e185]
+                - cell "—" [ref=e186]
+                - cell "—" [ref=e187]
+                - 'cell "{\"email\":\"jf@zp.com\",\"role\":\"employee\",\"id_card_no\":null,\"must_change_password\":…" [ref=e188]'
+              - 'row "2026/4/21 11:28:19 manual_review evaluation 3177362f-a128-48a3-b8a5-09360cd852f7 05373484-09e6-4eab-8e8e-11ecff6d9bcf admin d0d62c92-b39e-407b-819b-a9d00faa8a1d {\"old_overall_score\":64.68,\"new_overall_score\":58.88,\"old_ai_level\":\"Level 3\",\"n…" [ref=e189]':
+                - cell "2026/4/21 11:28:19" [ref=e190]
+                - cell "manual_review" [ref=e191]
+                - cell "evaluation" [ref=e192]
+                - cell "3177362f-a128-48a3-b8a5-09360cd852f7" [ref=e193]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e194]
+                - cell "admin" [ref=e195]
+                - cell "d0d62c92-b39e-407b-819b-a9d00faa8a1d" [ref=e196]
+                - 'cell "{\"old_overall_score\":64.68,\"new_overall_score\":58.88,\"old_ai_level\":\"Level 3\",\"n…" [ref=e197]'
+              - 'row "2026/4/21 10:49:14 feishu_bound user 05373484-09e6-4eab-8e8e-11ecff6d9bcf 05373484-09e6-4eab-8e8e-11ecff6d9bcf admin — {\"open_id_prefix\":\"ou_3e2f8\",\"open_id_suffix\":\"6417d5ca\",\"ip_address\":\"47.130.17…" [ref=e198]':
+                - cell "2026/4/21 10:49:14" [ref=e199]
+                - cell "feishu_bound" [ref=e200]
+                - cell "user" [ref=e201]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e202]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e203]
+                - cell "admin" [ref=e204]
+                - cell "—" [ref=e205]
+                - 'cell "{\"open_id_prefix\":\"ou_3e2f8\",\"open_id_suffix\":\"6417d5ca\",\"ip_address\":\"47.130.17…" [ref=e206]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 317412db-8e3b-4f75-838c-efadaad3f095 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"叶林\",\"department\":\"社区运营中心\",\"job_family\":\"COO\",\"job_level\":\"…" [ref=e207]':
+                - cell "2026/4/21 10:46:05" [ref=e208]
+                - cell "employee_import_update" [ref=e209]
+                - cell "employee" [ref=e210]
+                - cell "317412db-8e3b-4f75-838c-efadaad3f095" [ref=e211]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e212]
+                - cell "—" [ref=e213]
+                - cell "—" [ref=e214]
+                - 'cell "{\"old_value\":{\"name\":\"叶林\",\"department\":\"社区运营中心\",\"job_family\":\"COO\",\"job_level\":\"…" [ref=e215]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee e7c6c3ff-81f0-4f51-9571-c1a5632b95e1 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"邱文康\",\"department\":\"屈臣氏业务群\",\"job_family\":\"php后端开发主管\",\"job_l…" [ref=e216]':
+                - cell "2026/4/21 10:46:05" [ref=e217]
+                - cell "employee_import_update" [ref=e218]
+                - cell "employee" [ref=e219]
+                - cell "e7c6c3ff-81f0-4f51-9571-c1a5632b95e1" [ref=e220]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e221]
+                - cell "—" [ref=e222]
+                - cell "—" [ref=e223]
+                - 'cell "{\"old_value\":{\"name\":\"邱文康\",\"department\":\"屈臣氏业务群\",\"job_family\":\"php后端开发主管\",\"job_l…" [ref=e224]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee f710de57-4a78-4dbe-a292-24073e88e291 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"赵冰洋\",\"department\":\"社区运营中心\",\"job_family\":\"产品经理\",\"job_level\"…" [ref=e225]':
+                - cell "2026/4/21 10:46:05" [ref=e226]
+                - cell "employee_import_update" [ref=e227]
+                - cell "employee" [ref=e228]
+                - cell "f710de57-4a78-4dbe-a292-24073e88e291" [ref=e229]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e230]
+                - cell "—" [ref=e231]
+                - cell "—" [ref=e232]
+                - 'cell "{\"old_value\":{\"name\":\"赵冰洋\",\"department\":\"社区运营中心\",\"job_family\":\"产品经理\",\"job_level\"…" [ref=e233]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee f2a662a3-ce26-4859-b1e8-785d6b2db893 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"张瑞芳\",\"department\":\"社区运营中心\",\"job_family\":\"HRBP\",\"job_level\"…" [ref=e234]':
+                - cell "2026/4/21 10:46:05" [ref=e235]
+                - cell "employee_import_update" [ref=e236]
+                - cell "employee" [ref=e237]
+                - cell "f2a662a3-ce26-4859-b1e8-785d6b2db893" [ref=e238]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e239]
+                - cell "—" [ref=e240]
+                - cell "—" [ref=e241]
+                - 'cell "{\"old_value\":{\"name\":\"张瑞芳\",\"department\":\"社区运营中心\",\"job_family\":\"HRBP\",\"job_level\"…" [ref=e242]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 02bbb9c5-6b8f-4e77-8428-321106c9d284 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"李小燕\",\"department\":\"屈臣氏业务群\",\"job_family\":\"市场运营\",\"job_level\"…" [ref=e243]':
+                - cell "2026/4/21 10:46:05" [ref=e244]
+                - cell "employee_import_update" [ref=e245]
+                - cell "employee" [ref=e246]
+                - cell "02bbb9c5-6b8f-4e77-8428-321106c9d284" [ref=e247]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e248]
+                - cell "—" [ref=e249]
+                - cell "—" [ref=e250]
+                - 'cell "{\"old_value\":{\"name\":\"李小燕\",\"department\":\"屈臣氏业务群\",\"job_family\":\"市场运营\",\"job_level\"…" [ref=e251]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee e91b1b34-c327-48d9-94eb-1a2336fb2d1d 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"张玉莲\",\"department\":\"快消零售行业群\",\"job_family\":\"项目运营经理\",\"job_lev…" [ref=e252]':
+                - cell "2026/4/21 10:46:05" [ref=e253]
+                - cell "employee_import_update" [ref=e254]
+                - cell "employee" [ref=e255]
+                - cell "e91b1b34-c327-48d9-94eb-1a2336fb2d1d" [ref=e256]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e257]
+                - cell "—" [ref=e258]
+                - cell "—" [ref=e259]
+                - 'cell "{\"old_value\":{\"name\":\"张玉莲\",\"department\":\"快消零售行业群\",\"job_family\":\"项目运营经理\",\"job_lev…" [ref=e260]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 6c14ab85-4ed2-41d4-a7a6-40d310059ade 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"郑玉嘉\",\"department\":\"快消零售行业群\",\"job_family\":\"项目运营经理\",\"job_lev…" [ref=e261]':
+                - cell "2026/4/21 10:46:05" [ref=e262]
+                - cell "employee_import_update" [ref=e263]
+                - cell "employee" [ref=e264]
+                - cell "6c14ab85-4ed2-41d4-a7a6-40d310059ade" [ref=e265]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e266]
+                - cell "—" [ref=e267]
+                - cell "—" [ref=e268]
+                - 'cell "{\"old_value\":{\"name\":\"郑玉嘉\",\"department\":\"快消零售行业群\",\"job_family\":\"项目运营经理\",\"job_lev…" [ref=e269]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee cfcf28e5-b991-4fcb-8fb0-9aaf7b2e6398 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"黄依伊\",\"department\":\"快消零售行业群\",\"job_family\":\"行业群副总经理\",\"job_le…" [ref=e270]':
+                - cell "2026/4/21 10:46:05" [ref=e271]
+                - cell "employee_import_update" [ref=e272]
+                - cell "employee" [ref=e273]
+                - cell "cfcf28e5-b991-4fcb-8fb0-9aaf7b2e6398" [ref=e274]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e275]
+                - cell "—" [ref=e276]
+                - cell "—" [ref=e277]
+                - 'cell "{\"old_value\":{\"name\":\"黄依伊\",\"department\":\"快消零售行业群\",\"job_family\":\"行业群副总经理\",\"job_le…" [ref=e278]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee c3ce4c16-fd82-4070-a552-66023e4d478f 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"胡文轩\",\"department\":\"屈臣氏业务群\",\"job_family\":\"php后端开发工程师\",\"job_…" [ref=e279]':
+                - cell "2026/4/21 10:46:05" [ref=e280]
+                - cell "employee_import_update" [ref=e281]
+                - cell "employee" [ref=e282]
+                - cell "c3ce4c16-fd82-4070-a552-66023e4d478f" [ref=e283]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e284]
+                - cell "—" [ref=e285]
+                - cell "—" [ref=e286]
+                - 'cell "{\"old_value\":{\"name\":\"胡文轩\",\"department\":\"屈臣氏业务群\",\"job_family\":\"php后端开发工程师\",\"job_…" [ref=e287]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee d9ba7dd5-7faf-4632-93e4-2c15833da3da 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"周罗艳\",\"department\":\"公域生态行业群\",\"job_family\":\"直播投手\",\"job_level…" [ref=e288]':
+                - cell "2026/4/21 10:46:05" [ref=e289]
+                - cell "employee_import_update" [ref=e290]
+                - cell "employee" [ref=e291]
+                - cell "d9ba7dd5-7faf-4632-93e4-2c15833da3da" [ref=e292]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e293]
+                - cell "—" [ref=e294]
+                - cell "—" [ref=e295]
+                - 'cell "{\"old_value\":{\"name\":\"周罗艳\",\"department\":\"公域生态行业群\",\"job_family\":\"直播投手\",\"job_level…" [ref=e296]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee bce7071c-b57c-4677-8e42-80102ca64b93 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"沈利华\",\"department\":\"快消零售行业群\",\"job_family\":\"项目运营经理\",\"job_lev…" [ref=e297]':
+                - cell "2026/4/21 10:46:05" [ref=e298]
+                - cell "employee_import_update" [ref=e299]
+                - cell "employee" [ref=e300]
+                - cell "bce7071c-b57c-4677-8e42-80102ca64b93" [ref=e301]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e302]
+                - cell "—" [ref=e303]
+                - cell "—" [ref=e304]
+                - 'cell "{\"old_value\":{\"name\":\"沈利华\",\"department\":\"快消零售行业群\",\"job_family\":\"项目运营经理\",\"job_lev…" [ref=e305]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee d8bc0763-e906-4fc5-9178-24d93492d6a9 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"谢绍通\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_lev…" [ref=e306]':
+                - cell "2026/4/21 10:46:05" [ref=e307]
+                - cell "employee_import_update" [ref=e308]
+                - cell "employee" [ref=e309]
+                - cell "d8bc0763-e906-4fc5-9178-24d93492d6a9" [ref=e310]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e311]
+                - cell "—" [ref=e312]
+                - cell "—" [ref=e313]
+                - 'cell "{\"old_value\":{\"name\":\"谢绍通\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_lev…" [ref=e314]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 31a0adf5-411b-4495-bb09-ec258e6c4731 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"彭小芳\",\"department\":\"社区运营中心\",\"job_family\":\"行政专员\",\"job_level\"…" [ref=e315]':
+                - cell "2026/4/21 10:46:05" [ref=e316]
+                - cell "employee_import_update" [ref=e317]
+                - cell "employee" [ref=e318]
+                - cell "31a0adf5-411b-4495-bb09-ec258e6c4731" [ref=e319]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e320]
+                - cell "—" [ref=e321]
+                - cell "—" [ref=e322]
+                - 'cell "{\"old_value\":{\"name\":\"彭小芳\",\"department\":\"社区运营中心\",\"job_family\":\"行政专员\",\"job_level\"…" [ref=e323]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 6d13773d-f3af-4009-af55-c246be1d6170 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"杨单单\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_lev…" [ref=e324]':
+                - cell "2026/4/21 10:46:05" [ref=e325]
+                - cell "employee_import_update" [ref=e326]
+                - cell "employee" [ref=e327]
+                - cell "6d13773d-f3af-4009-af55-c246be1d6170" [ref=e328]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e329]
+                - cell "—" [ref=e330]
+                - cell "—" [ref=e331]
+                - 'cell "{\"old_value\":{\"name\":\"杨单单\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_lev…" [ref=e332]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 70df00a9-832d-4f4e-95d0-d91d2d3cdbcb 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"邹育星\",\"department\":\"屈臣氏业务群\",\"job_family\":\"客服主管\",\"job_level\"…" [ref=e333]':
+                - cell "2026/4/21 10:46:05" [ref=e334]
+                - cell "employee_import_update" [ref=e335]
+                - cell "employee" [ref=e336]
+                - cell "70df00a9-832d-4f4e-95d0-d91d2d3cdbcb" [ref=e337]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e338]
+                - cell "—" [ref=e339]
+                - cell "—" [ref=e340]
+                - 'cell "{\"old_value\":{\"name\":\"邹育星\",\"department\":\"屈臣氏业务群\",\"job_family\":\"客服主管\",\"job_level\"…" [ref=e341]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 3904417c-1c6e-43e3-9aa9-3aefa9d68de9 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"徐军龙\",\"department\":\"屈臣氏业务群\",\"job_family\":\"测试工程师\",\"job_level…" [ref=e342]':
+                - cell "2026/4/21 10:46:05" [ref=e343]
+                - cell "employee_import_update" [ref=e344]
+                - cell "employee" [ref=e345]
+                - cell "3904417c-1c6e-43e3-9aa9-3aefa9d68de9" [ref=e346]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e347]
+                - cell "—" [ref=e348]
+                - cell "—" [ref=e349]
+                - 'cell "{\"old_value\":{\"name\":\"徐军龙\",\"department\":\"屈臣氏业务群\",\"job_family\":\"测试工程师\",\"job_level…" [ref=e350]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 8fb97a25-48ea-441f-a99e-2f6160426989 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"殷俊玲\",\"department\":\"屈臣氏业务群\",\"job_family\":\"技术PM\",\"job_level\"…" [ref=e351]':
+                - cell "2026/4/21 10:46:05" [ref=e352]
+                - cell "employee_import_update" [ref=e353]
+                - cell "employee" [ref=e354]
+                - cell "8fb97a25-48ea-441f-a99e-2f6160426989" [ref=e355]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e356]
+                - cell "—" [ref=e357]
+                - cell "—" [ref=e358]
+                - 'cell "{\"old_value\":{\"name\":\"殷俊玲\",\"department\":\"屈臣氏业务群\",\"job_family\":\"技术PM\",\"job_level\"…" [ref=e359]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 34b67ac7-a14c-4313-a9d9-91276bd02a90 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"杨茗\",\"department\":\"社区运营中心\",\"job_family\":\"财务专员\",\"job_level\":…" [ref=e360]':
+                - cell "2026/4/21 10:46:05" [ref=e361]
+                - cell "employee_import_update" [ref=e362]
+                - cell "employee" [ref=e363]
+                - cell "34b67ac7-a14c-4313-a9d9-91276bd02a90" [ref=e364]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e365]
+                - cell "—" [ref=e366]
+                - cell "—" [ref=e367]
+                - 'cell "{\"old_value\":{\"name\":\"杨茗\",\"department\":\"社区运营中心\",\"job_family\":\"财务专员\",\"job_level\":…" [ref=e368]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee ad6e6ae2-0027-47ef-a938-0931553d7358 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"叶茂林\",\"department\":\"屈臣氏业务群\",\"job_family\":\"技术PM\",\"job_level\"…" [ref=e369]':
+                - cell "2026/4/21 10:46:05" [ref=e370]
+                - cell "employee_import_update" [ref=e371]
+                - cell "employee" [ref=e372]
+                - cell "ad6e6ae2-0027-47ef-a938-0931553d7358" [ref=e373]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e374]
+                - cell "—" [ref=e375]
+                - cell "—" [ref=e376]
+                - 'cell "{\"old_value\":{\"name\":\"叶茂林\",\"department\":\"屈臣氏业务群\",\"job_family\":\"技术PM\",\"job_level\"…" [ref=e377]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee dbeed687-692f-41e8-b6d5-079313db207d 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"钱士弘\",\"department\":\"屈臣氏业务群\",\"job_family\":\"商城运营\",\"job_level\"…" [ref=e378]':
+                - cell "2026/4/21 10:46:05" [ref=e379]
+                - cell "employee_import_update" [ref=e380]
+                - cell "employee" [ref=e381]
+                - cell "dbeed687-692f-41e8-b6d5-079313db207d" [ref=e382]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e383]
+                - cell "—" [ref=e384]
+                - cell "—" [ref=e385]
+                - 'cell "{\"old_value\":{\"name\":\"钱士弘\",\"department\":\"屈臣氏业务群\",\"job_family\":\"商城运营\",\"job_level\"…" [ref=e386]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee f58b6151-3c3d-4ff7-8ab3-51a089a246da 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"柏丽\",\"department\":\"社区运营中心\",\"job_family\":\"财务BP主管\",\"job_level…" [ref=e387]':
+                - cell "2026/4/21 10:46:05" [ref=e388]
+                - cell "employee_import_update" [ref=e389]
+                - cell "employee" [ref=e390]
+                - cell "f58b6151-3c3d-4ff7-8ab3-51a089a246da" [ref=e391]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e392]
+                - cell "—" [ref=e393]
+                - cell "—" [ref=e394]
+                - 'cell "{\"old_value\":{\"name\":\"柏丽\",\"department\":\"社区运营中心\",\"job_family\":\"财务BP主管\",\"job_level…" [ref=e395]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 176b50d5-3278-400d-a893-b004cd20a76e 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"张瑞琦\",\"department\":\"屈臣氏业务群\",\"job_family\":\"研发线负责人\",\"job_leve…" [ref=e396]':
+                - cell "2026/4/21 10:46:05" [ref=e397]
+                - cell "employee_import_update" [ref=e398]
+                - cell "employee" [ref=e399]
+                - cell "176b50d5-3278-400d-a893-b004cd20a76e" [ref=e400]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e401]
+                - cell "—" [ref=e402]
+                - cell "—" [ref=e403]
+                - 'cell "{\"old_value\":{\"name\":\"张瑞琦\",\"department\":\"屈臣氏业务群\",\"job_family\":\"研发线负责人\",\"job_leve…" [ref=e404]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 20685a59-cb7f-424b-8e9d-51ada6432d4d 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"肖春霞\",\"department\":\"屈臣氏业务群\",\"job_family\":\"用户运营\",\"job_level\"…" [ref=e405]':
+                - cell "2026/4/21 10:46:05" [ref=e406]
+                - cell "employee_import_update" [ref=e407]
+                - cell "employee" [ref=e408]
+                - cell "20685a59-cb7f-424b-8e9d-51ada6432d4d" [ref=e409]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e410]
+                - cell "—" [ref=e411]
+                - cell "—" [ref=e412]
+                - 'cell "{\"old_value\":{\"name\":\"肖春霞\",\"department\":\"屈臣氏业务群\",\"job_family\":\"用户运营\",\"job_level\"…" [ref=e413]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee a5c03f8f-df49-44b1-b9a1-22d6b8f769ed 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"陈舒欣\",\"department\":\"时尚行业群\",\"job_family\":\"用户运营\",\"job_level\":…" [ref=e414]':
+                - cell "2026/4/21 10:46:05" [ref=e415]
+                - cell "employee_import_update" [ref=e416]
+                - cell "employee" [ref=e417]
+                - cell "a5c03f8f-df49-44b1-b9a1-22d6b8f769ed" [ref=e418]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e419]
+                - cell "—" [ref=e420]
+                - cell "—" [ref=e421]
+                - 'cell "{\"old_value\":{\"name\":\"陈舒欣\",\"department\":\"时尚行业群\",\"job_family\":\"用户运营\",\"job_level\":…" [ref=e422]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee bfcc92b0-c6cf-4e23-b198-b022a9ed1fbd 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"俞红\",\"department\":\"健康美学行业群\",\"job_family\":\"项目运营总监\",\"job_leve…" [ref=e423]':
+                - cell "2026/4/21 10:46:05" [ref=e424]
+                - cell "employee_import_update" [ref=e425]
+                - cell "employee" [ref=e426]
+                - cell "bfcc92b0-c6cf-4e23-b198-b022a9ed1fbd" [ref=e427]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e428]
+                - cell "—" [ref=e429]
+                - cell "—" [ref=e430]
+                - 'cell "{\"old_value\":{\"name\":\"俞红\",\"department\":\"健康美学行业群\",\"job_family\":\"项目运营总监\",\"job_leve…" [ref=e431]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 9ff29a26-447c-4905-8160-21f9de433530 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"顾英\",\"department\":\"屈臣氏业务群\",\"job_family\":\"设计艺术总监\",\"job_level…" [ref=e432]':
+                - cell "2026/4/21 10:46:05" [ref=e433]
+                - cell "employee_import_update" [ref=e434]
+                - cell "employee" [ref=e435]
+                - cell "9ff29a26-447c-4905-8160-21f9de433530" [ref=e436]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e437]
+                - cell "—" [ref=e438]
+                - cell "—" [ref=e439]
+                - 'cell "{\"old_value\":{\"name\":\"顾英\",\"department\":\"屈臣氏业务群\",\"job_family\":\"设计艺术总监\",\"job_level…" [ref=e440]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 3616a8c8-ddce-4f95-93fa-7ffb830813bd 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"林晓玲\",\"department\":\"公域生态行业群\",\"job_family\":\"项目运营总监\",\"job_lev…" [ref=e441]':
+                - cell "2026/4/21 10:46:05" [ref=e442]
+                - cell "employee_import_update" [ref=e443]
+                - cell "employee" [ref=e444]
+                - cell "3616a8c8-ddce-4f95-93fa-7ffb830813bd" [ref=e445]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e446]
+                - cell "—" [ref=e447]
+                - cell "—" [ref=e448]
+                - 'cell "{\"old_value\":{\"name\":\"林晓玲\",\"department\":\"公域生态行业群\",\"job_family\":\"项目运营总监\",\"job_lev…" [ref=e449]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 3f07664a-5cf7-425e-9aa6-1e9fcf9b5170 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"张浩驰\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_lev…" [ref=e450]':
+                - cell "2026/4/21 10:46:05" [ref=e451]
+                - cell "employee_import_update" [ref=e452]
+                - cell "employee" [ref=e453]
+                - cell "3f07664a-5cf7-425e-9aa6-1e9fcf9b5170" [ref=e454]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e455]
+                - cell "—" [ref=e456]
+                - cell "—" [ref=e457]
+                - 'cell "{\"old_value\":{\"name\":\"张浩驰\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_lev…" [ref=e458]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 8ecb4eb1-aea4-4754-b31d-88cc1c1abe50 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"郑艳\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_leve…" [ref=e459]':
+                - cell "2026/4/21 10:46:05" [ref=e460]
+                - cell "employee_import_update" [ref=e461]
+                - cell "employee" [ref=e462]
+                - cell "8ecb4eb1-aea4-4754-b31d-88cc1c1abe50" [ref=e463]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e464]
+                - cell "—" [ref=e465]
+                - cell "—" [ref=e466]
+                - 'cell "{\"old_value\":{\"name\":\"郑艳\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_leve…" [ref=e467]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 1a1cb62f-9985-4234-9f2f-568801e58ef4 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"杨柯尧\",\"department\":\"屈臣氏业务群\",\"job_family\":\"内容运营\",\"job_level\"…" [ref=e468]':
+                - cell "2026/4/21 10:46:05" [ref=e469]
+                - cell "employee_import_update" [ref=e470]
+                - cell "employee" [ref=e471]
+                - cell "1a1cb62f-9985-4234-9f2f-568801e58ef4" [ref=e472]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e473]
+                - cell "—" [ref=e474]
+                - cell "—" [ref=e475]
+                - 'cell "{\"old_value\":{\"name\":\"杨柯尧\",\"department\":\"屈臣氏业务群\",\"job_family\":\"内容运营\",\"job_level\"…" [ref=e476]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 77f188f8-860f-4965-a448-2b887f4bd437 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"陈宏娟\",\"department\":\"屈臣氏业务群\",\"job_family\":\"UI设计师\",\"job_level…" [ref=e477]':
+                - cell "2026/4/21 10:46:05" [ref=e478]
+                - cell "employee_import_update" [ref=e479]
+                - cell "employee" [ref=e480]
+                - cell "77f188f8-860f-4965-a448-2b887f4bd437" [ref=e481]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e482]
+                - cell "—" [ref=e483]
+                - cell "—" [ref=e484]
+                - 'cell "{\"old_value\":{\"name\":\"陈宏娟\",\"department\":\"屈臣氏业务群\",\"job_family\":\"UI设计师\",\"job_level…" [ref=e485]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee c4586552-f236-43ca-8f9d-7e08b09e8f73 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"李秉卿\",\"department\":\"屈臣氏业务群\",\"job_family\":\"电商配置\",\"job_level\"…" [ref=e486]':
+                - cell "2026/4/21 10:46:05" [ref=e487]
+                - cell "employee_import_update" [ref=e488]
+                - cell "employee" [ref=e489]
+                - cell "c4586552-f236-43ca-8f9d-7e08b09e8f73" [ref=e490]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e491]
+                - cell "—" [ref=e492]
+                - cell "—" [ref=e493]
+                - 'cell "{\"old_value\":{\"name\":\"李秉卿\",\"department\":\"屈臣氏业务群\",\"job_family\":\"电商配置\",\"job_level\"…" [ref=e494]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 943cb44b-9ffe-48c4-897e-f073b74d93ee 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"李卓奎\",\"department\":\"屈臣氏业务群\",\"job_family\":\"数据工程师\",\"job_level…" [ref=e495]':
+                - cell "2026/4/21 10:46:05" [ref=e496]
+                - cell "employee_import_update" [ref=e497]
+                - cell "employee" [ref=e498]
+                - cell "943cb44b-9ffe-48c4-897e-f073b74d93ee" [ref=e499]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e500]
+                - cell "—" [ref=e501]
+                - cell "—" [ref=e502]
+                - 'cell "{\"old_value\":{\"name\":\"李卓奎\",\"department\":\"屈臣氏业务群\",\"job_family\":\"数据工程师\",\"job_level…" [ref=e503]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 77cd913c-45cb-4627-b783-2c3502cc4d46 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"李伟洲\",\"department\":\"屈臣氏业务群\",\"job_family\":\"中台技术研发总监\",\"job_le…" [ref=e504]':
+                - cell "2026/4/21 10:46:05" [ref=e505]
+                - cell "employee_import_update" [ref=e506]
+                - cell "employee" [ref=e507]
+                - cell "77cd913c-45cb-4627-b783-2c3502cc4d46" [ref=e508]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e509]
+                - cell "—" [ref=e510]
+                - cell "—" [ref=e511]
+                - 'cell "{\"old_value\":{\"name\":\"李伟洲\",\"department\":\"屈臣氏业务群\",\"job_family\":\"中台技术研发总监\",\"job_le…" [ref=e512]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 2ff160ac-f461-4fb7-bd1f-f4d3ec96d070 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"周韧\",\"department\":\"屈臣氏业务群\",\"job_family\":\"测试组长\",\"job_level\":…" [ref=e513]':
+                - cell "2026/4/21 10:46:05" [ref=e514]
+                - cell "employee_import_update" [ref=e515]
+                - cell "employee" [ref=e516]
+                - cell "2ff160ac-f461-4fb7-bd1f-f4d3ec96d070" [ref=e517]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e518]
+                - cell "—" [ref=e519]
+                - cell "—" [ref=e520]
+                - 'cell "{\"old_value\":{\"name\":\"周韧\",\"department\":\"屈臣氏业务群\",\"job_family\":\"测试组长\",\"job_level\":…" [ref=e521]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 3ad950d2-f2d9-4c5c-bf86-c4ce070360fd 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"朱钦怡\",\"department\":\"屈臣氏业务群\",\"job_family\":\"数据分析经理\",\"job_leve…" [ref=e522]':
+                - cell "2026/4/21 10:46:05" [ref=e523]
+                - cell "employee_import_update" [ref=e524]
+                - cell "employee" [ref=e525]
+                - cell "3ad950d2-f2d9-4c5c-bf86-c4ce070360fd" [ref=e526]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e527]
+                - cell "—" [ref=e528]
+                - cell "—" [ref=e529]
+                - 'cell "{\"old_value\":{\"name\":\"朱钦怡\",\"department\":\"屈臣氏业务群\",\"job_family\":\"数据分析经理\",\"job_leve…" [ref=e530]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 32af3f61-ea26-47cf-aafb-9b51021f78df 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"张旖旎\",\"department\":\"屈臣氏业务群\",\"job_family\":\"品类运营\",\"job_level\"…" [ref=e531]':
+                - cell "2026/4/21 10:46:05" [ref=e532]
+                - cell "employee_import_update" [ref=e533]
+                - cell "employee" [ref=e534]
+                - cell "32af3f61-ea26-47cf-aafb-9b51021f78df" [ref=e535]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e536]
+                - cell "—" [ref=e537]
+                - cell "—" [ref=e538]
+                - 'cell "{\"old_value\":{\"name\":\"张旖旎\",\"department\":\"屈臣氏业务群\",\"job_family\":\"品类运营\",\"job_level\"…" [ref=e539]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 27c28c84-a7e8-431c-b2dd-303dd23dd10c 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"刘凯星\",\"department\":\"屈臣氏业务群\",\"job_family\":\"运维工程师\",\"job_level…" [ref=e540]':
+                - cell "2026/4/21 10:46:05" [ref=e541]
+                - cell "employee_import_update" [ref=e542]
+                - cell "employee" [ref=e543]
+                - cell "27c28c84-a7e8-431c-b2dd-303dd23dd10c" [ref=e544]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e545]
+                - cell "—" [ref=e546]
+                - cell "—" [ref=e547]
+                - 'cell "{\"old_value\":{\"name\":\"刘凯星\",\"department\":\"屈臣氏业务群\",\"job_family\":\"运维工程师\",\"job_level…" [ref=e548]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 9b67f45e-127f-4b5d-ab08-aa23587115c5 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"林慧馨\",\"department\":\"屈臣氏业务群\",\"job_family\":\"产品总监\",\"job_level\"…" [ref=e549]':
+                - cell "2026/4/21 10:46:05" [ref=e550]
+                - cell "employee_import_update" [ref=e551]
+                - cell "employee" [ref=e552]
+                - cell "9b67f45e-127f-4b5d-ab08-aa23587115c5" [ref=e553]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e554]
+                - cell "—" [ref=e555]
+                - cell "—" [ref=e556]
+                - 'cell "{\"old_value\":{\"name\":\"林慧馨\",\"department\":\"屈臣氏业务群\",\"job_family\":\"产品总监\",\"job_level\"…" [ref=e557]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee d6751cea-9cfa-4cb0-80a3-e245898c05e8 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"陈白莉\",\"department\":\"屈臣氏业务群\",\"job_family\":\"BI数据分析师\",\"job_lev…" [ref=e558]':
+                - cell "2026/4/21 10:46:05" [ref=e559]
+                - cell "employee_import_update" [ref=e560]
+                - cell "employee" [ref=e561]
+                - cell "d6751cea-9cfa-4cb0-80a3-e245898c05e8" [ref=e562]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e563]
+                - cell "—" [ref=e564]
+                - cell "—" [ref=e565]
+                - 'cell "{\"old_value\":{\"name\":\"陈白莉\",\"department\":\"屈臣氏业务群\",\"job_family\":\"BI数据分析师\",\"job_lev…" [ref=e566]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee 3524fb4a-3afc-4fac-a5a0-01c8ec88c7bb 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"江瑞\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_leve…" [ref=e567]':
+                - cell "2026/4/21 10:46:05" [ref=e568]
+                - cell "employee_import_update" [ref=e569]
+                - cell "employee" [ref=e570]
+                - cell "3524fb4a-3afc-4fac-a5a0-01c8ec88c7bb" [ref=e571]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e572]
+                - cell "—" [ref=e573]
+                - cell "—" [ref=e574]
+                - 'cell "{\"old_value\":{\"name\":\"江瑞\",\"department\":\"屈臣氏业务群\",\"job_family\":\"前端开发工程师\",\"job_leve…" [ref=e575]'
+              - 'row "2026/4/21 10:46:05 employee_import_update employee ce36fc04-2dbb-4d5d-a44d-407d81e2273b 05373484-09e6-4eab-8e8e-11ecff6d9bcf — — {\"old_value\":{\"name\":\"李忠礼\",\"department\":\"屈臣氏业务群\",\"job_family\":\"技术PM经理\",\"job_leve…" [ref=e576]':
+                - cell "2026/4/21 10:46:05" [ref=e577]
+                - cell "employee_import_update" [ref=e578]
+                - cell "employee" [ref=e579]
+                - cell "ce36fc04-2dbb-4d5d-a44d-407d81e2273b" [ref=e580]
+                - cell "05373484-09e6-4eab-8e8e-11ecff6d9bcf" [ref=e581]
+                - cell "—" [ref=e582]
+                - cell "—" [ref=e583]
+                - 'cell "{\"old_value\":{\"name\":\"李忠礼\",\"department\":\"屈臣氏业务群\",\"job_family\":\"技术PM经理\",\"job_leve…" [ref=e584]'
+          - generic [ref=e585]:
+            - paragraph [ref=e586]: 共 1183 条
+            - generic [ref=e587]:
+              - button "上一页" [disabled] [ref=e588]
+              - button "下一页" [ref=e589] [cursor=pointer]

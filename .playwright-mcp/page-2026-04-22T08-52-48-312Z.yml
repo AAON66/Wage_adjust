@@ -1,0 +1,698 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e9]: 智
+        - generic [ref=e10]:
+          - generic [ref=e11]: 智评调薪
+          - generic [ref=e12]: 管理员工作区
+      - navigation [ref=e13]:
+        - link "角色首页" [ref=e14] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e15]
+          - text: 角色首页
+        - generic [ref=e18]:
+          - button "▼ 运营管理" [ref=e19] [cursor=pointer]:
+            - generic [ref=e20]: ▼ 运营管理
+          - link "员工评估" [ref=e21] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e22]
+            - text: 员工评估
+          - link "创建周期" [ref=e25] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e26]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e30] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e31]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e33] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e34]
+            - text: 审批中心
+          - link "调薪资格" [ref=e37] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e38]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e40] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e41]
+            - text: 考勤管理
+          - link "共享申请" [ref=e44] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e45]
+            - text: 共享申请
+          - link "绩效管理" [ref=e50] [cursor=pointer]:
+            - /url: /performance
+            - img [ref=e51]
+            - text: 绩效管理
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@test.com
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e108]:
+        - paragraph [ref=e109]: 管理员工作区
+        - heading "绩效管理" [level=1] [ref=e110]
+        - paragraph [ref=e111]: HR 端：导入绩效记录、查看档次分布、手动触发档次重算
+      - generic [ref=e113]:
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - heading "档次分布" [level=3] [ref=e118]
+              - paragraph [ref=e119]: 基于 PERCENT_RANK 算法对全公司绩效记录分档（1/2/3）
+            - generic [ref=e120]:
+              - combobox "选择年份" [ref=e121]:
+                - option "2027 年"
+                - option "2026 年" [selected]
+              - button "重算档次" [ref=e122] [cursor=pointer]:
+                - img [ref=e123]
+                - text: 重算档次
+          - paragraph [ref=e126]: 最近重算：2026年4月22日 16:49
+          - alert [ref=e127]:
+            - img [ref=e128]
+            - generic [ref=e131]:
+              - text: 档次分布偏离 20/70/10 超过 ±5%（实际
+              - strong [ref=e132]: 0%/100%/0%
+              - text: ）。建议复核绩效原始数据或调整评估口径。
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - text: 1 档
+              - strong [ref=e140]: "1"
+              - text: 人 (0%)
+            - generic [ref=e141]:
+              - text: 2 档
+              - strong [ref=e143]: "413"
+              - text: 人 (100%)
+            - generic [ref=e144]:
+              - text: 3 档
+              - strong [ref=e146]: "0"
+              - text: 人 (0%)
+            - generic [ref=e147]:
+              - text: 未分档
+              - strong [ref=e149]: "0"
+              - text: 人
+        - generic [ref=e150]:
+          - generic [ref=e152]:
+            - heading "绩效记录导入" [level=3] [ref=e153]
+            - paragraph [ref=e154]: 复用 Phase 32 Excel 两阶段提交（Preview + Confirm）
+          - generic [ref=e155]:
+            - paragraph [ref=e156]: Excel 导入
+            - heading "上传绩效等级数据文件" [level=3] [ref=e157]
+            - button "将 .xlsx 或 .xls 文件拖拽到此处，或点击选择文件" [ref=e158] [cursor=pointer]:
+              - paragraph [ref=e159]: 将 .xlsx 或 .xls 文件拖拽到此处，或点击选择文件
+            - generic [ref=e160]:
+              - button "下载模板" [ref=e161] [cursor=pointer]
+              - button "上传并生成预览" [disabled] [ref=e162]
+        - generic [ref=e163]:
+          - generic [ref=e165]:
+            - heading "绩效记录" [level=3] [ref=e166]
+            - paragraph [ref=e167]: 查看历史绩效记录，按年份和部门筛选
+          - generic [ref=e168]:
+            - combobox "按年份筛选" [ref=e169]:
+              - option "全部年份" [selected]
+              - option "2027 年"
+              - option "2026 年"
+            - combobox "按部门筛选" [ref=e170]:
+              - option "全部部门" [selected]
+              - option "TOC创新业务"
+              - option "X行业群"
+              - option "健康美学行业群"
+              - option "公域生态行业群"
+              - option "内容业务部门"
+              - option "屈臣氏业务群"
+              - option "快消零售行业群"
+              - option "时尚行业群"
+              - option "社区运营中心"
+              - option "耐消行业群"
+              - option "视频号业务线"
+          - generic [ref=e171]:
+            - table "绩效记录列表（共 418 条）" [ref=e172]:
+              - caption [ref=e173]: 绩效记录列表（共 418 条）
+              - rowgroup [ref=e174]:
+                - row "员工工号 姓名 年份 绩效等级 部门快照 来源 录入时间" [ref=e175]:
+                  - columnheader "员工工号" [ref=e176]
+                  - columnheader "姓名" [ref=e177]
+                  - columnheader "年份" [ref=e178]
+                  - columnheader "绩效等级" [ref=e179]
+                  - columnheader "部门快照" [ref=e180]
+                  - columnheader "来源" [ref=e181]
+                  - columnheader "录入时间" [ref=e182]
+              - rowgroup [ref=e183]:
+                - row "2596 李昕冉 2027 年 B 社区运营中心 导入 2026/04/22 08:52" [ref=e184]:
+                  - cell "2596" [ref=e185]
+                  - cell "李昕冉" [ref=e186]
+                  - cell "2027 年" [ref=e187]
+                  - cell "B" [ref=e188]:
+                    - generic [ref=e189]: B
+                  - cell "社区运营中心" [ref=e190]
+                  - cell "导入" [ref=e191]:
+                    - generic [ref=e192]: 导入
+                  - cell "2026/04/22 08:52" [ref=e193]
+                - row "2599 蓝远群 2027 年 C 社区运营中心 导入 2026/04/22 08:52" [ref=e194]:
+                  - cell "2599" [ref=e195]
+                  - cell "蓝远群" [ref=e196]
+                  - cell "2027 年" [ref=e197]
+                  - cell "C" [ref=e198]:
+                    - generic [ref=e199]: C
+                  - cell "社区运营中心" [ref=e200]
+                  - cell "导入" [ref=e201]:
+                    - generic [ref=e202]: 导入
+                  - cell "2026/04/22 08:52" [ref=e203]
+                - row "02913 周雨晴 2027 年 B 健康美学行业群 导入 2026/04/22 08:52" [ref=e204]:
+                  - cell "02913" [ref=e205]
+                  - cell "周雨晴" [ref=e206]
+                  - cell "2027 年" [ref=e207]
+                  - cell "B" [ref=e208]:
+                    - generic [ref=e209]: B
+                  - cell "健康美学行业群" [ref=e210]
+                  - cell "导入" [ref=e211]:
+                    - generic [ref=e212]: 导入
+                  - cell "2026/04/22 08:52" [ref=e213]
+                - row "02601 李旭新 2027 年 A 社区运营中心 导入 2026/04/22 08:52" [ref=e214]:
+                  - cell "02601" [ref=e215]
+                  - cell "李旭新" [ref=e216]
+                  - cell "2027 年" [ref=e217]
+                  - cell "A" [ref=e218]:
+                    - generic [ref=e219]: A
+                  - cell "社区运营中心" [ref=e220]
+                  - cell "导入" [ref=e221]:
+                    - generic [ref=e222]: 导入
+                  - cell "2026/04/22 08:52" [ref=e223]
+                - row "02913 周雨晴 2026 年 A 健康美学行业群 手动 2026/04/22 08:48" [ref=e224]:
+                  - cell "02913" [ref=e225]
+                  - cell "周雨晴" [ref=e226]
+                  - cell "2026 年" [ref=e227]
+                  - cell "A" [ref=e228]:
+                    - generic [ref=e229]: A
+                  - cell "健康美学行业群" [ref=e230]
+                  - cell "手动" [ref=e231]:
+                    - generic [ref=e232]: 手动
+                  - cell "2026/04/22 08:48" [ref=e233]
+                - row "00007 叶林 2026 年 B — 飞书 2026/04/14 06:15" [ref=e234]:
+                  - cell "00007" [ref=e235]
+                  - cell "叶林" [ref=e236]
+                  - cell "2026 年" [ref=e237]
+                  - cell "B" [ref=e238]:
+                    - generic [ref=e239]: B
+                  - cell "—" [ref=e240]
+                  - cell "飞书" [ref=e241]:
+                    - generic [ref=e242]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e243]
+                - row "00017 邱文康 2026 年 B — 飞书 2026/04/14 06:15" [ref=e244]:
+                  - cell "00017" [ref=e245]
+                  - cell "邱文康" [ref=e246]
+                  - cell "2026 年" [ref=e247]
+                  - cell "B" [ref=e248]:
+                    - generic [ref=e249]: B
+                  - cell "—" [ref=e250]
+                  - cell "飞书" [ref=e251]:
+                    - generic [ref=e252]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e253]
+                - row "00020 赵冰洋 2026 年 B — 飞书 2026/04/14 06:15" [ref=e254]:
+                  - cell "00020" [ref=e255]
+                  - cell "赵冰洋" [ref=e256]
+                  - cell "2026 年" [ref=e257]
+                  - cell "B" [ref=e258]:
+                    - generic [ref=e259]: B
+                  - cell "—" [ref=e260]
+                  - cell "飞书" [ref=e261]:
+                    - generic [ref=e262]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e263]
+                - row "00023 张瑞芳 2026 年 B — 飞书 2026/04/14 06:15" [ref=e264]:
+                  - cell "00023" [ref=e265]
+                  - cell "张瑞芳" [ref=e266]
+                  - cell "2026 年" [ref=e267]
+                  - cell "B" [ref=e268]:
+                    - generic [ref=e269]: B
+                  - cell "—" [ref=e270]
+                  - cell "飞书" [ref=e271]:
+                    - generic [ref=e272]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e273]
+                - row "00027 李小燕 2026 年 B — 飞书 2026/04/14 06:15" [ref=e274]:
+                  - cell "00027" [ref=e275]
+                  - cell "李小燕" [ref=e276]
+                  - cell "2026 年" [ref=e277]
+                  - cell "B" [ref=e278]:
+                    - generic [ref=e279]: B
+                  - cell "—" [ref=e280]
+                  - cell "飞书" [ref=e281]:
+                    - generic [ref=e282]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e283]
+                - row "00034 张玉莲 2026 年 B — 飞书 2026/04/14 06:15" [ref=e284]:
+                  - cell "00034" [ref=e285]
+                  - cell "张玉莲" [ref=e286]
+                  - cell "2026 年" [ref=e287]
+                  - cell "B" [ref=e288]:
+                    - generic [ref=e289]: B
+                  - cell "—" [ref=e290]
+                  - cell "飞书" [ref=e291]:
+                    - generic [ref=e292]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e293]
+                - row "00044 郑玉嘉 2026 年 B — 飞书 2026/04/14 06:15" [ref=e294]:
+                  - cell "00044" [ref=e295]
+                  - cell "郑玉嘉" [ref=e296]
+                  - cell "2026 年" [ref=e297]
+                  - cell "B" [ref=e298]:
+                    - generic [ref=e299]: B
+                  - cell "—" [ref=e300]
+                  - cell "飞书" [ref=e301]:
+                    - generic [ref=e302]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e303]
+                - row "00051 黄依伊 2026 年 B — 飞书 2026/04/14 06:15" [ref=e304]:
+                  - cell "00051" [ref=e305]
+                  - cell "黄依伊" [ref=e306]
+                  - cell "2026 年" [ref=e307]
+                  - cell "B" [ref=e308]:
+                    - generic [ref=e309]: B
+                  - cell "—" [ref=e310]
+                  - cell "飞书" [ref=e311]:
+                    - generic [ref=e312]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e313]
+                - row "00065 胡文轩 2026 年 B — 飞书 2026/04/14 06:15" [ref=e314]:
+                  - cell "00065" [ref=e315]
+                  - cell "胡文轩" [ref=e316]
+                  - cell "2026 年" [ref=e317]
+                  - cell "B" [ref=e318]:
+                    - generic [ref=e319]: B
+                  - cell "—" [ref=e320]
+                  - cell "飞书" [ref=e321]:
+                    - generic [ref=e322]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e323]
+                - row "00069 周罗艳 2026 年 B — 飞书 2026/04/14 06:15" [ref=e324]:
+                  - cell "00069" [ref=e325]
+                  - cell "周罗艳" [ref=e326]
+                  - cell "2026 年" [ref=e327]
+                  - cell "B" [ref=e328]:
+                    - generic [ref=e329]: B
+                  - cell "—" [ref=e330]
+                  - cell "飞书" [ref=e331]:
+                    - generic [ref=e332]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e333]
+                - row "00068 沈利华 2026 年 B — 飞书 2026/04/14 06:15" [ref=e334]:
+                  - cell "00068" [ref=e335]
+                  - cell "沈利华" [ref=e336]
+                  - cell "2026 年" [ref=e337]
+                  - cell "B" [ref=e338]:
+                    - generic [ref=e339]: B
+                  - cell "—" [ref=e340]
+                  - cell "飞书" [ref=e341]:
+                    - generic [ref=e342]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e343]
+                - row "00070 谢绍通 2026 年 B — 飞书 2026/04/14 06:15" [ref=e344]:
+                  - cell "00070" [ref=e345]
+                  - cell "谢绍通" [ref=e346]
+                  - cell "2026 年" [ref=e347]
+                  - cell "B" [ref=e348]:
+                    - generic [ref=e349]: B
+                  - cell "—" [ref=e350]
+                  - cell "飞书" [ref=e351]:
+                    - generic [ref=e352]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e353]
+                - row "00072 彭小芳 2026 年 B — 飞书 2026/04/14 06:15" [ref=e354]:
+                  - cell "00072" [ref=e355]
+                  - cell "彭小芳" [ref=e356]
+                  - cell "2026 年" [ref=e357]
+                  - cell "B" [ref=e358]:
+                    - generic [ref=e359]: B
+                  - cell "—" [ref=e360]
+                  - cell "飞书" [ref=e361]:
+                    - generic [ref=e362]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e363]
+                - row "00073 杨单单 2026 年 B — 飞书 2026/04/14 06:15" [ref=e364]:
+                  - cell "00073" [ref=e365]
+                  - cell "杨单单" [ref=e366]
+                  - cell "2026 年" [ref=e367]
+                  - cell "B" [ref=e368]:
+                    - generic [ref=e369]: B
+                  - cell "—" [ref=e370]
+                  - cell "飞书" [ref=e371]:
+                    - generic [ref=e372]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e373]
+                - row "00071 邹育星 2026 年 B — 飞书 2026/04/14 06:15" [ref=e374]:
+                  - cell "00071" [ref=e375]
+                  - cell "邹育星" [ref=e376]
+                  - cell "2026 年" [ref=e377]
+                  - cell "B" [ref=e378]:
+                    - generic [ref=e379]: B
+                  - cell "—" [ref=e380]
+                  - cell "飞书" [ref=e381]:
+                    - generic [ref=e382]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e383]
+                - row "00094 徐军龙 2026 年 B — 飞书 2026/04/14 06:15" [ref=e384]:
+                  - cell "00094" [ref=e385]
+                  - cell "徐军龙" [ref=e386]
+                  - cell "2026 年" [ref=e387]
+                  - cell "B" [ref=e388]:
+                    - generic [ref=e389]: B
+                  - cell "—" [ref=e390]
+                  - cell "飞书" [ref=e391]:
+                    - generic [ref=e392]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e393]
+                - row "00101 殷俊玲 2026 年 B — 飞书 2026/04/14 06:15" [ref=e394]:
+                  - cell "00101" [ref=e395]
+                  - cell "殷俊玲" [ref=e396]
+                  - cell "2026 年" [ref=e397]
+                  - cell "B" [ref=e398]:
+                    - generic [ref=e399]: B
+                  - cell "—" [ref=e400]
+                  - cell "飞书" [ref=e401]:
+                    - generic [ref=e402]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e403]
+                - row "00106 杨茗 2026 年 B — 飞书 2026/04/14 06:15" [ref=e404]:
+                  - cell "00106" [ref=e405]
+                  - cell "杨茗" [ref=e406]
+                  - cell "2026 年" [ref=e407]
+                  - cell "B" [ref=e408]:
+                    - generic [ref=e409]: B
+                  - cell "—" [ref=e410]
+                  - cell "飞书" [ref=e411]:
+                    - generic [ref=e412]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e413]
+                - row "00115 叶茂林 2026 年 B — 飞书 2026/04/14 06:15" [ref=e414]:
+                  - cell "00115" [ref=e415]
+                  - cell "叶茂林" [ref=e416]
+                  - cell "2026 年" [ref=e417]
+                  - cell "B" [ref=e418]:
+                    - generic [ref=e419]: B
+                  - cell "—" [ref=e420]
+                  - cell "飞书" [ref=e421]:
+                    - generic [ref=e422]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e423]
+                - row "00114 钱士弘 2026 年 B — 飞书 2026/04/14 06:15" [ref=e424]:
+                  - cell "00114" [ref=e425]
+                  - cell "钱士弘" [ref=e426]
+                  - cell "2026 年" [ref=e427]
+                  - cell "B" [ref=e428]:
+                    - generic [ref=e429]: B
+                  - cell "—" [ref=e430]
+                  - cell "飞书" [ref=e431]:
+                    - generic [ref=e432]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e433]
+                - row "00124 柏丽 2026 年 B — 飞书 2026/04/14 06:15" [ref=e434]:
+                  - cell "00124" [ref=e435]
+                  - cell "柏丽" [ref=e436]
+                  - cell "2026 年" [ref=e437]
+                  - cell "B" [ref=e438]:
+                    - generic [ref=e439]: B
+                  - cell "—" [ref=e440]
+                  - cell "飞书" [ref=e441]:
+                    - generic [ref=e442]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e443]
+                - row "00133 张瑞琦 2026 年 B — 飞书 2026/04/14 06:15" [ref=e444]:
+                  - cell "00133" [ref=e445]
+                  - cell "张瑞琦" [ref=e446]
+                  - cell "2026 年" [ref=e447]
+                  - cell "B" [ref=e448]:
+                    - generic [ref=e449]: B
+                  - cell "—" [ref=e450]
+                  - cell "飞书" [ref=e451]:
+                    - generic [ref=e452]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e453]
+                - row "00142 肖春霞 2026 年 B — 飞书 2026/04/14 06:15" [ref=e454]:
+                  - cell "00142" [ref=e455]
+                  - cell "肖春霞" [ref=e456]
+                  - cell "2026 年" [ref=e457]
+                  - cell "B" [ref=e458]:
+                    - generic [ref=e459]: B
+                  - cell "—" [ref=e460]
+                  - cell "飞书" [ref=e461]:
+                    - generic [ref=e462]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e463]
+                - row "00144 陈舒欣 2026 年 B — 飞书 2026/04/14 06:15" [ref=e464]:
+                  - cell "00144" [ref=e465]
+                  - cell "陈舒欣" [ref=e466]
+                  - cell "2026 年" [ref=e467]
+                  - cell "B" [ref=e468]:
+                    - generic [ref=e469]: B
+                  - cell "—" [ref=e470]
+                  - cell "飞书" [ref=e471]:
+                    - generic [ref=e472]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e473]
+                - row "00148 俞红 2026 年 B — 飞书 2026/04/14 06:15" [ref=e474]:
+                  - cell "00148" [ref=e475]
+                  - cell "俞红" [ref=e476]
+                  - cell "2026 年" [ref=e477]
+                  - cell "B" [ref=e478]:
+                    - generic [ref=e479]: B
+                  - cell "—" [ref=e480]
+                  - cell "飞书" [ref=e481]:
+                    - generic [ref=e482]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e483]
+                - row "00157 顾英 2026 年 B — 飞书 2026/04/14 06:15" [ref=e484]:
+                  - cell "00157" [ref=e485]
+                  - cell "顾英" [ref=e486]
+                  - cell "2026 年" [ref=e487]
+                  - cell "B" [ref=e488]:
+                    - generic [ref=e489]: B
+                  - cell "—" [ref=e490]
+                  - cell "飞书" [ref=e491]:
+                    - generic [ref=e492]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e493]
+                - row "00160 林晓玲 2026 年 B — 飞书 2026/04/14 06:15" [ref=e494]:
+                  - cell "00160" [ref=e495]
+                  - cell "林晓玲" [ref=e496]
+                  - cell "2026 年" [ref=e497]
+                  - cell "B" [ref=e498]:
+                    - generic [ref=e499]: B
+                  - cell "—" [ref=e500]
+                  - cell "飞书" [ref=e501]:
+                    - generic [ref=e502]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e503]
+                - row "00169 张浩驰 2026 年 B — 飞书 2026/04/14 06:15" [ref=e504]:
+                  - cell "00169" [ref=e505]
+                  - cell "张浩驰" [ref=e506]
+                  - cell "2026 年" [ref=e507]
+                  - cell "B" [ref=e508]:
+                    - generic [ref=e509]: B
+                  - cell "—" [ref=e510]
+                  - cell "飞书" [ref=e511]:
+                    - generic [ref=e512]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e513]
+                - row "00172 郑艳 2026 年 B — 飞书 2026/04/14 06:15" [ref=e514]:
+                  - cell "00172" [ref=e515]
+                  - cell "郑艳" [ref=e516]
+                  - cell "2026 年" [ref=e517]
+                  - cell "B" [ref=e518]:
+                    - generic [ref=e519]: B
+                  - cell "—" [ref=e520]
+                  - cell "飞书" [ref=e521]:
+                    - generic [ref=e522]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e523]
+                - row "00181 杨柯尧 2026 年 B — 飞书 2026/04/14 06:15" [ref=e524]:
+                  - cell "00181" [ref=e525]
+                  - cell "杨柯尧" [ref=e526]
+                  - cell "2026 年" [ref=e527]
+                  - cell "B" [ref=e528]:
+                    - generic [ref=e529]: B
+                  - cell "—" [ref=e530]
+                  - cell "飞书" [ref=e531]:
+                    - generic [ref=e532]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e533]
+                - row "00198 陈宏娟 2026 年 B — 飞书 2026/04/14 06:15" [ref=e534]:
+                  - cell "00198" [ref=e535]
+                  - cell "陈宏娟" [ref=e536]
+                  - cell "2026 年" [ref=e537]
+                  - cell "B" [ref=e538]:
+                    - generic [ref=e539]: B
+                  - cell "—" [ref=e540]
+                  - cell "飞书" [ref=e541]:
+                    - generic [ref=e542]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e543]
+                - row "00203 李秉卿 2026 年 B — 飞书 2026/04/14 06:15" [ref=e544]:
+                  - cell "00203" [ref=e545]
+                  - cell "李秉卿" [ref=e546]
+                  - cell "2026 年" [ref=e547]
+                  - cell "B" [ref=e548]:
+                    - generic [ref=e549]: B
+                  - cell "—" [ref=e550]
+                  - cell "飞书" [ref=e551]:
+                    - generic [ref=e552]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e553]
+                - row "00207 李卓奎 2026 年 B — 飞书 2026/04/14 06:15" [ref=e554]:
+                  - cell "00207" [ref=e555]
+                  - cell "李卓奎" [ref=e556]
+                  - cell "2026 年" [ref=e557]
+                  - cell "B" [ref=e558]:
+                    - generic [ref=e559]: B
+                  - cell "—" [ref=e560]
+                  - cell "飞书" [ref=e561]:
+                    - generic [ref=e562]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e563]
+                - row "00208 李伟洲 2026 年 B — 飞书 2026/04/14 06:15" [ref=e564]:
+                  - cell "00208" [ref=e565]
+                  - cell "李伟洲" [ref=e566]
+                  - cell "2026 年" [ref=e567]
+                  - cell "B" [ref=e568]:
+                    - generic [ref=e569]: B
+                  - cell "—" [ref=e570]
+                  - cell "飞书" [ref=e571]:
+                    - generic [ref=e572]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e573]
+                - row "00213 周韧 2026 年 B — 飞书 2026/04/14 06:15" [ref=e574]:
+                  - cell "00213" [ref=e575]
+                  - cell "周韧" [ref=e576]
+                  - cell "2026 年" [ref=e577]
+                  - cell "B" [ref=e578]:
+                    - generic [ref=e579]: B
+                  - cell "—" [ref=e580]
+                  - cell "飞书" [ref=e581]:
+                    - generic [ref=e582]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e583]
+                - row "00225 朱钦怡 2026 年 B — 飞书 2026/04/14 06:15" [ref=e584]:
+                  - cell "00225" [ref=e585]
+                  - cell "朱钦怡" [ref=e586]
+                  - cell "2026 年" [ref=e587]
+                  - cell "B" [ref=e588]:
+                    - generic [ref=e589]: B
+                  - cell "—" [ref=e590]
+                  - cell "飞书" [ref=e591]:
+                    - generic [ref=e592]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e593]
+                - row "00241 张旖旎 2026 年 B — 飞书 2026/04/14 06:15" [ref=e594]:
+                  - cell "00241" [ref=e595]
+                  - cell "张旖旎" [ref=e596]
+                  - cell "2026 年" [ref=e597]
+                  - cell "B" [ref=e598]:
+                    - generic [ref=e599]: B
+                  - cell "—" [ref=e600]
+                  - cell "飞书" [ref=e601]:
+                    - generic [ref=e602]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e603]
+                - row "00242 刘凯星 2026 年 B — 飞书 2026/04/14 06:15" [ref=e604]:
+                  - cell "00242" [ref=e605]
+                  - cell "刘凯星" [ref=e606]
+                  - cell "2026 年" [ref=e607]
+                  - cell "B" [ref=e608]:
+                    - generic [ref=e609]: B
+                  - cell "—" [ref=e610]
+                  - cell "飞书" [ref=e611]:
+                    - generic [ref=e612]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e613]
+                - row "00247 林慧馨 2026 年 B — 飞书 2026/04/14 06:15" [ref=e614]:
+                  - cell "00247" [ref=e615]
+                  - cell "林慧馨" [ref=e616]
+                  - cell "2026 年" [ref=e617]
+                  - cell "B" [ref=e618]:
+                    - generic [ref=e619]: B
+                  - cell "—" [ref=e620]
+                  - cell "飞书" [ref=e621]:
+                    - generic [ref=e622]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e623]
+                - row "00258 陈白莉 2026 年 B — 飞书 2026/04/14 06:15" [ref=e624]:
+                  - cell "00258" [ref=e625]
+                  - cell "陈白莉" [ref=e626]
+                  - cell "2026 年" [ref=e627]
+                  - cell "B" [ref=e628]:
+                    - generic [ref=e629]: B
+                  - cell "—" [ref=e630]
+                  - cell "飞书" [ref=e631]:
+                    - generic [ref=e632]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e633]
+                - row "00260 江瑞 2026 年 B — 飞书 2026/04/14 06:15" [ref=e634]:
+                  - cell "00260" [ref=e635]
+                  - cell "江瑞" [ref=e636]
+                  - cell "2026 年" [ref=e637]
+                  - cell "B" [ref=e638]:
+                    - generic [ref=e639]: B
+                  - cell "—" [ref=e640]
+                  - cell "飞书" [ref=e641]:
+                    - generic [ref=e642]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e643]
+                - row "00264 李忠礼 2026 年 B — 飞书 2026/04/14 06:15" [ref=e644]:
+                  - cell "00264" [ref=e645]
+                  - cell "李忠礼" [ref=e646]
+                  - cell "2026 年" [ref=e647]
+                  - cell "B" [ref=e648]:
+                    - generic [ref=e649]: B
+                  - cell "—" [ref=e650]
+                  - cell "飞书" [ref=e651]:
+                    - generic [ref=e652]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e653]
+                - row "00266 李龙飞 2026 年 B — 飞书 2026/04/14 06:15" [ref=e654]:
+                  - cell "00266" [ref=e655]
+                  - cell "李龙飞" [ref=e656]
+                  - cell "2026 年" [ref=e657]
+                  - cell "B" [ref=e658]:
+                    - generic [ref=e659]: B
+                  - cell "—" [ref=e660]
+                  - cell "飞书" [ref=e661]:
+                    - generic [ref=e662]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e663]
+                - row "00269 符晓霞 2026 年 B — 飞书 2026/04/14 06:15" [ref=e664]:
+                  - cell "00269" [ref=e665]
+                  - cell "符晓霞" [ref=e666]
+                  - cell "2026 年" [ref=e667]
+                  - cell "B" [ref=e668]:
+                    - generic [ref=e669]: B
+                  - cell "—" [ref=e670]
+                  - cell "飞书" [ref=e671]:
+                    - generic [ref=e672]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e673]
+                - row "00290 朱汉晟 2026 年 B — 飞书 2026/04/14 06:15" [ref=e674]:
+                  - cell "00290" [ref=e675]
+                  - cell "朱汉晟" [ref=e676]
+                  - cell "2026 年" [ref=e677]
+                  - cell "B" [ref=e678]:
+                    - generic [ref=e679]: B
+                  - cell "—" [ref=e680]
+                  - cell "飞书" [ref=e681]:
+                    - generic [ref=e682]: 飞书
+                  - cell "2026/04/14 06:15" [ref=e683]
+            - generic [ref=e684]:
+              - generic [ref=e685]: 共 418 条 · 第 1/9 页
+              - generic [ref=e686]:
+                - button "上一页" [disabled] [ref=e687] [cursor=pointer]
+                - button "下一页" [ref=e688] [cursor=pointer]

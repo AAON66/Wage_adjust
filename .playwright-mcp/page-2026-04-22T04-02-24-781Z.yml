@@ -1,0 +1,237 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e108]:
+        - paragraph [ref=e109]: 管理员工作区
+        - heading "飞书考勤配置" [level=1] [ref=e110]
+        - paragraph [ref=e111]: 配置飞书应用凭证和字段映射，系统将据此从飞书多维表格同步考勤数据。
+      - generic [ref=e113]:
+        - paragraph [ref=e115]: 连接配置
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - generic [ref=e118]:
+              - text: App ID
+              - generic [ref=e120]: "?"
+            - textbox "App ID ?" [ref=e121]: cli_a9409c14ce789bb7
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - text: App Secret
+              - generic [ref=e125]: "?"
+            - textbox "App Secret ?" [ref=e126]:
+              - /placeholder: 留空保留当前值
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - text: 多维表格 App Token
+              - generic [ref=e130]: "?"
+            - textbox "多维表格 App Token ?" [ref=e131]: M7ePb93QXaEfbhstN0vcRmednBY
+          - generic [ref=e132]:
+            - generic [ref=e133]:
+              - text: 多维表格 Table ID
+              - generic [ref=e135]: "?"
+            - textbox "多维表格 Table ID ?" [ref=e136]: tblKTbLPFFVd23di
+          - generic [ref=e137]:
+            - generic [ref=e138]:
+              - generic [ref=e139]: 定时同步 - 时
+              - spinbutton "定时同步 - 时" [ref=e140]: "6"
+            - generic [ref=e141]:
+              - generic [ref=e142]: 定时同步 - 分
+              - spinbutton "定时同步 - 分" [ref=e143]: "0"
+            - generic [ref=e144]:
+              - generic [ref=e145]: 时区
+              - combobox "时区" [ref=e146]:
+                - option "Asia/Shanghai" [selected]
+                - option "Asia/Tokyo"
+                - option "UTC"
+        - paragraph [ref=e149]: 字段映射
+        - generic [ref=e150]:
+          - table [ref=e152]:
+            - rowgroup [ref=e153]:
+              - row "飞书字段名 系统字段" [ref=e154]:
+                - columnheader "飞书字段名" [ref=e155]
+                - columnheader "系统字段" [ref=e156]
+                - columnheader [ref=e157]
+            - rowgroup [ref=e158]:
+              - row "工号 员工工号（关联键）（employee_no） 删除" [ref=e159]:
+                - cell "工号" [ref=e160]:
+                  - textbox "输入飞书字段名" [ref=e161]: 工号
+                - cell "员工工号（关联键）（employee_no）" [ref=e162]:
+                  - combobox [ref=e163]:
+                    - option "选择系统字段"
+                    - option "员工工号（关联键）（employee_no）" [selected]
+                    - option "出勤率（attendance_rate）"
+                    - option "缺勤天数（absence_days）"
+                    - option "加班时长（小时）（overtime_hours）"
+                    - option "迟到次数（late_count）"
+                    - option "早退次数（early_leave_count）"
+                - cell "删除" [ref=e164]:
+                  - button "删除" [ref=e165] [cursor=pointer]
+              - row "出勤率 出勤率（attendance_rate） 删除" [ref=e166]:
+                - cell "出勤率" [ref=e167]:
+                  - textbox "输入飞书字段名" [ref=e168]: 出勤率
+                - cell "出勤率（attendance_rate）" [ref=e169]:
+                  - combobox [ref=e170]:
+                    - option "选择系统字段"
+                    - option "员工工号（关联键）（employee_no）"
+                    - option "出勤率（attendance_rate）" [selected]
+                    - option "缺勤天数（absence_days）"
+                    - option "加班时长（小时）（overtime_hours）"
+                    - option "迟到次数（late_count）"
+                    - option "早退次数（early_leave_count）"
+                - cell "删除" [ref=e171]:
+                  - button "删除" [ref=e172] [cursor=pointer]
+              - row "缺勤天数 缺勤天数（absence_days） 删除" [ref=e173]:
+                - cell "缺勤天数" [ref=e174]:
+                  - textbox "输入飞书字段名" [ref=e175]: 缺勤天数
+                - cell "缺勤天数（absence_days）" [ref=e176]:
+                  - combobox [ref=e177]:
+                    - option "选择系统字段"
+                    - option "员工工号（关联键）（employee_no）"
+                    - option "出勤率（attendance_rate）"
+                    - option "缺勤天数（absence_days）" [selected]
+                    - option "加班时长（小时）（overtime_hours）"
+                    - option "迟到次数（late_count）"
+                    - option "早退次数（early_leave_count）"
+                - cell "删除" [ref=e178]:
+                  - button "删除" [ref=e179] [cursor=pointer]
+              - row "加班时长 加班时长（小时）（overtime_hours） 删除" [ref=e180]:
+                - cell "加班时长" [ref=e181]:
+                  - textbox "输入飞书字段名" [ref=e182]: 加班时长
+                - cell "加班时长（小时）（overtime_hours）" [ref=e183]:
+                  - combobox [ref=e184]:
+                    - option "选择系统字段"
+                    - option "员工工号（关联键）（employee_no）"
+                    - option "出勤率（attendance_rate）"
+                    - option "缺勤天数（absence_days）"
+                    - option "加班时长（小时）（overtime_hours）" [selected]
+                    - option "迟到次数（late_count）"
+                    - option "早退次数（early_leave_count）"
+                - cell "删除" [ref=e185]:
+                  - button "删除" [ref=e186] [cursor=pointer]
+              - row "迟到次数 迟到次数（late_count） 删除" [ref=e187]:
+                - cell "迟到次数" [ref=e188]:
+                  - textbox "输入飞书字段名" [ref=e189]: 迟到次数
+                - cell "迟到次数（late_count）" [ref=e190]:
+                  - combobox [ref=e191]:
+                    - option "选择系统字段"
+                    - option "员工工号（关联键）（employee_no）"
+                    - option "出勤率（attendance_rate）"
+                    - option "缺勤天数（absence_days）"
+                    - option "加班时长（小时）（overtime_hours）"
+                    - option "迟到次数（late_count）" [selected]
+                    - option "早退次数（early_leave_count）"
+                - cell "删除" [ref=e192]:
+                  - button "删除" [ref=e193] [cursor=pointer]
+              - row "早退次数 早退次数（early_leave_count） 删除" [ref=e194]:
+                - cell "早退次数" [ref=e195]:
+                  - textbox "输入飞书字段名" [ref=e196]: 早退次数
+                - cell "早退次数（early_leave_count）" [ref=e197]:
+                  - combobox [ref=e198]:
+                    - option "选择系统字段"
+                    - option "员工工号（关联键）（employee_no）"
+                    - option "出勤率（attendance_rate）"
+                    - option "缺勤天数（absence_days）"
+                    - option "加班时长（小时）（overtime_hours）"
+                    - option "迟到次数（late_count）"
+                    - option "早退次数（early_leave_count）" [selected]
+                - cell "删除" [ref=e199]:
+                  - button "删除" [ref=e200] [cursor=pointer]
+          - button "+ 添加映射" [ref=e202] [cursor=pointer]
+        - button "保存配置" [ref=e204] [cursor=pointer]

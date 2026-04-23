@@ -48,25 +48,25 @@ export function EmployeesPage() {
     let cancelled = false;
 
     async function loadFilterOptions() {
-      try {
-        const [deptResponse, empResponse] = await Promise.all([
-          fetchDepartments(),
-          fetchEmployees({ page: 1, page_size: 1000 }),
-        ]);
-        if (cancelled) return;
+      // 用 allSettled 让两个请求互不影响：单边失败也能加载另一边的选项
+      const [deptRes, empRes] = await Promise.allSettled([
+        fetchDepartments(),
+        fetchEmployees({ page: 1, page_size: 2000 }),
+      ]);
+      if (cancelled) return;
 
-        setDepartments(deptResponse.items);
+      if (deptRes.status === 'fulfilled') {
+        setDepartments(deptRes.value.items);
+      }
 
-        // Extract distinct job families from employee data
+      if (empRes.status === 'fulfilled') {
         const families = new Set<string>();
-        for (const emp of empResponse.items) {
+        for (const emp of empRes.value.items) {
           if (emp.job_family) {
             families.add(emp.job_family);
           }
         }
         setJobFamilies(Array.from(families).sort((a, b) => a.localeCompare(b, 'zh-CN')));
-      } catch {
-        // Silently fail — filters will just show no options
       }
     }
 

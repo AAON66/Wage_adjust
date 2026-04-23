@@ -1,0 +1,253 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - paragraph [ref=e109]: 管理员工作区
+          - heading "评估周期管理" [level=1] [ref=e110]
+          - paragraph [ref=e111]: 新建、编辑、发布和删除评估周期，并为各部门设置独立预算分配规则。
+        - generic [ref=e112]:
+          - link "返回工作台" [ref=e113] [cursor=pointer]:
+            - /url: /workspace
+          - link "员工列表" [ref=e114] [cursor=pointer]:
+            - /url: /employees
+          - button "刷新周期" [ref=e115] [cursor=pointer]
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - article [ref=e118]:
+            - paragraph [ref=e119]: 周期总数
+            - paragraph [ref=e120]: "1"
+            - paragraph [ref=e121]: 当前系统中已经建立的评估周期数量。
+          - article [ref=e122]:
+            - paragraph [ref=e123]: 可用周期
+            - paragraph [ref=e124]: "1"
+            - paragraph [ref=e125]: 未下架、仍可参与业务流转的周期。
+          - article [ref=e126]:
+            - paragraph [ref=e127]: 已发布
+            - paragraph [ref=e128]: "0"
+            - paragraph [ref=e129]: 已经正式生效、可用于评估与调薪的周期。
+          - article [ref=e130]:
+            - paragraph [ref=e131]: 已下架
+            - paragraph [ref=e132]: "0"
+            - paragraph [ref=e133]: 仅保留历史记录、不再继续使用的周期。
+        - generic [ref=e134]:
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: 周期配置
+              - heading "新建评估周期" [level=2] [ref=e138]
+              - paragraph [ref=e139]: 创建新周期时可以直接配置部门预算；如果暂时不配置，系统会按启用中的部门自动平分总预算。
+              - paragraph [ref=e140]: 右侧周期卡片里的“设置部门预算”按钮，就是进入该周期预算配置的快捷入口。
+            - generic [ref=e142]:
+              - generic [ref=e143]:
+                - text: 周期名称
+                - textbox "周期名称" [ref=e144]: 2026 年度评估
+              - generic [ref=e145]:
+                - text: 评估周期
+                - textbox "评估周期" [ref=e146]: "2026"
+              - generic [ref=e147]:
+                - text: 总预算金额
+                - textbox "总预算金额" [ref=e148]: "250000.00"
+              - generic [ref=e149]:
+                - text: 状态
+                - combobox "状态" [ref=e150]:
+                  - option "草稿" [selected]
+                  - option "收集中"
+              - generic [ref=e151]:
+                - generic [ref=e152]:
+                  - generic [ref=e153]:
+                    - paragraph [ref=e154]: 部门预算分配
+                    - paragraph [ref=e155]: 可以为部分或全部部门单独指定预算。未设置的部门会自动参与剩余预算平分；如果一个部门都没设置，则默认按全部启用部门平均分配。
+                  - generic [ref=e156]:
+                    - button "按当前总预算平均填充" [ref=e157] [cursor=pointer]
+                    - button "清空部门分配" [ref=e158] [cursor=pointer]
+                - generic [ref=e159]:
+                  - article [ref=e160]:
+                    - paragraph [ref=e161]: 已单独分配
+                    - paragraph [ref=e162]: "0.00"
+                    - paragraph [ref=e163]: 已经录入明确预算的部门金额合计。
+                  - article [ref=e164]:
+                    - paragraph [ref=e165]: 待默认分摊
+                    - paragraph [ref=e166]: "250000.00"
+                    - paragraph [ref=e167]: 剩余金额会在未设置的部门之间自动平分。
+                  - article [ref=e168]:
+                    - paragraph [ref=e169]: 启用部门数
+                    - paragraph [ref=e170]: "11"
+                    - paragraph [ref=e171]: 只有状态为启用的部门会参与预算分配。
+                - generic [ref=e172]:
+                  - generic [ref=e173]:
+                    - generic [ref=e174]:
+                      - generic [ref=e175]: 公域生态行业群
+                      - generic [ref=e176]: 留空则参与默认平分
+                    - spinbutton "公域生态行业群 留空则参与默认平分" [ref=e177]
+                  - generic [ref=e178]:
+                    - generic [ref=e179]:
+                      - generic [ref=e180]: 健康美学行业群
+                      - generic [ref=e181]: 留空则参与默认平分
+                    - spinbutton "健康美学行业群 留空则参与默认平分" [ref=e182]
+                  - generic [ref=e183]:
+                    - generic [ref=e184]:
+                      - generic [ref=e185]: 快消零售行业群
+                      - generic [ref=e186]: 留空则参与默认平分
+                    - spinbutton "快消零售行业群 留空则参与默认平分" [ref=e187]
+                  - generic [ref=e188]:
+                    - generic [ref=e189]:
+                      - generic [ref=e190]: 耐消行业群
+                      - generic [ref=e191]: 留空则参与默认平分
+                    - spinbutton "耐消行业群 留空则参与默认平分" [ref=e192]
+                  - generic [ref=e193]:
+                    - generic [ref=e194]:
+                      - generic [ref=e195]: 内容业务群
+                      - generic [ref=e196]: 留空则参与默认平分
+                    - spinbutton "内容业务群 留空则参与默认平分" [ref=e197]
+                  - generic [ref=e198]:
+                    - generic [ref=e199]:
+                      - generic [ref=e200]: 屈臣氏业务群
+                      - generic [ref=e201]: 留空则参与默认平分
+                    - spinbutton "屈臣氏业务群 留空则参与默认平分" [ref=e202]
+                  - generic [ref=e203]:
+                    - generic [ref=e204]:
+                      - generic [ref=e205]: 社区运营中心
+                      - generic [ref=e206]: 留空则参与默认平分
+                    - spinbutton "社区运营中心 留空则参与默认平分" [ref=e207]
+                  - generic [ref=e208]:
+                    - generic [ref=e209]:
+                      - generic [ref=e210]: 时尚行业群
+                      - generic [ref=e211]: 留空则参与默认平分
+                    - spinbutton "时尚行业群 留空则参与默认平分" [ref=e212]
+                  - generic [ref=e213]:
+                    - generic [ref=e214]:
+                      - generic [ref=e215]: 视频号业务线
+                      - generic [ref=e216]: 留空则参与默认平分
+                    - spinbutton "视频号业务线 留空则参与默认平分" [ref=e217]
+                  - generic [ref=e218]:
+                    - generic [ref=e219]:
+                      - generic [ref=e220]: TOC创新业务
+                      - generic [ref=e221]: 留空则参与默认平分
+                    - spinbutton "TOC创新业务 留空则参与默认平分" [ref=e222]
+                  - generic [ref=e223]:
+                    - generic [ref=e224]:
+                      - generic [ref=e225]: X行业群
+                      - generic [ref=e226]: 留空则参与默认平分
+                    - spinbutton "X行业群 留空则参与默认平分" [ref=e227]
+              - button "创建评估周期" [ref=e229] [cursor=pointer]
+          - generic [ref=e230]:
+            - generic [ref=e231]:
+              - generic [ref=e232]:
+                - paragraph [ref=e233]: 已有周期
+                - heading "现有评估周期" [level=2] [ref=e234]
+                - paragraph [ref=e235]: 支持编辑、发布、下架和删除，并可查看当前部门预算分配规则。
+              - paragraph [ref=e236]: 共 1 个周期
+            - article [ref=e238]:
+              - generic [ref=e239]:
+                - generic [ref=e240]:
+                  - generic [ref=e241]:
+                    - heading "2026 Q2 调薪周期" [level=3] [ref=e242]
+                    - generic [ref=e243]: 草稿
+                  - paragraph [ref=e244]: 评估周期：2026-Q2
+                  - paragraph [ref=e245]: 总预算：0.00
+                  - paragraph [ref=e246]: 更新时间：2026年4月21日 11:15
+                  - paragraph [ref=e247]: 未单独设置部门预算，系统会按当前启用部门自动平分预算。
+                - generic [ref=e248]:
+                  - button "设置部门预算" [ref=e249] [cursor=pointer]
+                  - button "编辑周期" [ref=e250] [cursor=pointer]
+                  - button "发布" [ref=e251] [cursor=pointer]
+                  - button "下架" [ref=e252] [cursor=pointer]
+                  - button "删除周期" [ref=e253] [cursor=pointer]

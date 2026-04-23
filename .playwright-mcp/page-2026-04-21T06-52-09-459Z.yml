@@ -1,0 +1,288 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 飞书集成 / SYNC OBSERVABILITY
+      - heading "飞书同步日志" [level=1] [ref=e7]
+      - paragraph [ref=e8]: 查看每次飞书同步的结果与明细，可按类型筛选、下载未匹配工号 CSV 自助诊断。
+    - button "刷新列表" [ref=e9] [cursor=pointer]
+  - tablist [ref=e10]:
+    - tab "全部" [selected] [ref=e11] [cursor=pointer]
+    - tab "考勤" [ref=e12] [cursor=pointer]
+    - tab "绩效" [ref=e13] [cursor=pointer]
+    - tab "薪调" [ref=e14] [cursor=pointer]
+    - tab "入职信息" [ref=e15] [cursor=pointer]
+    - tab "社保假勤" [ref=e16] [cursor=pointer]
+  - generic [ref=e17]:
+    - table [ref=e18]:
+      - rowgroup [ref=e19]:
+        - row "同步类型 状态 模式 计数 触发时间 耗时 触发人 操作" [ref=e20]:
+          - columnheader "同步类型" [ref=e21]
+          - columnheader "状态" [ref=e22]
+          - columnheader "模式" [ref=e23]
+          - columnheader "计数" [ref=e24]
+          - columnheader "触发时间" [ref=e25]
+          - columnheader "耗时" [ref=e26]
+          - columnheader "触发人" [ref=e27]
+          - columnheader "操作" [ref=e28]
+      - rowgroup [ref=e29]:
+        - row "考勤 同步中 全量 查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-21 06:43 — 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e30]:
+          - cell "考勤" [ref=e31]
+          - cell "同步中" [ref=e32]:
+            - generic [ref=e33]: 同步中
+          - cell "全量" [ref=e35]:
+            - generic [ref=e36]: 全量
+          - cell "查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e37]:
+            - generic [ref=e38]:
+              - button "查看成功 0 条明细" [ref=e39]:
+                - generic [ref=e40]: 成功
+                - generic [ref=e41]: "0"
+              - button "查看更新 0 条明细" [ref=e42]:
+                - generic [ref=e43]: 更新
+                - generic [ref=e44]: "0"
+              - button "查看未匹配 0 条明细" [ref=e45]:
+                - generic [ref=e46]: 未匹配
+                - generic [ref=e47]: "0"
+              - button "查看映射失败 0 条明细" [ref=e48]:
+                - generic [ref=e49]: 映射失败
+                - generic [ref=e50]: "0"
+              - button "查看写库失败 0 条明细" [ref=e51]:
+                - generic [ref=e52]: 写库失败
+                - generic [ref=e53]: "0"
+          - cell "2026-04-21 06:43" [ref=e54]
+          - cell "—" [ref=e55]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e56]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e57]:
+            - button "下载未匹配工号 CSV" [disabled] [ref=e58]
+            - button "查看详情" [ref=e59] [cursor=pointer]
+        - row "考勤 成功 全量 查看成功 120 条明细 查看更新 30 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-21 06:40 45s 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e60]:
+          - cell "考勤" [ref=e61]
+          - cell "成功" [ref=e62]:
+            - generic [ref=e63]: 成功
+          - cell "全量" [ref=e64]:
+            - generic [ref=e65]: 全量
+          - cell "查看成功 120 条明细 查看更新 30 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e66]:
+            - generic [ref=e67]:
+              - button "查看成功 120 条明细" [ref=e68] [cursor=pointer]:
+                - generic [ref=e69]: 成功
+                - generic [ref=e70]: "120"
+              - button "查看更新 30 条明细" [ref=e71] [cursor=pointer]:
+                - generic [ref=e72]: 更新
+                - generic [ref=e73]: "30"
+              - button "查看未匹配 0 条明细" [ref=e74]:
+                - generic [ref=e75]: 未匹配
+                - generic [ref=e76]: "0"
+              - button "查看映射失败 0 条明细" [ref=e77]:
+                - generic [ref=e78]: 映射失败
+                - generic [ref=e79]: "0"
+              - button "查看写库失败 0 条明细" [ref=e80]:
+                - generic [ref=e81]: 写库失败
+                - generic [ref=e82]: "0"
+          - cell "2026-04-21 06:40" [ref=e83]
+          - cell "45s" [ref=e84]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e85]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e86]:
+            - button "下载未匹配工号 CSV" [disabled] [ref=e87]
+            - button "查看详情" [ref=e88] [cursor=pointer]
+        - row "绩效 部分成功 — 查看成功 45 条明细 查看更新 8 条明细 查看未匹配 12 条明细 查看映射失败 3 条明细 查看写库失败 2 条明细 2026-04-21 06:35 45s 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e89]:
+          - cell "绩效" [ref=e90]
+          - cell "部分成功" [ref=e91]:
+            - generic [ref=e92]: 部分成功
+          - cell "—" [ref=e93]
+          - cell "查看成功 45 条明细 查看更新 8 条明细 查看未匹配 12 条明细 查看映射失败 3 条明细 查看写库失败 2 条明细" [ref=e94]:
+            - generic [ref=e95]:
+              - button "查看成功 45 条明细" [ref=e96] [cursor=pointer]:
+                - generic [ref=e97]: 成功
+                - generic [ref=e98]: "45"
+              - button "查看更新 8 条明细" [ref=e99] [cursor=pointer]:
+                - generic [ref=e100]: 更新
+                - generic [ref=e101]: "8"
+              - button "查看未匹配 12 条明细" [ref=e102] [cursor=pointer]:
+                - generic [ref=e103]: 未匹配
+                - generic [ref=e104]: "12"
+              - button "查看映射失败 3 条明细" [ref=e105] [cursor=pointer]:
+                - generic [ref=e106]: 映射失败
+                - generic [ref=e107]: "3"
+              - button "查看写库失败 2 条明细" [ref=e108] [cursor=pointer]:
+                - generic [ref=e109]: 写库失败
+                - generic [ref=e110]: "2"
+          - cell "2026-04-21 06:35" [ref=e111]
+          - cell "45s" [ref=e112]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e113]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e114]:
+            - button "下载未匹配工号 CSV" [ref=e115] [cursor=pointer]
+            - button "查看详情" [ref=e116] [cursor=pointer]
+        - row "薪调 成功 — 查看成功 30 条明细 查看更新 12 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-21 06:25 45s 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e117]:
+          - cell "薪调" [ref=e118]
+          - cell "成功" [ref=e119]:
+            - generic [ref=e120]: 成功
+          - cell "—" [ref=e121]
+          - cell "查看成功 30 条明细 查看更新 12 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e122]:
+            - generic [ref=e123]:
+              - button "查看成功 30 条明细" [ref=e124] [cursor=pointer]:
+                - generic [ref=e125]: 成功
+                - generic [ref=e126]: "30"
+              - button "查看更新 12 条明细" [ref=e127] [cursor=pointer]:
+                - generic [ref=e128]: 更新
+                - generic [ref=e129]: "12"
+              - button "查看未匹配 0 条明细" [ref=e130]:
+                - generic [ref=e131]: 未匹配
+                - generic [ref=e132]: "0"
+              - button "查看映射失败 0 条明细" [ref=e133]:
+                - generic [ref=e134]: 映射失败
+                - generic [ref=e135]: "0"
+              - button "查看写库失败 0 条明细" [ref=e136]:
+                - generic [ref=e137]: 写库失败
+                - generic [ref=e138]: "0"
+          - cell "2026-04-21 06:25" [ref=e139]
+          - cell "45s" [ref=e140]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e141]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e142]:
+            - button "下载未匹配工号 CSV" [disabled] [ref=e143]
+            - button "查看详情" [ref=e144] [cursor=pointer]
+        - row "入职信息 部分成功 — 查看成功 18 条明细 查看更新 0 条明细 查看未匹配 2 条明细 查看映射失败 1 条明细 查看写库失败 0 条明细 2026-04-21 06:15 45s 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e145]:
+          - cell "入职信息" [ref=e146]
+          - cell "部分成功" [ref=e147]:
+            - generic [ref=e148]: 部分成功
+          - cell "—" [ref=e149]
+          - cell "查看成功 18 条明细 查看更新 0 条明细 查看未匹配 2 条明细 查看映射失败 1 条明细 查看写库失败 0 条明细" [ref=e150]:
+            - generic [ref=e151]:
+              - button "查看成功 18 条明细" [ref=e152] [cursor=pointer]:
+                - generic [ref=e153]: 成功
+                - generic [ref=e154]: "18"
+              - button "查看更新 0 条明细" [ref=e155]:
+                - generic [ref=e156]: 更新
+                - generic [ref=e157]: "0"
+              - button "查看未匹配 2 条明细" [ref=e158] [cursor=pointer]:
+                - generic [ref=e159]: 未匹配
+                - generic [ref=e160]: "2"
+              - button "查看映射失败 1 条明细" [ref=e161] [cursor=pointer]:
+                - generic [ref=e162]: 映射失败
+                - generic [ref=e163]: "1"
+              - button "查看写库失败 0 条明细" [ref=e164]:
+                - generic [ref=e165]: 写库失败
+                - generic [ref=e166]: "0"
+          - cell "2026-04-21 06:15" [ref=e167]
+          - cell "45s" [ref=e168]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e169]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e170]:
+            - button "下载未匹配工号 CSV" [ref=e171] [cursor=pointer]
+            - button "查看详情" [ref=e172] [cursor=pointer]
+        - row "绩效 失败 — 查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 5 条明细 2026-04-21 05:45 45s 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e173]:
+          - cell "绩效" [ref=e174]
+          - cell "失败" [ref=e175]:
+            - generic [ref=e176]: 失败
+          - cell "—" [ref=e177]
+          - cell "查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 5 条明细" [ref=e178]:
+            - generic [ref=e179]:
+              - button "查看成功 0 条明细" [ref=e180]:
+                - generic [ref=e181]: 成功
+                - generic [ref=e182]: "0"
+              - button "查看更新 0 条明细" [ref=e183]:
+                - generic [ref=e184]: 更新
+                - generic [ref=e185]: "0"
+              - button "查看未匹配 0 条明细" [ref=e186]:
+                - generic [ref=e187]: 未匹配
+                - generic [ref=e188]: "0"
+              - button "查看映射失败 0 条明细" [ref=e189]:
+                - generic [ref=e190]: 映射失败
+                - generic [ref=e191]: "0"
+              - button "查看写库失败 5 条明细" [ref=e192] [cursor=pointer]:
+                - generic [ref=e193]: 写库失败
+                - generic [ref=e194]: "5"
+          - cell "2026-04-21 05:45" [ref=e195]
+          - cell "45s" [ref=e196]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e197]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e198]:
+            - button "下载未匹配工号 CSV" [disabled] [ref=e199]
+            - button "查看详情" [ref=e200] [cursor=pointer]
+        - row "考勤 成功 增量 查看成功 0 条明细 查看更新 413 条明细 查看未匹配 8 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-16 22:00 2s scheduler 下载未匹配工号 CSV 查看详情" [ref=e201]:
+          - cell "考勤" [ref=e202]
+          - cell "成功" [ref=e203]:
+            - generic [ref=e204]: 成功
+          - cell "增量" [ref=e205]:
+            - generic [ref=e206]: 增量
+          - cell "查看成功 0 条明细 查看更新 413 条明细 查看未匹配 8 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e207]:
+            - generic [ref=e208]:
+              - button "查看成功 0 条明细" [ref=e209]:
+                - generic [ref=e210]: 成功
+                - generic [ref=e211]: "0"
+              - button "查看更新 413 条明细" [ref=e212] [cursor=pointer]:
+                - generic [ref=e213]: 更新
+                - generic [ref=e214]: "413"
+              - button "查看未匹配 8 条明细" [ref=e215] [cursor=pointer]:
+                - generic [ref=e216]: 未匹配
+                - generic [ref=e217]: "8"
+              - button "查看映射失败 0 条明细" [ref=e218]:
+                - generic [ref=e219]: 映射失败
+                - generic [ref=e220]: "0"
+              - button "查看写库失败 0 条明细" [ref=e221]:
+                - generic [ref=e222]: 写库失败
+                - generic [ref=e223]: "0"
+          - cell "2026-04-16 22:00" [ref=e224]
+          - cell "2s" [ref=e225]
+          - cell "scheduler" [ref=e226]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e227]:
+            - button "下载未匹配工号 CSV" [ref=e228] [cursor=pointer]
+            - button "查看详情" [ref=e229] [cursor=pointer]
+        - row "考勤 成功 增量 查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-15 22:00 3s scheduler 下载未匹配工号 CSV 查看详情" [ref=e230]:
+          - cell "考勤" [ref=e231]
+          - cell "成功" [ref=e232]:
+            - generic [ref=e233]: 成功
+          - cell "增量" [ref=e234]:
+            - generic [ref=e235]: 增量
+          - cell "查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e236]:
+            - generic [ref=e237]:
+              - button "查看成功 0 条明细" [ref=e238]:
+                - generic [ref=e239]: 成功
+                - generic [ref=e240]: "0"
+              - button "查看更新 0 条明细" [ref=e241]:
+                - generic [ref=e242]: 更新
+                - generic [ref=e243]: "0"
+              - button "查看未匹配 0 条明细" [ref=e244]:
+                - generic [ref=e245]: 未匹配
+                - generic [ref=e246]: "0"
+              - button "查看映射失败 0 条明细" [ref=e247]:
+                - generic [ref=e248]: 映射失败
+                - generic [ref=e249]: "0"
+              - button "查看写库失败 0 条明细" [ref=e250]:
+                - generic [ref=e251]: 写库失败
+                - generic [ref=e252]: "0"
+          - cell "2026-04-15 22:00" [ref=e253]
+          - cell "3s" [ref=e254]
+          - cell "scheduler" [ref=e255]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e256]:
+            - button "下载未匹配工号 CSV" [disabled] [ref=e257]
+            - button "查看详情" [ref=e258] [cursor=pointer]
+        - row "考勤 成功 增量 查看成功 413 条明细 查看更新 0 条明细 查看未匹配 8 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-14 22:00 2s scheduler 下载未匹配工号 CSV 查看详情" [ref=e259]:
+          - cell "考勤" [ref=e260]
+          - cell "成功" [ref=e261]:
+            - generic [ref=e262]: 成功
+          - cell "增量" [ref=e263]:
+            - generic [ref=e264]: 增量
+          - cell "查看成功 413 条明细 查看更新 0 条明细 查看未匹配 8 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e265]:
+            - generic [ref=e266]:
+              - button "查看成功 413 条明细" [ref=e267] [cursor=pointer]:
+                - generic [ref=e268]: 成功
+                - generic [ref=e269]: "413"
+              - button "查看更新 0 条明细" [ref=e270]:
+                - generic [ref=e271]: 更新
+                - generic [ref=e272]: "0"
+              - button "查看未匹配 8 条明细" [ref=e273] [cursor=pointer]:
+                - generic [ref=e274]: 未匹配
+                - generic [ref=e275]: "8"
+              - button "查看映射失败 0 条明细" [ref=e276]:
+                - generic [ref=e277]: 映射失败
+                - generic [ref=e278]: "0"
+              - button "查看写库失败 0 条明细" [ref=e279]:
+                - generic [ref=e280]: 写库失败
+                - generic [ref=e281]: "0"
+          - cell "2026-04-14 22:00" [ref=e282]
+          - cell "2s" [ref=e283]
+          - cell "scheduler" [ref=e284]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e285]:
+            - button "下载未匹配工号 CSV" [ref=e286] [cursor=pointer]
+            - button "查看详情" [ref=e287] [cursor=pointer]
+    - navigation [ref=e288]:
+      - button "< 上一页" [disabled] [ref=e289]
+      - generic [ref=e290]: 第 1 页
+      - button "下一页 >" [disabled] [ref=e291]

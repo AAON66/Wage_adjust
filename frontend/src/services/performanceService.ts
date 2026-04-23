@@ -3,6 +3,7 @@ import axios from 'axios';
 import api from './api';
 import type {
   AvailableYearsResponse,
+  MyTierResponse,
   NoSnapshotErrorDetail,
   PerformanceRecordCreatePayload,
   PerformanceRecordItem,
@@ -153,4 +154,22 @@ export async function createPerformanceRecord(
 export async function getAvailableYears(): Promise<number[]> {
   const { data } = await api.get<AvailableYearsResponse>('/performance/available-years');
   return data.years;
+}
+
+/**
+ * Phase 35 D-11: 员工自助查询本人绩效档次（无参数路由，ESELF-03 / ESELF-04）
+ *
+ * 后端端点：GET /api/v1/performance/me/tier
+ * 错误码：
+ *   - 401 未鉴权（axios 拦截器可能触发 token refresh）
+ *   - 422 未绑定员工 → 前端展示「请前往账号设置绑定」
+ *   - 404 员工档案缺失 → 前端展示「员工档案缺失，请联系 HR」
+ *   - 500 服务异常 → 前端展示通用错误 + 重试按钮
+ *
+ * 不做 try/catch —— axios 异常原样 throw，由调用方（MyPerformanceTierBadge 组件）
+ * 负责按 status code 分支渲染。
+ */
+export async function fetchMyTier(): Promise<MyTierResponse> {
+  const { data } = await api.get<MyTierResponse>('/performance/me/tier');
+  return data;
 }

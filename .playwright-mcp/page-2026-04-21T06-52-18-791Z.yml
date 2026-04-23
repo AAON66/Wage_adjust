@@ -1,0 +1,19 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 飞书集成 / SYNC OBSERVABILITY
+      - heading "飞书同步日志" [level=1] [ref=e7]
+      - paragraph [ref=e8]: 查看每次飞书同步的结果与明细，可按类型筛选、下载未匹配工号 CSV 自助诊断。
+    - button "刷新列表" [ref=e9] [cursor=pointer]
+  - tablist [ref=e10]:
+    - tab "全部" [ref=e11] [cursor=pointer]
+    - tab "考勤" [ref=e12] [cursor=pointer]
+    - tab "绩效" [ref=e13] [cursor=pointer]
+    - tab "薪调" [ref=e14] [cursor=pointer]
+    - tab "入职信息" [ref=e15] [cursor=pointer]
+    - tab "社保假勤" [selected] [ref=e16] [cursor=pointer]
+  - generic [ref=e292]:
+    - generic [ref=e293]: 暂无同步日志
+    - paragraph [ref=e294]: HR 触发飞书同步后，每次执行的结果会在此列出。可前往「飞书配置」页面手动触发一次同步。
+    - link "前往飞书配置" [ref=e295] [cursor=pointer]:
+      - /url: /feishu-config

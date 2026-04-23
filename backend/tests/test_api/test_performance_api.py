@@ -147,6 +147,62 @@ def _seed_snapshot(ctx: _TestContext, year: int = 2026) -> None:
         db.close()
 
 
+def _seed_snapshot_for_current_year(
+    ctx: _TestContext,
+    *,
+    tiers_json: dict[str, int | None],
+    insufficient_sample: bool = False,
+    sample_size: int = 100,
+) -> PerformanceTierSnapshot:
+    """插入当前年的档次快照，供 /performance/me/tier API 测试使用。"""
+    current_year = datetime.now().year
+    db = ctx.db()
+    try:
+        snap = PerformanceTierSnapshot(
+            year=current_year,
+            tiers_json=tiers_json,
+            sample_size=sample_size,
+            insufficient_sample=insufficient_sample,
+            distribution_warning=False,
+            actual_distribution_json={},
+            skipped_invalid_grades=0,
+        )
+        db.add(snap)
+        db.commit()
+        db.refresh(snap)
+        return snap
+    finally:
+        db.close()
+
+
+def _seed_employee_and_bind(
+    ctx: _TestContext, user_creds: _UserCreds, employee_no: str,
+) -> str:
+    """创建 Employee 并绑定到指定用户。"""
+    db = ctx.db()
+    try:
+        emp = Employee(
+            employee_no=employee_no,
+            name=f'Test {employee_no}',
+            department='Eng',
+            job_family='Backend',
+            job_level='P6',
+            status='active',
+        )
+        db.add(emp)
+        db.commit()
+        db.refresh(emp)
+
+        user = db.get(User, user_creds.id)
+        assert user is not None
+        user.employee_id = emp.id
+        db.add(user)
+        db.commit()
+        return emp.id
+    finally:
+        db.close()
+
+
 # ---------------------------------------------------------------------------
 # GET /performance/records
 # ---------------------------------------------------------------------------
@@ -393,15 +449,173 @@ def test_get_available_years_admin_returns_200(ctx):
 
 
 # ---------------------------------------------------------------------------
-# Phase 35 保留位
+# Phase 35 ESELF-03: GET /performance/me/tier
 # ---------------------------------------------------------------------------
 
-def test_me_tier_endpoint_does_not_exist_yet(ctx):
-    """GET /performance/me/tier → 404（保留位未实现）。"""
-    admin = ctx.make_user(role='admin')
+def test_me_tier_happy_path_returns_tier_for_bound_employee(ctx):
+    employee_user = ctx.make_user(role='employee')
+    emp_id = _seed_employee_and_bind(ctx, employee_user, 'PHE35001')
+    _seed_snapshot_for_current_year(
+        ctx,
+        tiers_json={emp_id: 2},
+        sample_size=120,
+    )
+
     client = TestClient(ctx.app)
     resp = client.get(
         '/api/v1/performance/me/tier',
-        headers=ctx.auth_header(admin),
+        headers=ctx.auth_header(employee_user),
     )
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body['tier'] == 2
+    assert body['reason'] is None
+    assert body['year'] == datetime.now().year
+    assert body['data_updated_at'] is not None
+
+
+def test_me_tier_happy_path_works_for_admin_role_too(ctx):
+    admin_user = ctx.make_user(role='admin')
+    emp_id = _seed_employee_and_bind(ctx, admin_user, 'PHE35002')
+    _seed_snapshot_for_current_year(
+        ctx,
+        tiers_json={emp_id: 1},
+        sample_size=100,
+    )
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(admin_user),
+    )
+
+    assert resp.status_code == 200
+    assert resp.json()['tier'] == 1
+
+
+def test_me_tier_insufficient_sample_returns_reason_not_tier(ctx):
+    employee_user = ctx.make_user(role='employee')
+    _seed_employee_and_bind(ctx, employee_user, 'PHE35003')
+    _seed_snapshot_for_current_year(
+        ctx,
+        tiers_json={},
+        insufficient_sample=True,
+        sample_size=10,
+    )
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(employee_user),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body['tier'] is None
+    assert body['reason'] == 'insufficient_sample'
+    assert body['year'] == datetime.now().year
+
+
+def test_me_tier_no_snapshot_when_db_empty(ctx):
+    employee_user = ctx.make_user(role='employee')
+    _seed_employee_and_bind(ctx, employee_user, 'PHE35004')
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(employee_user),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body['year'] is None
+    assert body['tier'] is None
+    assert body['reason'] == 'no_snapshot'
+    assert body['data_updated_at'] is None
+
+
+def test_me_tier_not_ranked_when_employee_absent_from_tiers_json(ctx):
+    employee_user = ctx.make_user(role='employee')
+    _seed_employee_and_bind(ctx, employee_user, 'PHE35005')
+    _seed_snapshot_for_current_year(
+        ctx,
+        tiers_json={'some-other-uuid-not-this-user': 1},
+        sample_size=80,
+    )
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(employee_user),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body['tier'] is None
+    assert body['reason'] == 'not_ranked'
+
+
+def test_me_tier_returns_422_for_unbound_user(ctx):
+    employee_user = ctx.make_user(role='employee')
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(employee_user),
+    )
+
+    assert resp.status_code == 422
+    assert '您尚未绑定员工信息' in resp.text
+
+
+def test_me_tier_returns_404_when_employee_deleted(ctx):
+    employee_user = ctx.make_user(role='employee')
+    emp_id = _seed_employee_and_bind(ctx, employee_user, 'PHE35006')
+
+    db = ctx.db()
+    try:
+        emp = db.get(Employee, emp_id)
+        assert emp is not None
+        db.delete(emp)
+        db.commit()
+        user = db.get(User, employee_user.id)
+        assert user is not None
+        user.employee_id = emp_id
+        db.add(user)
+        db.commit()
+    finally:
+        db.close()
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(employee_user),
+    )
+
     assert resp.status_code == 404
+    assert '员工档案缺失' in resp.text
+
+
+def test_me_tier_response_body_contains_no_other_employee_data(ctx):
+    employee_user = ctx.make_user(role='employee')
+    emp_id = _seed_employee_and_bind(ctx, employee_user, 'PHE35007')
+    _seed_snapshot_for_current_year(
+        ctx,
+        tiers_json={emp_id: 2, 'other-1': 1, 'other-2': 3},
+        sample_size=200,
+    )
+
+    client = TestClient(ctx.app)
+    resp = client.get(
+        '/api/v1/performance/me/tier',
+        headers=ctx.auth_header(employee_user),
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert set(body.keys()) == {'year', 'tier', 'reason', 'data_updated_at'}
+    assert 'other-1' not in resp.text
+    assert 'other-2' not in resp.text
+    assert 'tiers_json' not in resp.text
+    assert 'sample_size' not in resp.text

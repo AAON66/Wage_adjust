@@ -1,0 +1,132 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e9]: 智
+        - generic [ref=e10]:
+          - generic [ref=e11]: 智评调薪
+          - generic [ref=e12]: 主管工作区
+      - navigation [ref=e13]:
+        - link "角色首页" [ref=e14] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e15]
+          - text: 角色首页
+        - generic [ref=e18]:
+          - button "▼ 运营管理" [ref=e19] [cursor=pointer]:
+            - generic [ref=e20]: ▼ 运营管理
+          - link "员工评估" [ref=e21] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e22]
+            - text: 员工评估
+          - link "审批中心" [ref=e25] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e26]
+            - text: 审批中心
+          - link "调薪资格" [ref=e29] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e30]
+            - text: 调薪资格
+          - link "共享申请" [ref=e32] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e33]
+            - text: 共享申请
+        - generic [ref=e38]:
+          - button "▼ 数据分析" [ref=e39] [cursor=pointer]:
+            - generic [ref=e40]: ▼ 数据分析
+          - link "组织看板" [ref=e41] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e42]
+            - text: 组织看板
+        - generic [ref=e43]:
+          - button "▼ 系统管理" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: ▼ 系统管理
+          - link "平台账号" [ref=e46] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e47]
+            - text: 平台账号
+          - link "员工档案" [ref=e52] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e53]
+            - text: 员工档案
+          - link "导入中心" [ref=e55] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e56]
+            - text: 导入中心
+        - link "账号设置" [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e60]
+          - text: 账号设置
+      - generic [ref=e63]:
+        - generic [ref=e64]:
+          - generic [ref=e65]: H
+          - generic [ref=e66]:
+            - generic [ref=e67]: hr@test.com
+            - generic [ref=e68]: 主管
+        - generic [ref=e69]:
+          - link "首页" [ref=e70] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e71] [cursor=pointer]
+    - generic [ref=e72]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - paragraph [ref=e76]: 主管工作区
+          - heading "主管工作台" [level=1] [ref=e77]
+          - paragraph [ref=e78]: 查看当前角色可用模块。
+        - generic [ref=e80]: 当前身份：主管
+      - generic [ref=e81]:
+        - generic [ref=e82]: 您尚未绑定员工信息，部分功能受限。
+        - link "立即绑定" [ref=e83] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - article [ref=e86]:
+            - paragraph [ref=e87]: 当前角色
+            - paragraph [ref=e88]: 主管
+            - paragraph [ref=e89]: 你看到的是对应职责下的专属工作区。
+          - article [ref=e90]:
+            - paragraph [ref=e91]: 可访问模块
+            - paragraph [ref=e92]: "8"
+            - paragraph [ref=e93]: 只展示当前角色可实际使用的页面。
+          - article [ref=e94]:
+            - paragraph [ref=e95]: 工作重点
+            - paragraph [ref=e96]: 团队管理
+            - paragraph [ref=e97]: 重点关注团队成员评估与审批动作。
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - paragraph [ref=e101]: 功能入口
+              - heading "角色可用功能" [level=2] [ref=e102]
+            - paragraph [ref=e103]: 按职责划分，不展示无关模块
+          - generic [ref=e104]:
+            - link "员工评估 查看团队评估与材料。" [ref=e105] [cursor=pointer]:
+              - /url: /employees
+              - heading "员工评估" [level=3] [ref=e106]
+              - paragraph [ref=e107]: 查看团队评估与材料。
+            - link "审批中心 处理分配给你的审批。" [ref=e108] [cursor=pointer]:
+              - /url: /approvals
+              - heading "审批中心" [level=3] [ref=e109]
+              - paragraph [ref=e110]: 处理分配给你的审批。
+            - link "调薪资格 查看资格状态与特殊申请。" [ref=e111] [cursor=pointer]:
+              - /url: /eligibility
+              - heading "调薪资格" [level=3] [ref=e112]
+              - paragraph [ref=e113]: 查看资格状态与特殊申请。
+            - link "共享申请 查看和管理文件共享申请" [ref=e114] [cursor=pointer]:
+              - /url: /sharing-requests
+              - heading "共享申请" [level=3] [ref=e115]
+              - paragraph [ref=e116]: 查看和管理文件共享申请
+            - link "组织看板 查看团队分布与表现。" [ref=e117] [cursor=pointer]:
+              - /url: /dashboard
+              - heading "组织看板" [level=3] [ref=e118]
+              - paragraph [ref=e119]: 查看团队分布与表现。
+            - link "平台账号 管理员工账号。" [ref=e120] [cursor=pointer]:
+              - /url: /user-admin
+              - heading "平台账号" [level=3] [ref=e121]
+              - paragraph [ref=e122]: 管理员工账号。
+            - link "员工档案 处理档案、绑定、导入和手册。" [ref=e123] [cursor=pointer]:
+              - /url: /employee-admin
+              - heading "员工档案" [level=3] [ref=e124]
+              - paragraph [ref=e125]: 处理档案、绑定、导入和手册。
+            - link "导入中心 模板下载、批量导入与结果追踪。" [ref=e126] [cursor=pointer]:
+              - /url: /import-center
+              - heading "导入中心" [level=3] [ref=e127]
+              - paragraph [ref=e128]: 模板下载、批量导入与结果追踪。

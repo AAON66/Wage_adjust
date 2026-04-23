@@ -3,8 +3,9 @@
 from typing import Optional
 
 from datetime import date
+from decimal import Decimal
 
-from sqlalchemy import Date, ForeignKey, String
+from sqlalchemy import Date, ForeignKey, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.app.core.database import Base
@@ -27,6 +28,10 @@ class Employee(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="active", index=True)
     hire_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     last_salary_adjustment_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    base_salary: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    performance_salary: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    project_allowance: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
+    intern_monthly_salary: Mapped[Optional[Decimal]] = mapped_column(Numeric(12, 2), nullable=True)
 
     manager = relationship(
         "Employee",

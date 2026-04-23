@@ -1,0 +1,192 @@
+- main [ref=e43]:
+  - generic [ref=e44]:
+    - complementary [ref=e45]:
+      - generic [ref=e47]:
+        - generic [ref=e49]: 智
+        - generic [ref=e50]:
+          - generic [ref=e51]: 智评调薪
+          - generic [ref=e52]: 管理员工作区
+      - navigation [ref=e53]:
+        - link "角色首页" [ref=e54] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e55]
+          - text: 角色首页
+        - generic [ref=e58]:
+          - button "▼ 运营管理" [ref=e59] [cursor=pointer]:
+            - generic [ref=e60]: ▼ 运营管理
+          - link "员工评估" [ref=e61] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e62]
+            - text: 员工评估
+          - link "创建周期" [ref=e65] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e66]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e70] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e71]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e73] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e74]
+            - text: 审批中心
+          - link "调薪资格" [ref=e77] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e78]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e80] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e81]
+            - text: 考勤管理
+          - link "共享申请" [ref=e84] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e85]
+            - text: 共享申请
+        - generic [ref=e90]:
+          - button "▼ 数据分析" [ref=e91] [cursor=pointer]:
+            - generic [ref=e92]: ▼ 数据分析
+          - link "组织看板" [ref=e93] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e94]
+            - text: 组织看板
+          - link "审计日志" [ref=e95] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e96]
+            - text: 审计日志
+        - generic [ref=e99]:
+          - button "▼ 系统管理" [ref=e100] [cursor=pointer]:
+            - generic [ref=e101]: ▼ 系统管理
+          - link "平台账号" [ref=e102] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e103]
+            - text: 平台账号
+          - link "员工档案" [ref=e108] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e109]
+            - text: 员工档案
+          - link "导入中心" [ref=e111] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e112]
+            - text: 导入中心
+          - link "飞书配置" [ref=e115] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e116]
+            - text: 飞书配置
+          - link "同步日志" [ref=e119] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e120]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e123] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e124]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e126] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e127]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e130] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e131]
+          - text: 账号设置
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]: A
+          - generic [ref=e137]:
+            - generic [ref=e138]: admin@test.com
+            - generic [ref=e139]: 管理员
+        - generic [ref=e140]:
+          - link "首页" [ref=e141] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e142] [cursor=pointer]
+    - generic [ref=e143]:
+      - generic [ref=e145]:
+        - generic [ref=e146]:
+          - paragraph [ref=e147]: 管理员工作区
+          - heading "管理员工作台" [level=1] [ref=e148]
+          - paragraph [ref=e149]: 查看当前角色可用模块。
+        - generic [ref=e151]: 当前身份：管理员
+      - generic [ref=e152]:
+        - generic [ref=e153]:
+          - article [ref=e154]:
+            - paragraph [ref=e155]: 当前角色
+            - paragraph [ref=e156]: 管理员
+            - paragraph [ref=e157]: 你看到的是对应职责下的专属工作区。
+          - article [ref=e158]:
+            - paragraph [ref=e159]: 可访问模块
+            - paragraph [ref=e160]: "16"
+            - paragraph [ref=e161]: 只展示当前角色可实际使用的页面。
+          - article [ref=e162]:
+            - paragraph [ref=e163]: 工作重点
+            - paragraph [ref=e164]: 全局运营
+            - paragraph [ref=e165]: 重点关注周期配置、预算、账号、导入与流程治理。
+        - generic [ref=e166]:
+          - generic [ref=e167]:
+            - generic [ref=e168]:
+              - paragraph [ref=e169]: 功能入口
+              - heading "角色可用功能" [level=2] [ref=e170]
+            - paragraph [ref=e171]: 按职责划分，不展示无关模块
+          - generic [ref=e172]:
+            - link "员工评估 查看员工与评估流转。" [ref=e173] [cursor=pointer]:
+              - /url: /employees
+              - heading "员工评估" [level=3] [ref=e174]
+              - paragraph [ref=e175]: 查看员工与评估流转。
+            - link "创建周期 新建评估周期与预算。" [ref=e176] [cursor=pointer]:
+              - /url: /cycles/create
+              - heading "创建周期" [level=3] [ref=e177]
+              - paragraph [ref=e178]: 新建评估周期与预算。
+            - link "调薪模拟 查看预算占用与建议方案。" [ref=e179] [cursor=pointer]:
+              - /url: /salary-simulator
+              - heading "调薪模拟" [level=3] [ref=e180]
+              - paragraph [ref=e181]: 查看预算占用与建议方案。
+            - link "审批中心 处理待审批与历史记录。" [ref=e182] [cursor=pointer]:
+              - /url: /approvals
+              - heading "审批中心" [level=3] [ref=e183]
+              - paragraph [ref=e184]: 处理待审批与历史记录。
+            - link "调薪资格 查看资格状态、特殊申请与数据导入管理。" [ref=e185] [cursor=pointer]:
+              - /url: /eligibility
+              - heading "调薪资格" [level=3] [ref=e186]
+              - paragraph [ref=e187]: 查看资格状态、特殊申请与数据导入管理。
+            - link "考勤管理 查看考勤数据与飞书同步。" [ref=e188] [cursor=pointer]:
+              - /url: /attendance
+              - heading "考勤管理" [level=3] [ref=e189]
+              - paragraph [ref=e190]: 查看考勤数据与飞书同步。
+            - link "共享申请 查看和管理文件共享申请" [ref=e191] [cursor=pointer]:
+              - /url: /sharing-requests
+              - heading "共享申请" [level=3] [ref=e192]
+              - paragraph [ref=e193]: 查看和管理文件共享申请
+            - link "组织看板 查看分布、热力和 ROI。" [ref=e194] [cursor=pointer]:
+              - /url: /dashboard
+              - heading "组织看板" [level=3] [ref=e195]
+              - paragraph [ref=e196]: 查看分布、热力和 ROI。
+            - link "审计日志 查看所有操作与变更记录。" [ref=e197] [cursor=pointer]:
+              - /url: /audit-log
+              - heading "审计日志" [level=3] [ref=e198]
+              - paragraph [ref=e199]: 查看所有操作与变更记录。
+            - link "平台账号 管理账号与权限范围。" [ref=e200] [cursor=pointer]:
+              - /url: /user-admin
+              - heading "平台账号" [level=3] [ref=e201]
+              - paragraph [ref=e202]: 管理账号与权限范围。
+            - link "员工档案 处理档案、绑定、导入和手册。" [ref=e203] [cursor=pointer]:
+              - /url: /employee-admin
+              - heading "员工档案" [level=3] [ref=e204]
+              - paragraph [ref=e205]: 处理档案、绑定、导入和手册。
+            - link "导入中心 模板下载、批量导入与结果追踪。" [ref=e206] [cursor=pointer]:
+              - /url: /import-center
+              - heading "导入中心" [level=3] [ref=e207]
+              - paragraph [ref=e208]: 模板下载、批量导入与结果追踪。
+            - link "飞书配置 配置飞书应用凭证与同步。" [ref=e209] [cursor=pointer]:
+              - /url: /feishu-config
+              - heading "飞书配置" [level=3] [ref=e210]
+              - paragraph [ref=e211]: 配置飞书应用凭证与同步。
+            - link "同步日志 查看飞书同步结果与明细。" [ref=e212] [cursor=pointer]:
+              - /url: /feishu/sync-logs
+              - heading "同步日志" [level=3] [ref=e213]
+              - paragraph [ref=e214]: 查看飞书同步结果与明细。
+            - link "API Key 管理 创建、轮换和撤销外部 API 访问密钥。" [ref=e215] [cursor=pointer]:
+              - /url: /api-key-management
+              - heading "API Key 管理" [level=3] [ref=e216]
+              - paragraph [ref=e217]: 创建、轮换和撤销外部 API 访问密钥。
+            - link "Webhook 管理 注册回调 URL，查看通知投递日志。" [ref=e218] [cursor=pointer]:
+              - /url: /webhook-management
+              - heading "Webhook 管理" [level=3] [ref=e219]
+              - paragraph [ref=e220]: 注册回调 URL，查看通知投递日志。

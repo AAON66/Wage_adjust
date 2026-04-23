@@ -1,0 +1,242 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - paragraph [ref=e109]: 管理员工作区
+          - heading "批量导入中心" [level=1] [ref=e110]
+          - paragraph [ref=e111]: 下载模板、导入文件、查看结果。
+        - generic [ref=e112]:
+          - link "返回工作台" [ref=e113] [cursor=pointer]:
+            - /url: /workspace
+          - link "打开组织看板" [ref=e114] [cursor=pointer]:
+            - /url: /dashboard
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - article [ref=e117]:
+            - paragraph [ref=e118]: 员工模板
+            - paragraph [ref=e119]: Excel / CSV
+            - paragraph [ref=e120]: 下载员工导入模板并按列填充数据。
+            - generic [ref=e121]:
+              - button "下载 Excel" [ref=e122] [cursor=pointer]
+              - button "下载 CSV" [ref=e123] [cursor=pointer]
+          - article [ref=e124]:
+            - paragraph [ref=e125]: 认证模板
+            - paragraph [ref=e126]: Excel / CSV
+            - paragraph [ref=e127]: 下载认证导入模板并导入历史认证记录。
+            - generic [ref=e128]:
+              - button "下载 Excel" [ref=e129] [cursor=pointer]
+              - button "下载 CSV" [ref=e130] [cursor=pointer]
+          - article [ref=e131]:
+            - paragraph [ref=e132]: 处理中任务
+            - paragraph [ref=e133]: "0"
+            - paragraph [ref=e134]: 正在排队或处理中，需等待结果回写。
+          - article [ref=e135]:
+            - paragraph [ref=e136]: 任务总数
+            - paragraph [ref=e137]: "5"
+            - paragraph [ref=e138]: 已完成 0，失败 1。
+        - generic [ref=e139]:
+          - generic [ref=e141]:
+            - paragraph [ref=e142]: 上传任务
+            - heading "创建导入任务" [level=2] [ref=e143]
+            - paragraph [ref=e144]: 在这里选择类型、文件和模板。
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - text: 导入类型
+              - combobox "导入类型" [ref=e147]:
+                - option "员工" [selected]
+                - option "认证"
+            - generic [ref=e148]:
+              - text: 上传文件
+              - button "上传文件 请根据模板要求准备文件后再导入，系统会按任务结果返回成功与失败明细。" [ref=e149]
+              - paragraph [ref=e150]: 请根据模板要求准备文件后再导入，系统会按任务结果返回成功与失败明细。
+            - button "开始导入" [ref=e152] [cursor=pointer]
+        - generic [ref=e153]:
+          - generic [ref=e154]:
+            - generic [ref=e155]:
+              - paragraph [ref=e156]: 导入任务
+              - heading "批量导入记录" [level=3] [ref=e157]
+            - generic [ref=e159]: 5 个任务
+          - table [ref=e161]:
+            - rowgroup [ref=e162]:
+              - row "全选 文件 类型 状态 总行数 成功 失败 操作" [ref=e163]:
+                - columnheader "全选" [ref=e164]:
+                  - generic [ref=e165]:
+                    - checkbox "全选" [ref=e166]
+                    - generic [ref=e167]: 全选
+                - columnheader "文件" [ref=e168]
+                - columnheader "类型" [ref=e169]
+                - columnheader "状态" [ref=e170]
+                - columnheader "总行数" [ref=e171]
+                - columnheader "成功" [ref=e172]
+                - columnheader "失败" [ref=e173]
+                - columnheader "操作" [ref=e174]
+            - rowgroup [ref=e175]:
+              - row "employees_template.xlsx 任务编号 14538827 员工 部分成功 421 416 5 下载错误报告" [ref=e176]:
+                - cell [ref=e177]:
+                  - checkbox [ref=e178]
+                - cell "employees_template.xlsx 任务编号 14538827" [ref=e179]:
+                  - generic [ref=e180]: employees_template.xlsx
+                  - generic [ref=e181]: 任务编号 14538827
+                - cell "员工" [ref=e182]
+                - cell "部分成功" [ref=e183]:
+                  - generic [ref=e184]: 部分成功
+                - cell "421" [ref=e185]
+                - cell "416" [ref=e186]
+                - cell "5" [ref=e187]
+                - cell "下载错误报告" [ref=e188]:
+                  - button "下载错误报告" [ref=e189] [cursor=pointer]
+              - row "employees_template.xlsx 任务编号 28adc3c4 员工 部分成功 421 413 8 下载错误报告" [ref=e190]:
+                - cell [ref=e191]:
+                  - checkbox [ref=e192]
+                - cell "employees_template.xlsx 任务编号 28adc3c4" [ref=e193]:
+                  - generic [ref=e194]: employees_template.xlsx
+                  - generic [ref=e195]: 任务编号 28adc3c4
+                - cell "员工" [ref=e196]
+                - cell "部分成功" [ref=e197]:
+                  - generic [ref=e198]: 部分成功
+                - cell "421" [ref=e199]
+                - cell "413" [ref=e200]
+                - cell "8" [ref=e201]
+                - cell "下载错误报告" [ref=e202]:
+                  - button "下载错误报告" [ref=e203] [cursor=pointer]
+              - row "employees_template.xlsx 任务编号 afb3353f 员工 部分成功 421 407 14 下载错误报告" [ref=e204]:
+                - cell [ref=e205]:
+                  - checkbox [ref=e206]
+                - cell "employees_template.xlsx 任务编号 afb3353f" [ref=e207]:
+                  - generic [ref=e208]: employees_template.xlsx
+                  - generic [ref=e209]: 任务编号 afb3353f
+                - cell "员工" [ref=e210]
+                - cell "部分成功" [ref=e211]:
+                  - generic [ref=e212]: 部分成功
+                - cell "421" [ref=e213]
+                - cell "407" [ref=e214]
+                - cell "14" [ref=e215]
+                - cell "下载错误报告" [ref=e216]:
+                  - button "下载错误报告" [ref=e217] [cursor=pointer]
+              - row "employees_template.xlsx 任务编号 659911fa 员工 部分成功 421 355 66 下载错误报告" [ref=e218]:
+                - cell [ref=e219]:
+                  - checkbox [ref=e220]
+                - cell "employees_template.xlsx 任务编号 659911fa" [ref=e221]:
+                  - generic [ref=e222]: employees_template.xlsx
+                  - generic [ref=e223]: 任务编号 659911fa
+                - cell "员工" [ref=e224]
+                - cell "部分成功" [ref=e225]:
+                  - generic [ref=e226]: 部分成功
+                - cell "421" [ref=e227]
+                - cell "355" [ref=e228]
+                - cell "66" [ref=e229]
+                - cell "下载错误报告" [ref=e230]:
+                  - button "下载错误报告" [ref=e231] [cursor=pointer]
+              - row "employees_template.xlsx 任务编号 40566dab 员工 失败 421 0 421 下载错误报告" [ref=e232]:
+                - cell [ref=e233]:
+                  - checkbox [ref=e234]
+                - cell "employees_template.xlsx 任务编号 40566dab" [ref=e235]:
+                  - generic [ref=e236]: employees_template.xlsx
+                  - generic [ref=e237]: 任务编号 40566dab
+                - cell "员工" [ref=e238]
+                - cell "失败" [ref=e239]:
+                  - generic [ref=e240]: 失败
+                - cell "421" [ref=e241]
+                - cell "0" [ref=e242]
+                - cell "421" [ref=e243]
+                - cell "下载错误报告" [ref=e244]:
+                  - button "下载错误报告" [ref=e245] [cursor=pointer]

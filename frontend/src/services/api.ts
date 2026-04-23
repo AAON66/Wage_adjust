@@ -13,7 +13,9 @@ let refreshInFlight: Promise<string | null> | null = null;
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8011/api/v1',
-  timeout: 10000,
+  // 默认 30s：HTTP 明文公网下偶发链路抖动会让常规 GET 超过 10s，
+  // 旧的 10s 会让很多页面（考勤、员工、周期）偶尔弹"加载失败"。
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },

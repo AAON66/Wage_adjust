@@ -141,8 +141,9 @@ def get_salary_history_by_employee(
     employee_id: str,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_app_settings),
-    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
+    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager', 'employee')),
 ) -> SalaryHistoryResponse:
+    # ensure_employee_access 会把员工锁在"只能查自己"的范围内，这里放行 role 即可
     ensure_employee_access(db, current_user, employee_id)
     service = SalaryService(db, settings)
     items = service.get_salary_history_by_employee(employee_id)

@@ -1,0 +1,661 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e108]:
+        - paragraph [ref=e109]: 管理员工作区
+        - heading "调薪资格管理" [level=1] [ref=e110]
+        - paragraph [ref=e111]: 查看员工调薪资格状态、筛选导出，以及处理特殊审批申请。
+      - generic [ref=e113]:
+        - navigation [ref=e114]:
+          - button "调薪资格" [ref=e115] [cursor=pointer]
+          - button "特殊申请" [ref=e116] [cursor=pointer]
+          - button "绩效等级" [ref=e117] [cursor=pointer]
+          - button "调薪历史" [ref=e118] [cursor=pointer]
+          - button "入职信息" [ref=e119] [cursor=pointer]
+          - button "非法定假期" [ref=e120] [cursor=pointer]
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - generic [ref=e125]: 部门
+                - combobox "部门" [ref=e126]:
+                  - option "全部" [selected]
+              - generic [ref=e127]:
+                - generic [ref=e128]: 资格状态
+                - combobox "资格状态" [ref=e129]:
+                  - option "全部" [selected]
+                  - option "合格"
+                  - option "不合格"
+                  - option "待定"
+              - generic [ref=e130]:
+                - generic [ref=e131]: 规则
+                - combobox "规则" [ref=e132]:
+                  - option "全部" [selected]
+                  - option "入职时长"
+                  - option "调薪间隔"
+                  - option "绩效等级"
+                  - option "假期天数"
+              - generic [ref=e133]:
+                - generic [ref=e134]: 岗位族
+                - textbox "岗位族" [ref=e135]:
+                  - /placeholder: 输入岗位族
+              - generic [ref=e136]:
+                - generic [ref=e137]: 职级
+                - textbox "职级" [ref=e138]:
+                  - /placeholder: 输入职级
+            - button "导出 Excel" [ref=e139] [cursor=pointer]
+          - table [ref=e141]:
+            - rowgroup [ref=e142]:
+              - row "工号 姓名 部门 岗位族 职级 资格状态 操作" [ref=e143]:
+                - columnheader "工号" [ref=e144]
+                - columnheader "姓名" [ref=e145]
+                - columnheader "部门" [ref=e146]
+                - columnheader "岗位族" [ref=e147]
+                - columnheader "职级" [ref=e148]
+                - columnheader "资格状态" [ref=e149]
+                - columnheader "操作" [ref=e150]
+            - rowgroup [ref=e151]:
+              - row "02597 曾颖 屈臣氏业务群 实习生 P1 合格 详情" [ref=e152]:
+                - cell "02597 曾颖 屈臣氏业务群 实习生 P1 合格 详情" [ref=e153]:
+                  - generic [ref=e155] [cursor=pointer]:
+                    - generic [ref=e156]: "02597"
+                    - generic [ref=e157]: 曾颖
+                    - generic [ref=e158]: 屈臣氏业务群
+                    - generic [ref=e159]: 实习生
+                    - generic [ref=e160]: P1
+                    - generic [ref=e162]: 合格
+                    - button "详情" [ref=e164]
+              - row "02590 曹晴情 屈臣氏业务群 实习生 P1 合格 详情" [ref=e165]:
+                - cell "02590 曹晴情 屈臣氏业务群 实习生 P1 合格 详情" [ref=e166]:
+                  - generic [ref=e168] [cursor=pointer]:
+                    - generic [ref=e169]: "02590"
+                    - generic [ref=e170]: 曹晴情
+                    - generic [ref=e171]: 屈臣氏业务群
+                    - generic [ref=e172]: 实习生
+                    - generic [ref=e173]: P1
+                    - generic [ref=e175]: 合格
+                    - button "详情" [ref=e177]
+              - row "02591 叶渝 屈臣氏业务群 媒介运营 P3 合格 详情" [ref=e178]:
+                - cell "02591 叶渝 屈臣氏业务群 媒介运营 P3 合格 详情" [ref=e179]:
+                  - generic [ref=e181] [cursor=pointer]:
+                    - generic [ref=e182]: "02591"
+                    - generic [ref=e183]: 叶渝
+                    - generic [ref=e184]: 屈臣氏业务群
+                    - generic [ref=e185]: 媒介运营
+                    - generic [ref=e186]: P3
+                    - generic [ref=e188]: 合格
+                    - button "详情" [ref=e190]
+              - row "02592 陈鸿裕 屈臣氏业务群 品类运营经理 P5 合格 详情" [ref=e191]:
+                - cell "02592 陈鸿裕 屈臣氏业务群 品类运营经理 P5 合格 详情" [ref=e192]:
+                  - generic [ref=e194] [cursor=pointer]:
+                    - generic [ref=e195]: "02592"
+                    - generic [ref=e196]: 陈鸿裕
+                    - generic [ref=e197]: 屈臣氏业务群
+                    - generic [ref=e198]: 品类运营经理
+                    - generic [ref=e199]: P5
+                    - generic [ref=e201]: 合格
+                    - button "详情" [ref=e203]
+              - row "02593 蒙慧 屈臣氏业务群 内容运营 P1 合格 详情" [ref=e204]:
+                - cell "02593 蒙慧 屈臣氏业务群 内容运营 P1 合格 详情" [ref=e205]:
+                  - generic [ref=e207] [cursor=pointer]:
+                    - generic [ref=e208]: "02593"
+                    - generic [ref=e209]: 蒙慧
+                    - generic [ref=e210]: 屈臣氏业务群
+                    - generic [ref=e211]: 内容运营
+                    - generic [ref=e212]: P1
+                    - generic [ref=e214]: 合格
+                    - button "详情" [ref=e216]
+              - row "02594 林冰仪 X行业群 实习生 P1 合格 详情" [ref=e217]:
+                - cell "02594 林冰仪 X行业群 实习生 P1 合格 详情" [ref=e218]:
+                  - generic [ref=e220] [cursor=pointer]:
+                    - generic [ref=e221]: "02594"
+                    - generic [ref=e222]: 林冰仪
+                    - generic [ref=e223]: X行业群
+                    - generic [ref=e224]: 实习生
+                    - generic [ref=e225]: P1
+                    - generic [ref=e227]: 合格
+                    - button "详情" [ref=e229]
+              - row "02616 邱雨 快消零售行业群 营销助理 P2 不合格 详情" [ref=e230]:
+                - cell "02616 邱雨 快消零售行业群 营销助理 P2 不合格 详情" [ref=e231]:
+                  - generic [ref=e233] [cursor=pointer]:
+                    - generic [ref=e234]: "02616"
+                    - generic [ref=e235]: 邱雨
+                    - generic [ref=e236]: 快消零售行业群
+                    - generic [ref=e237]: 营销助理
+                    - generic [ref=e238]: P2
+                    - generic [ref=e240]: 不合格
+                    - button "详情" [ref=e242]
+              - row "02610 薛杨菁 快消零售行业群 内容运营 P1 合格 详情" [ref=e243]:
+                - cell "02610 薛杨菁 快消零售行业群 内容运营 P1 合格 详情" [ref=e244]:
+                  - generic [ref=e246] [cursor=pointer]:
+                    - generic [ref=e247]: "02610"
+                    - generic [ref=e248]: 薛杨菁
+                    - generic [ref=e249]: 快消零售行业群
+                    - generic [ref=e250]: 内容运营
+                    - generic [ref=e251]: P1
+                    - generic [ref=e253]: 合格
+                    - button "详情" [ref=e255]
+              - row "02613 郭紫颜 快消零售行业群 内容运营 P1 合格 详情" [ref=e256]:
+                - cell "02613 郭紫颜 快消零售行业群 内容运营 P1 合格 详情" [ref=e257]:
+                  - generic [ref=e259] [cursor=pointer]:
+                    - generic [ref=e260]: "02613"
+                    - generic [ref=e261]: 郭紫颜
+                    - generic [ref=e262]: 快消零售行业群
+                    - generic [ref=e263]: 内容运营
+                    - generic [ref=e264]: P1
+                    - generic [ref=e266]: 合格
+                    - button "详情" [ref=e268]
+              - row "02600 林友纯 快消零售行业群 营销助理 P2 合格 详情" [ref=e269]:
+                - cell "02600 林友纯 快消零售行业群 营销助理 P2 合格 详情" [ref=e270]:
+                  - generic [ref=e272] [cursor=pointer]:
+                    - generic [ref=e273]: "02600"
+                    - generic [ref=e274]: 林友纯
+                    - generic [ref=e275]: 快消零售行业群
+                    - generic [ref=e276]: 营销助理
+                    - generic [ref=e277]: P2
+                    - generic [ref=e279]: 合格
+                    - button "详情" [ref=e281]
+              - row "02467 谌祯 时尚行业群 项目运营助理 P3 合格 详情" [ref=e282]:
+                - cell "02467 谌祯 时尚行业群 项目运营助理 P3 合格 详情" [ref=e283]:
+                  - generic [ref=e285] [cursor=pointer]:
+                    - generic [ref=e286]: "02467"
+                    - generic [ref=e287]: 谌祯
+                    - generic [ref=e288]: 时尚行业群
+                    - generic [ref=e289]: 项目运营助理
+                    - generic [ref=e290]: P3
+                    - generic [ref=e292]: 合格
+                    - button "详情" [ref=e294]
+              - row "02587 傅晓敏 时尚行业群 商城运营 P1 合格 详情" [ref=e295]:
+                - cell "02587 傅晓敏 时尚行业群 商城运营 P1 合格 详情" [ref=e296]:
+                  - generic [ref=e298] [cursor=pointer]:
+                    - generic [ref=e299]: "02587"
+                    - generic [ref=e300]: 傅晓敏
+                    - generic [ref=e301]: 时尚行业群
+                    - generic [ref=e302]: 商城运营
+                    - generic [ref=e303]: P1
+                    - generic [ref=e305]: 合格
+                    - button "详情" [ref=e307]
+              - row "02586 谭聪 社区运营中心 实习生 P1 合格 详情" [ref=e308]:
+                - cell "02586 谭聪 社区运营中心 实习生 P1 合格 详情" [ref=e309]:
+                  - generic [ref=e311] [cursor=pointer]:
+                    - generic [ref=e312]: "02586"
+                    - generic [ref=e313]: 谭聪
+                    - generic [ref=e314]: 社区运营中心
+                    - generic [ref=e315]: 实习生
+                    - generic [ref=e316]: P1
+                    - generic [ref=e318]: 合格
+                    - button "详情" [ref=e320]
+              - row "02584 彭英 时尚行业群 商城运营 P1 合格 详情" [ref=e321]:
+                - cell "02584 彭英 时尚行业群 商城运营 P1 合格 详情" [ref=e322]:
+                  - generic [ref=e324] [cursor=pointer]:
+                    - generic [ref=e325]: "02584"
+                    - generic [ref=e326]: 彭英
+                    - generic [ref=e327]: 时尚行业群
+                    - generic [ref=e328]: 商城运营
+                    - generic [ref=e329]: P1
+                    - generic [ref=e331]: 合格
+                    - button "详情" [ref=e333]
+              - row "02585 罗义璇 健康美学行业群 项目运营经理 P5 合格 详情" [ref=e334]:
+                - cell "02585 罗义璇 健康美学行业群 项目运营经理 P5 合格 详情" [ref=e335]:
+                  - generic [ref=e337] [cursor=pointer]:
+                    - generic [ref=e338]: "02585"
+                    - generic [ref=e339]: 罗义璇
+                    - generic [ref=e340]: 健康美学行业群
+                    - generic [ref=e341]: 项目运营经理
+                    - generic [ref=e342]: P5
+                    - generic [ref=e344]: 合格
+                    - button "详情" [ref=e346]
+              - row "02579 郭帆 屈臣氏业务群 项目运营总监 P6 合格 详情" [ref=e347]:
+                - cell "02579 郭帆 屈臣氏业务群 项目运营总监 P6 合格 详情" [ref=e348]:
+                  - generic [ref=e350] [cursor=pointer]:
+                    - generic [ref=e351]: "02579"
+                    - generic [ref=e352]: 郭帆
+                    - generic [ref=e353]: 屈臣氏业务群
+                    - generic [ref=e354]: 项目运营总监
+                    - generic [ref=e355]: P6
+                    - generic [ref=e357]: 合格
+                    - button "详情" [ref=e359]
+              - row "02580 刘琪 屈臣氏业务群 实习生 P1 合格 详情" [ref=e360]:
+                - cell "02580 刘琪 屈臣氏业务群 实习生 P1 合格 详情" [ref=e361]:
+                  - generic [ref=e363] [cursor=pointer]:
+                    - generic [ref=e364]: "02580"
+                    - generic [ref=e365]: 刘琪
+                    - generic [ref=e366]: 屈臣氏业务群
+                    - generic [ref=e367]: 实习生
+                    - generic [ref=e368]: P1
+                    - generic [ref=e370]: 合格
+                    - button "详情" [ref=e372]
+              - row "02581 雷玲怡 耐消行业群 社群运营 P1 合格 详情" [ref=e373]:
+                - cell "02581 雷玲怡 耐消行业群 社群运营 P1 合格 详情" [ref=e374]:
+                  - generic [ref=e376] [cursor=pointer]:
+                    - generic [ref=e377]: "02581"
+                    - generic [ref=e378]: 雷玲怡
+                    - generic [ref=e379]: 耐消行业群
+                    - generic [ref=e380]: 社群运营
+                    - generic [ref=e381]: P1
+                    - generic [ref=e383]: 合格
+                    - button "详情" [ref=e385]
+              - row "02582 吴俊菁 公域生态行业群 实习生 P1 合格 详情" [ref=e386]:
+                - cell "02582 吴俊菁 公域生态行业群 实习生 P1 合格 详情" [ref=e387]:
+                  - generic [ref=e389] [cursor=pointer]:
+                    - generic [ref=e390]: "02582"
+                    - generic [ref=e391]: 吴俊菁
+                    - generic [ref=e392]: 公域生态行业群
+                    - generic [ref=e393]: 实习生
+                    - generic [ref=e394]: P1
+                    - generic [ref=e396]: 合格
+                    - button "详情" [ref=e398]
+              - row "02583 陈骏威 视频号业务线 短视频运营 P4 合格 详情" [ref=e399]:
+                - cell "02583 陈骏威 视频号业务线 短视频运营 P4 合格 详情" [ref=e400]:
+                  - generic [ref=e402] [cursor=pointer]:
+                    - generic [ref=e403]: "02583"
+                    - generic [ref=e404]: 陈骏威
+                    - generic [ref=e405]: 视频号业务线
+                    - generic [ref=e406]: 短视频运营
+                    - generic [ref=e407]: P4
+                    - generic [ref=e409]: 合格
+                    - button "详情" [ref=e411]
+              - row "02577 赵雨萱 屈臣氏业务群 产品经理 P3 合格 详情" [ref=e412]:
+                - cell "02577 赵雨萱 屈臣氏业务群 产品经理 P3 合格 详情" [ref=e413]:
+                  - generic [ref=e415] [cursor=pointer]:
+                    - generic [ref=e416]: "02577"
+                    - generic [ref=e417]: 赵雨萱
+                    - generic [ref=e418]: 屈臣氏业务群
+                    - generic [ref=e419]: 产品经理
+                    - generic [ref=e420]: P3
+                    - generic [ref=e422]: 合格
+                    - button "详情" [ref=e424]
+              - row "02578 方小冰 屈臣氏业务群 用户运营 P2 合格 详情" [ref=e425]:
+                - cell "02578 方小冰 屈臣氏业务群 用户运营 P2 合格 详情" [ref=e426]:
+                  - generic [ref=e428] [cursor=pointer]:
+                    - generic [ref=e429]: "02578"
+                    - generic [ref=e430]: 方小冰
+                    - generic [ref=e431]: 屈臣氏业务群
+                    - generic [ref=e432]: 用户运营
+                    - generic [ref=e433]: P2
+                    - generic [ref=e435]: 合格
+                    - button "详情" [ref=e437]
+              - row "02598 王中昆 健康美学行业群 项目运营经理 P5 合格 详情" [ref=e438]:
+                - cell "02598 王中昆 健康美学行业群 项目运营经理 P5 合格 详情" [ref=e439]:
+                  - generic [ref=e441] [cursor=pointer]:
+                    - generic [ref=e442]: "02598"
+                    - generic [ref=e443]: 王中昆
+                    - generic [ref=e444]: 健康美学行业群
+                    - generic [ref=e445]: 项目运营经理
+                    - generic [ref=e446]: P5
+                    - generic [ref=e448]: 合格
+                    - button "详情" [ref=e450]
+              - row "02572 叶佳澔 耐消行业群 社群运营 P1 合格 详情" [ref=e451]:
+                - cell "02572 叶佳澔 耐消行业群 社群运营 P1 合格 详情" [ref=e452]:
+                  - generic [ref=e454] [cursor=pointer]:
+                    - generic [ref=e455]: "02572"
+                    - generic [ref=e456]: 叶佳澔
+                    - generic [ref=e457]: 耐消行业群
+                    - generic [ref=e458]: 社群运营
+                    - generic [ref=e459]: P1
+                    - generic [ref=e461]: 合格
+                    - button "详情" [ref=e463]
+              - row "02573 李艳 耐消行业群 社群运营 P1 合格 详情" [ref=e464]:
+                - cell "02573 李艳 耐消行业群 社群运营 P1 合格 详情" [ref=e465]:
+                  - generic [ref=e467] [cursor=pointer]:
+                    - generic [ref=e468]: "02573"
+                    - generic [ref=e469]: 李艳
+                    - generic [ref=e470]: 耐消行业群
+                    - generic [ref=e471]: 社群运营
+                    - generic [ref=e472]: P1
+                    - generic [ref=e474]: 合格
+                    - button "详情" [ref=e476]
+              - row "02574 范学慧 耐消行业群 社群运营 P2 合格 详情" [ref=e477]:
+                - cell "02574 范学慧 耐消行业群 社群运营 P2 合格 详情" [ref=e478]:
+                  - generic [ref=e480] [cursor=pointer]:
+                    - generic [ref=e481]: "02574"
+                    - generic [ref=e482]: 范学慧
+                    - generic [ref=e483]: 耐消行业群
+                    - generic [ref=e484]: 社群运营
+                    - generic [ref=e485]: P2
+                    - generic [ref=e487]: 合格
+                    - button "详情" [ref=e489]
+              - row "02575 王慧 耐消行业群 社群运营 P3 合格 详情" [ref=e490]:
+                - cell "02575 王慧 耐消行业群 社群运营 P3 合格 详情" [ref=e491]:
+                  - generic [ref=e493] [cursor=pointer]:
+                    - generic [ref=e494]: "02575"
+                    - generic [ref=e495]: 王慧
+                    - generic [ref=e496]: 耐消行业群
+                    - generic [ref=e497]: 社群运营
+                    - generic [ref=e498]: P3
+                    - generic [ref=e500]: 合格
+                    - button "详情" [ref=e502]
+              - row "02576 袁文龙 耐消行业群 社群运营 P2 合格 详情" [ref=e503]:
+                - cell "02576 袁文龙 耐消行业群 社群运营 P2 合格 详情" [ref=e504]:
+                  - generic [ref=e506] [cursor=pointer]:
+                    - generic [ref=e507]: "02576"
+                    - generic [ref=e508]: 袁文龙
+                    - generic [ref=e509]: 耐消行业群
+                    - generic [ref=e510]: 社群运营
+                    - generic [ref=e511]: P2
+                    - generic [ref=e513]: 合格
+                    - button "详情" [ref=e515]
+              - row "02570 杜冰冰 屈臣氏业务群 电商配置 P1 合格 详情" [ref=e516]:
+                - cell "02570 杜冰冰 屈臣氏业务群 电商配置 P1 合格 详情" [ref=e517]:
+                  - generic [ref=e519] [cursor=pointer]:
+                    - generic [ref=e520]: "02570"
+                    - generic [ref=e521]: 杜冰冰
+                    - generic [ref=e522]: 屈臣氏业务群
+                    - generic [ref=e523]: 电商配置
+                    - generic [ref=e524]: P1
+                    - generic [ref=e526]: 合格
+                    - button "详情" [ref=e528]
+              - row "02563 朱萍萍 屈臣氏业务群 UI设计师 P4 合格 详情" [ref=e529]:
+                - cell "02563 朱萍萍 屈臣氏业务群 UI设计师 P4 合格 详情" [ref=e530]:
+                  - generic [ref=e532] [cursor=pointer]:
+                    - generic [ref=e533]: "02563"
+                    - generic [ref=e534]: 朱萍萍
+                    - generic [ref=e535]: 屈臣氏业务群
+                    - generic [ref=e536]: UI设计师
+                    - generic [ref=e537]: P4
+                    - generic [ref=e539]: 合格
+                    - button "详情" [ref=e541]
+              - row "02566 梁文高 TOC创新业务 AI应用工程师 P4 合格 详情" [ref=e542]:
+                - cell "02566 梁文高 TOC创新业务 AI应用工程师 P4 合格 详情" [ref=e543]:
+                  - generic [ref=e545] [cursor=pointer]:
+                    - generic [ref=e546]: "02566"
+                    - generic [ref=e547]: 梁文高
+                    - generic [ref=e548]: TOC创新业务
+                    - generic [ref=e549]: AI应用工程师
+                    - generic [ref=e550]: P4
+                    - generic [ref=e552]: 合格
+                    - button "详情" [ref=e554]
+              - row "02565 刘婷婷 时尚行业群 商城运营 P1 合格 详情" [ref=e555]:
+                - cell "02565 刘婷婷 时尚行业群 商城运营 P1 合格 详情" [ref=e556]:
+                  - generic [ref=e558] [cursor=pointer]:
+                    - generic [ref=e559]: "02565"
+                    - generic [ref=e560]: 刘婷婷
+                    - generic [ref=e561]: 时尚行业群
+                    - generic [ref=e562]: 商城运营
+                    - generic [ref=e563]: P1
+                    - generic [ref=e565]: 合格
+                    - button "详情" [ref=e567]
+              - row "02564 余阳 屈臣氏业务群 AI产品助理 P1 合格 详情" [ref=e568]:
+                - cell "02564 余阳 屈臣氏业务群 AI产品助理 P1 合格 详情" [ref=e569]:
+                  - generic [ref=e571] [cursor=pointer]:
+                    - generic [ref=e572]: "02564"
+                    - generic [ref=e573]: 余阳
+                    - generic [ref=e574]: 屈臣氏业务群
+                    - generic [ref=e575]: AI产品助理
+                    - generic [ref=e576]: P1
+                    - generic [ref=e578]: 合格
+                    - button "详情" [ref=e580]
+              - row "02569 卓越强 社区运营中心 商务助理 P1 合格 详情" [ref=e581]:
+                - cell "02569 卓越强 社区运营中心 商务助理 P1 合格 详情" [ref=e582]:
+                  - generic [ref=e584] [cursor=pointer]:
+                    - generic [ref=e585]: "02569"
+                    - generic [ref=e586]: 卓越强
+                    - generic [ref=e587]: 社区运营中心
+                    - generic [ref=e588]: 商务助理
+                    - generic [ref=e589]: P1
+                    - generic [ref=e591]: 合格
+                    - button "详情" [ref=e593]
+              - row "02559 曾志 社区运营中心 实习生 P1 合格 详情" [ref=e594]:
+                - cell "02559 曾志 社区运营中心 实习生 P1 合格 详情" [ref=e595]:
+                  - generic [ref=e597] [cursor=pointer]:
+                    - generic [ref=e598]: "02559"
+                    - generic [ref=e599]: 曾志
+                    - generic [ref=e600]: 社区运营中心
+                    - generic [ref=e601]: 实习生
+                    - generic [ref=e602]: P1
+                    - generic [ref=e604]: 合格
+                    - button "详情" [ref=e606]
+              - row "02560 郑晓仪 屈臣氏业务群 活动运营 P3 合格 详情" [ref=e607]:
+                - cell "02560 郑晓仪 屈臣氏业务群 活动运营 P3 合格 详情" [ref=e608]:
+                  - generic [ref=e610] [cursor=pointer]:
+                    - generic [ref=e611]: "02560"
+                    - generic [ref=e612]: 郑晓仪
+                    - generic [ref=e613]: 屈臣氏业务群
+                    - generic [ref=e614]: 活动运营
+                    - generic [ref=e615]: P3
+                    - generic [ref=e617]: 合格
+                    - button "详情" [ref=e619]
+              - row "02557 郭一凡 内容业务群 市场运营 P4 合格 详情" [ref=e620]:
+                - cell "02557 郭一凡 内容业务群 市场运营 P4 合格 详情" [ref=e621]:
+                  - generic [ref=e623] [cursor=pointer]:
+                    - generic [ref=e624]: "02557"
+                    - generic [ref=e625]: 郭一凡
+                    - generic [ref=e626]: 内容业务群
+                    - generic [ref=e627]: 市场运营
+                    - generic [ref=e628]: P4
+                    - generic [ref=e630]: 合格
+                    - button "详情" [ref=e632]
+              - row "02553 何玥瑶 屈臣氏业务群 品类运营 P3 合格 详情" [ref=e633]:
+                - cell "02553 何玥瑶 屈臣氏业务群 品类运营 P3 合格 详情" [ref=e634]:
+                  - generic [ref=e636] [cursor=pointer]:
+                    - generic [ref=e637]: "02553"
+                    - generic [ref=e638]: 何玥瑶
+                    - generic [ref=e639]: 屈臣氏业务群
+                    - generic [ref=e640]: 品类运营
+                    - generic [ref=e641]: P3
+                    - generic [ref=e643]: 合格
+                    - button "详情" [ref=e645]
+              - row "02552 林静雯 时尚行业群 内容运营 P2 合格 详情" [ref=e646]:
+                - cell "02552 林静雯 时尚行业群 内容运营 P2 合格 详情" [ref=e647]:
+                  - generic [ref=e649] [cursor=pointer]:
+                    - generic [ref=e650]: "02552"
+                    - generic [ref=e651]: 林静雯
+                    - generic [ref=e652]: 时尚行业群
+                    - generic [ref=e653]: 内容运营
+                    - generic [ref=e654]: P2
+                    - generic [ref=e656]: 合格
+                    - button "详情" [ref=e658]
+              - row "02554 黄燕萍 时尚行业群 商城运营 P1 合格 详情" [ref=e659]:
+                - cell "02554 黄燕萍 时尚行业群 商城运营 P1 合格 详情" [ref=e660]:
+                  - generic [ref=e662] [cursor=pointer]:
+                    - generic [ref=e663]: "02554"
+                    - generic [ref=e664]: 黄燕萍
+                    - generic [ref=e665]: 时尚行业群
+                    - generic [ref=e666]: 商城运营
+                    - generic [ref=e667]: P1
+                    - generic [ref=e669]: 合格
+                    - button "详情" [ref=e671]
+              - row "02549 庄培杰 TOC创新业务 AI应用工程师 P5 合格 详情" [ref=e672]:
+                - cell "02549 庄培杰 TOC创新业务 AI应用工程师 P5 合格 详情" [ref=e673]:
+                  - generic [ref=e675] [cursor=pointer]:
+                    - generic [ref=e676]: "02549"
+                    - generic [ref=e677]: 庄培杰
+                    - generic [ref=e678]: TOC创新业务
+                    - generic [ref=e679]: AI应用工程师
+                    - generic [ref=e680]: P5
+                    - generic [ref=e682]: 合格
+                    - button "详情" [ref=e684]
+              - row "02546 陈思闲 公域生态行业群 商务助理 P1 合格 详情" [ref=e685]:
+                - cell "02546 陈思闲 公域生态行业群 商务助理 P1 合格 详情" [ref=e686]:
+                  - generic [ref=e688] [cursor=pointer]:
+                    - generic [ref=e689]: "02546"
+                    - generic [ref=e690]: 陈思闲
+                    - generic [ref=e691]: 公域生态行业群
+                    - generic [ref=e692]: 商务助理
+                    - generic [ref=e693]: P1
+                    - generic [ref=e695]: 合格
+                    - button "详情" [ref=e697]
+              - row "02541 陈宇峰 TOC创新业务 AI产品总监 P7 合格 详情" [ref=e698]:
+                - cell "02541 陈宇峰 TOC创新业务 AI产品总监 P7 合格 详情" [ref=e699]:
+                  - generic [ref=e701] [cursor=pointer]:
+                    - generic [ref=e702]: "02541"
+                    - generic [ref=e703]: 陈宇峰
+                    - generic [ref=e704]: TOC创新业务
+                    - generic [ref=e705]: AI产品总监
+                    - generic [ref=e706]: P7
+                    - generic [ref=e708]: 合格
+                    - button "详情" [ref=e710]
+              - row "02543 李忠林 屈臣氏业务群 AI应用工程师 P4 合格 详情" [ref=e711]:
+                - cell "02543 李忠林 屈臣氏业务群 AI应用工程师 P4 合格 详情" [ref=e712]:
+                  - generic [ref=e714] [cursor=pointer]:
+                    - generic [ref=e715]: "02543"
+                    - generic [ref=e716]: 李忠林
+                    - generic [ref=e717]: 屈臣氏业务群
+                    - generic [ref=e718]: AI应用工程师
+                    - generic [ref=e719]: P4
+                    - generic [ref=e721]: 合格
+                    - button "详情" [ref=e723]
+              - row "02544 高敏 屈臣氏业务群 测试工程师 P4 合格 详情" [ref=e724]:
+                - cell "02544 高敏 屈臣氏业务群 测试工程师 P4 合格 详情" [ref=e725]:
+                  - generic [ref=e727] [cursor=pointer]:
+                    - generic [ref=e728]: "02544"
+                    - generic [ref=e729]: 高敏
+                    - generic [ref=e730]: 屈臣氏业务群
+                    - generic [ref=e731]: 测试工程师
+                    - generic [ref=e732]: P4
+                    - generic [ref=e734]: 合格
+                    - button "详情" [ref=e736]
+              - row "02538 赵子扬 时尚行业群 直播中控 P1 合格 详情" [ref=e737]:
+                - cell "02538 赵子扬 时尚行业群 直播中控 P1 合格 详情" [ref=e738]:
+                  - generic [ref=e740] [cursor=pointer]:
+                    - generic [ref=e741]: "02538"
+                    - generic [ref=e742]: 赵子扬
+                    - generic [ref=e743]: 时尚行业群
+                    - generic [ref=e744]: 直播中控
+                    - generic [ref=e745]: P1
+                    - generic [ref=e747]: 合格
+                    - button "详情" [ref=e749]
+              - row "02539 王怡冉 健康美学行业群 会员运营 P2 合格 详情" [ref=e750]:
+                - cell "02539 王怡冉 健康美学行业群 会员运营 P2 合格 详情" [ref=e751]:
+                  - generic [ref=e753] [cursor=pointer]:
+                    - generic [ref=e754]: "02539"
+                    - generic [ref=e755]: 王怡冉
+                    - generic [ref=e756]: 健康美学行业群
+                    - generic [ref=e757]: 会员运营
+                    - generic [ref=e758]: P2
+                    - generic [ref=e760]: 合格
+                    - button "详情" [ref=e762]
+              - row "02537 余桂玲 耐消行业群 社群运营 P2 合格 详情" [ref=e763]:
+                - cell "02537 余桂玲 耐消行业群 社群运营 P2 合格 详情" [ref=e764]:
+                  - generic [ref=e766] [cursor=pointer]:
+                    - generic [ref=e767]: "02537"
+                    - generic [ref=e768]: 余桂玲
+                    - generic [ref=e769]: 耐消行业群
+                    - generic [ref=e770]: 社群运营
+                    - generic [ref=e771]: P2
+                    - generic [ref=e773]: 合格
+                    - button "详情" [ref=e775]
+              - row "02533 李燕 屈臣氏业务群 社群运营 P2 合格 详情" [ref=e776]:
+                - cell "02533 李燕 屈臣氏业务群 社群运营 P2 合格 详情" [ref=e777]:
+                  - generic [ref=e779] [cursor=pointer]:
+                    - generic [ref=e780]: "02533"
+                    - generic [ref=e781]: 李燕
+                    - generic [ref=e782]: 屈臣氏业务群
+                    - generic [ref=e783]: 社群运营
+                    - generic [ref=e784]: P2
+                    - generic [ref=e786]: 合格
+                    - button "详情" [ref=e788]
+              - row "02531 罗丽云 社区运营中心 SSC专员 P2 合格 详情" [ref=e789]:
+                - cell "02531 罗丽云 社区运营中心 SSC专员 P2 合格 详情" [ref=e790]:
+                  - generic [ref=e792] [cursor=pointer]:
+                    - generic [ref=e793]: "02531"
+                    - generic [ref=e794]: 罗丽云
+                    - generic [ref=e795]: 社区运营中心
+                    - generic [ref=e796]: SSC专员
+                    - generic [ref=e797]: P2
+                    - generic [ref=e799]: 合格
+                    - button "详情" [ref=e801]
+          - generic [ref=e802]:
+            - generic [ref=e803]: 共 416 条
+            - generic [ref=e804]:
+              - button "上一页" [disabled] [ref=e805]
+              - generic [ref=e806]: 第 1/9 页
+              - button "下一页" [ref=e807] [cursor=pointer]

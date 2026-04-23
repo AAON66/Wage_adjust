@@ -1220,3 +1220,23 @@ export interface TierRecomputeBusyDetail {
 export interface AvailableYearsResponse {
   years: number[];
 }
+
+// ===================== Phase 35 员工自助档次 (ESELF-03) =====================
+
+/**
+ * Phase 35 D-12: GET /api/v1/performance/me/tier 响应契约
+ *
+ * 与后端 Pydantic MyTierResponse 一一对应：
+ *   - tier 有值 ↔ reason 为 null（员工有档次）
+ *   - tier=null ↔ reason 非空（3 种语义分层）
+ *
+ * 不含 display_label / percentile / rank 等字段 —— 文案本地化由前端负责（D-04）；
+ * 排名/百分位属 PIPL 红线不返回（REQUIREMENTS line 89-103）。
+ */
+export interface MyTierResponse {
+  year: number | null;
+  tier: 1 | 2 | 3 | null;
+  reason: 'insufficient_sample' | 'no_snapshot' | 'not_ranked' | null;
+  /** ISO 8601 字符串；snapshot.updated_at；reason='no_snapshot' 时为 null */
+  data_updated_at: string | null;
+}

@@ -1,0 +1,59 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: 飞书集成 / SYNC OBSERVABILITY
+      - heading "飞书同步日志" [level=1] [ref=e7]
+      - paragraph [ref=e8]: 查看每次飞书同步的结果与明细，可按类型筛选、下载未匹配工号 CSV 自助诊断。
+    - button "刷新列表" [ref=e9] [cursor=pointer]
+  - tablist [ref=e10]:
+    - tab "全部" [ref=e11] [cursor=pointer]
+    - tab "考勤" [ref=e12] [cursor=pointer]
+    - tab "绩效" [ref=e13] [cursor=pointer]
+    - tab "薪调" [ref=e14] [cursor=pointer]
+    - tab "入职信息" [ref=e15] [cursor=pointer]
+    - tab "社保假勤" [active] [selected] [ref=e16] [cursor=pointer]
+  - generic [ref=e17]:
+    - table [ref=e468]:
+      - rowgroup [ref=e469]:
+        - row "同步类型 状态 模式 计数 触发时间 耗时 触发人 操作" [ref=e470]:
+          - columnheader "同步类型" [ref=e471]
+          - columnheader "状态" [ref=e472]
+          - columnheader "模式" [ref=e473]
+          - columnheader "计数" [ref=e474]
+          - columnheader "触发时间" [ref=e475]
+          - columnheader "耗时" [ref=e476]
+          - columnheader "触发人" [ref=e477]
+          - columnheader "操作" [ref=e478]
+      - rowgroup [ref=e479]:
+        - row "社保假勤 失败 — 查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细 2026-04-21 06:00 45s 25dc398d-90f0-47c4-ab8c-c395fedc8ffd 下载未匹配工号 CSV 查看详情" [ref=e480]:
+          - cell "社保假勤" [ref=e481]
+          - cell "失败" [ref=e482]:
+            - generic [ref=e483]: 失败
+          - cell "—" [ref=e484]
+          - cell "查看成功 0 条明细 查看更新 0 条明细 查看未匹配 0 条明细 查看映射失败 0 条明细 查看写库失败 0 条明细" [ref=e485]:
+            - generic [ref=e486]:
+              - button "查看成功 0 条明细" [ref=e487]:
+                - generic [ref=e488]: 成功
+                - generic [ref=e489]: "0"
+              - button "查看更新 0 条明细" [ref=e490]:
+                - generic [ref=e491]: 更新
+                - generic [ref=e492]: "0"
+              - button "查看未匹配 0 条明细" [ref=e493]:
+                - generic [ref=e494]: 未匹配
+                - generic [ref=e495]: "0"
+              - button "查看映射失败 0 条明细" [ref=e496]:
+                - generic [ref=e497]: 映射失败
+                - generic [ref=e498]: "0"
+              - button "查看写库失败 0 条明细" [ref=e499]:
+                - generic [ref=e500]: 写库失败
+                - generic [ref=e501]: "0"
+          - cell "2026-04-21 06:00" [ref=e502]
+          - cell "45s" [ref=e503]
+          - cell "25dc398d-90f0-47c4-ab8c-c395fedc8ffd" [ref=e504]
+          - cell "下载未匹配工号 CSV 查看详情" [ref=e505]:
+            - button "下载未匹配工号 CSV" [disabled] [ref=e506]
+            - button "查看详情" [ref=e507] [cursor=pointer]
+    - navigation [ref=e316]:
+      - button "< 上一页" [disabled] [ref=e317]
+      - generic [ref=e318]: 第 1 页
+      - button "下一页 >" [disabled] [ref=e319]

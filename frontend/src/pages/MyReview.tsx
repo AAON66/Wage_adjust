@@ -13,6 +13,7 @@ import { SalaryResultCard } from '../components/evaluation/SalaryResultCard';
 import { StatusIndicator } from '../components/evaluation/StatusIndicator';
 import { MyEligibilityPanel } from '../components/eligibility/MyEligibilityPanel';
 import { AppShell } from '../components/layout/AppShell';
+import { MyPerformanceTierBadge } from '../components/performance/MyPerformanceTierBadge';
 import { useAuth } from '../hooks/useAuth';
 import { fetchApprovalHistory } from '../services/approvalService';
 import { fetchCycles } from '../services/cycleService';
@@ -543,6 +544,7 @@ export function MyReviewPage() {
           位置：在「当前角色 actions」标头之后、「材料与提交概览」section 之前（D-10）
           独立于 employee 匹配 —— panel 直接调 /eligibility/me 由 user.employee_id 决定 */}
       <MyEligibilityPanel />
+      <MyPerformanceTierBadge />
 
       {(() => {
         const currentDuplicate = fileQueue.find((i) => i.status === 'currentDuplicate');

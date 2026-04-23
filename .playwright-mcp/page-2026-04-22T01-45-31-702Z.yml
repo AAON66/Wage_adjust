@@ -1,0 +1,178 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e9]: 智
+        - generic [ref=e10]:
+          - generic [ref=e11]: 智评调薪
+          - generic [ref=e12]: HRBP工作区
+      - navigation [ref=e13]:
+        - link "角色首页" [ref=e14] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e15]
+          - text: 角色首页
+        - generic [ref=e18]:
+          - button "▼ 运营管理" [ref=e19] [cursor=pointer]:
+            - generic [ref=e20]: ▼ 运营管理
+          - link "员工评估" [ref=e21] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e22]
+            - text: 员工评估
+          - link "调薪模拟" [ref=e25] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e26]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e28] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e29]
+            - text: 审批中心
+          - link "调薪资格" [ref=e32] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e33]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e35] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e36]
+            - text: 考勤管理
+          - link "共享申请" [ref=e39] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e40]
+            - text: 共享申请
+        - generic [ref=e45]:
+          - button "▼ 数据分析" [ref=e46] [cursor=pointer]:
+            - generic [ref=e47]: ▼ 数据分析
+          - link "组织看板" [ref=e48] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e49]
+            - text: 组织看板
+        - generic [ref=e50]:
+          - button "▼ 系统管理" [ref=e51] [cursor=pointer]:
+            - generic [ref=e52]: ▼ 系统管理
+          - link "平台账号" [ref=e53] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e54]
+            - text: 平台账号
+          - link "员工档案" [ref=e59] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e60]
+            - text: 员工档案
+          - link "导入中心" [ref=e62] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e63]
+            - text: 导入中心
+          - link "同步日志" [ref=e66] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e67]
+            - text: 同步日志
+        - link "账号设置" [ref=e70] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e71]
+          - text: 账号设置
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]: H
+          - generic [ref=e77]:
+            - generic [ref=e78]: hrbp@test.com
+            - generic [ref=e79]: HRBP
+        - generic [ref=e80]:
+          - link "首页" [ref=e81] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e82] [cursor=pointer]
+    - generic [ref=e83]:
+      - generic [ref=e86]:
+        - paragraph [ref=e87]: HRBP工作区
+        - heading "调薪资格管理" [level=1] [ref=e88]
+        - paragraph [ref=e89]: 查看员工调薪资格状态、筛选导出，以及处理特殊审批申请。
+      - generic [ref=e90]:
+        - generic [ref=e91]: 您尚未绑定员工信息，部分功能受限。
+        - link "立即绑定" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e94]:
+        - navigation [ref=e95]:
+          - button "调薪资格" [ref=e96] [cursor=pointer]
+          - button "特殊申请" [ref=e97] [cursor=pointer]
+          - button "绩效等级" [ref=e98] [cursor=pointer]
+          - button "调薪历史" [ref=e99] [cursor=pointer]
+          - button "入职信息" [ref=e100] [cursor=pointer]
+          - button "非法定假期" [ref=e101] [cursor=pointer]
+        - generic [ref=e122]:
+          - region "预览绩效等级导入结果（共 2 行）" [ref=e141]:
+            - generic [ref=e142]:
+              - paragraph [ref=e143]: 导入预览 · 确认前可检查
+              - heading "预览绩效等级导入结果（共 2 行）" [level=3] [ref=e144]
+              - paragraph [ref=e145]: 已上传：uat-perf-grades-clean.xlsx · 本次预览将在 2026/4/22 10:44:51 前有效
+              - paragraph [ref=e146]: 下方展示本次导入会产生的变更。确认无误后点击「确认导入」才会写入数据库； 若有冲突，请修正 Excel 后重新上传。
+            - group "导入变更概览" [ref=e147]:
+              - status "新增 类变更为 0 条" [ref=e148]:
+                - generic [ref=e149]: 新增
+                - generic [ref=e150]: "0"
+              - status "更新 1 条" [ref=e151]:
+                - generic [ref=e152]: 更新
+                - generic [ref=e153]: "1"
+              - status "无变化 1 条" [ref=e154]:
+                - generic [ref=e155]: 无变化
+                - generic [ref=e156]: "1"
+              - status "冲突 类变更为 0 条" [ref=e157]:
+                - generic [ref=e158]: 冲突
+                - generic [ref=e159]: "0"
+            - generic [ref=e160]:
+              - button "显示未变化 1 行" [ref=e161] [cursor=pointer]
+              - table [ref=e163]:
+                - rowgroup [ref=e164]:
+                  - row "行号 员工工号 动作 字段变更" [ref=e165]:
+                    - columnheader "行号" [ref=e166]
+                    - columnheader "员工工号" [ref=e167]
+                    - columnheader "动作" [ref=e168]
+                    - columnheader "字段变更" [ref=e169]
+                - rowgroup [ref=e170]:
+                  - 'row "3 2615 更新 grade: B→A" [ref=e171]':
+                    - cell "3" [ref=e172]
+                    - cell "2615" [ref=e173]
+                    - cell "更新" [ref=e174]
+                    - 'cell "grade: B→A" [ref=e175]':
+                      - generic [ref=e177]:
+                        - generic [ref=e178]: "grade:"
+                        - text: B→A
+            - group "覆盖模式" [ref=e179]:
+              - generic [ref=e180]: 覆盖模式
+              - generic [ref=e181] [cursor=pointer]:
+                - radio "合并模式（空值保留旧值，推荐） 仅更新 Excel 中有值的字段；Excel 里为空的单元格不会改动已有数据。适合常规维护。" [ref=e182]
+                - generic [ref=e183]:
+                  - generic [ref=e184]: 合并模式（空值保留旧值，推荐）
+                  - generic [ref=e185]: 仅更新 Excel 中有值的字段；Excel 里为空的单元格不会改动已有数据。适合常规维护。
+              - generic [ref=e186] [cursor=pointer]:
+                - radio "替换模式（空值清空字段） Excel 中为空的可选字段会被清空为 NULL；必填字段为空则该行失败。适合全量替换场景，操作不可自动回滚。" [checked] [ref=e187]
+                - generic [ref=e188]:
+                  - generic [ref=e189]: 替换模式（空值清空字段）
+                  - generic [ref=e190]:
+                    - text: Excel 中为空的可选字段会被清空为 NULL；必填字段为空则该行失败。适合全量替换场景，
+                    - strong [ref=e191]: 操作不可自动回滚
+                    - text: 。
+              - alert [ref=e195]: ⚠ 替换模式会清空你未填的可选字段，这是破坏性操作。点击「确认导入」时需要再次确认。
+            - generic [ref=e192]:
+              - button "取消本次预览" [ref=e193] [cursor=pointer]
+              - button "确认导入（替换模式）" [ref=e196] [cursor=pointer]
+            - dialog "确认以替换模式导入 2 行?" [ref=e198]:
+              - heading "确认以替换模式导入 2 行?" [level=3] [ref=e199]
+              - generic [ref=e200]:
+                - paragraph [ref=e201]:
+                  - strong [ref=e202]: 替换模式
+                  - text: 会将 Excel 中为空的
+                  - strong [ref=e203]: 可选字段清空
+                  - text: （设为 NULL），必填字段为空的行将失败。
+                - paragraph [ref=e204]:
+                  - text: 本操作会直接写入数据库，
+                  - strong [ref=e205]: 已入库数据无法自动恢复
+                  - text: ；请确认 Excel 中的空值均为你的预期。
+              - generic [ref=e206]:
+                - checkbox "我已理解并确认以替换模式导入，愿意承担空值清空的后果" [active] [ref=e207]
+                - text: 我已理解并确认以替换模式导入，愿意承担空值清空的后果
+              - generic [ref=e208]:
+                - button "返回" [ref=e209] [cursor=pointer]
+                - button "继续（替换模式）" [disabled] [ref=e210]
+          - generic [ref=e131]:
+            - paragraph [ref=e132]: 飞书多维表格同步
+            - heading "从飞书多维表格同步绩效等级数据" [level=2] [ref=e133]
+            - generic [ref=e134]:
+              - textbox "请输入飞书多维表格 URL..." [ref=e135]
+              - button "获取字段" [disabled] [ref=e136]

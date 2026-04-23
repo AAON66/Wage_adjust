@@ -1,0 +1,329 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - paragraph [ref=e109]: 管理员工作区
+          - heading "员工评估详情" [level=1] [ref=e110]
+          - paragraph [ref=e111]: 按模块处理材料、证据、复核和调薪。
+        - generic [ref=e112]:
+          - link "返回工作台" [ref=e113] [cursor=pointer]:
+            - /url: /workspace
+          - link "审批中心" [ref=e114] [cursor=pointer]:
+            - /url: /approvals
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e120]:
+                - heading "李旭新" [level=2] [ref=e121]
+                - generic [ref=e122]: 启用
+              - paragraph [ref=e123]: 员工编号 02601
+              - paragraph [ref=e124]: 按当前周期处理评估流程。
+            - generic [ref=e125]:
+              - paragraph [ref=e126]: 当前模块
+              - paragraph [ref=e127]: 人工复核
+              - paragraph [ref=e128]: 已确认
+          - generic [ref=e129]:
+            - generic [ref=e130]:
+              - generic [ref=e131]:
+                - paragraph [ref=e132]: 部门
+                - paragraph [ref=e133]: 社区运营中心
+              - generic [ref=e134]:
+                - paragraph [ref=e135]: 所属公司
+                - paragraph [ref=e136]: 零一乐游（深圳）科技有限公司
+              - generic [ref=e137]:
+                - paragraph [ref=e138]: 岗位族
+                - paragraph [ref=e139]: 实习生
+              - generic [ref=e140]:
+                - paragraph [ref=e141]: 岗位级别
+                - paragraph [ref=e142]: P1
+              - generic [ref=e143]:
+                - text: 当前周期
+                - combobox "当前周期" [ref=e144]:
+                  - option "2026 Q2 调薪周期" [selected]
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - paragraph [ref=e148]: 模块切换
+                - generic [ref=e150]: "?"
+              - generic [ref=e151]:
+                - button "概览 2026 Q2 调薪周期" [ref=e152] [cursor=pointer]:
+                  - generic [ref=e153]: 概览
+                  - generic [ref=e154]: 2026 Q2 调薪周期
+                - button "材料解析 2/2 已完成" [ref=e155] [cursor=pointer]:
+                  - generic [ref=e156]: 材料解析
+                  - generic [ref=e157]: 2/2 已完成
+                - button "证据卡片 2 条证据" [ref=e158] [cursor=pointer]:
+                  - generic [ref=e159]: 证据卡片
+                  - generic [ref=e160]: 2 条证据
+                - button "人工复核 已确认" [ref=e161] [cursor=pointer]:
+                  - generic [ref=e162]: 人工复核
+                  - generic [ref=e163]: 已确认
+                - button "调薪建议 已建议" [ref=e164] [cursor=pointer]:
+                  - generic [ref=e165]: 调薪建议
+                  - generic [ref=e166]: 已建议
+        - generic [ref=e167]:
+          - generic [ref=e300]:
+            - generic [ref=e301]:
+              - generic [ref=e302]:
+                - paragraph [ref=e303]: 评分工作台
+                - heading "主管与 HR 复核" [level=2] [ref=e304]
+                - paragraph [ref=e305]: 处理评分、审核和校准。
+              - generic [ref=e306]:
+                - generic [ref=e307]:
+                  - generic [ref=e308]:
+                    - paragraph [ref=e309]: AI 初评分数
+                    - paragraph [ref=e310]: "64.7"
+                  - generic [ref=e311]:
+                    - paragraph [ref=e312]: 主管提交分数
+                    - paragraph [ref=e313]: "58.9"
+                  - generic [ref=e314]:
+                    - paragraph [ref=e315]: 评分差值
+                    - paragraph [ref=e316]: "+5.8"
+                  - generic [ref=e317]:
+                    - paragraph [ref=e318]: AI 建议等级
+                    - paragraph [ref=e319]: 三级
+                - generic [ref=e320]:
+                  - generic [ref=e321]:
+                    - paragraph [ref=e322]: 当前流程状态
+                    - paragraph [ref=e323]: 已确认
+                  - generic [ref=e324]:
+                    - paragraph [ref=e325]: 当前复核总分
+                    - paragraph [ref=e326]: "58.9"
+                  - generic [ref=e327]:
+                    - text: 主管复核等级
+                    - combobox "主管复核等级" [ref=e328]:
+                      - option "一级"
+                      - option "二级"
+                      - option "三级" [selected]
+                      - option "四级"
+                      - option "五级"
+                - textbox "请用中文说明主管复核依据；如进入 HR 审核，请填写同意或打回的具体原因。" [ref=e329]: 李旭新作为社区运营中心的实习生，提交的证据主要围绕公司入职指南和业务介绍材料，缺乏针对运营岗位AI应用的具体证据。在AI工具掌握度、应用深度、学习速度、知识分享和业务影响力五个维度上，均未展示出稳定、真实的AI使用产出或流程改进。根据运营与交付画像的评分政策，证据明显不足，无法达到岗位期望的68-85分区间，整体表现处于零散尝试阶段，因此整体评分较低。 当前待主管复核。
+                - button "提交主管评分" [ref=e331] [cursor=pointer]
+            - generic [ref=e333]:
+              - generic [ref=e334]:
+                - generic [ref=e335]:
+                  - paragraph [ref=e336]: 维度分数
+                  - heading "按维度复核评分" [level=3] [ref=e337]
+                - generic [ref=e338]: 5 个维度
+              - generic [ref=e339]:
+                - article [ref=e340]:
+                  - generic [ref=e341]:
+                    - generic [ref=e342]:
+                      - paragraph [ref=e343]: TOOL
+                      - heading "AI 工具掌握度" [level=4] [ref=e344]
+                      - paragraph [ref=e345]: "AI 原始分: 50"
+                    - generic [ref=e346]:
+                      - generic [ref=e347]: 复核分
+                      - spinbutton "复核分" [ref=e348]: "50"
+                  - textbox "请填写该维度调整分数的原因。" [ref=e349]: 员工提交了《零一萌新入住神奇指南（AI版）》和《零一数科-新员工入职培训》两份材料，但内容均为公司通用入职指南和业务介绍，未涉及AI在工单处理、知识库或流程自动化等运营主场景的应用。证据明显不足，未达到岗位期望。
+                - article [ref=e350]:
+                  - generic [ref=e351]:
+                    - generic [ref=e352]:
+                      - paragraph [ref=e353]: DEPTH
+                      - heading "AI 应用深度" [level=4] [ref=e354]
+                      - paragraph [ref=e355]: "AI 原始分: 50"
+                    - generic [ref=e356]:
+                      - generic [ref=e357]: 复核分
+                      - spinbutton "复核分" [ref=e358]: "50"
+                  - textbox "请填写该维度调整分数的原因。" [ref=e359]: 证据材料未展示AI进入跨角色协作、服务闭环或交付管理链路的具体案例。例如，缺乏AI在工单派发、问题处理闭环或跨部门协同中的使用痕迹。因此，应用深度未达到运营岗位的基本要求。
+                - article [ref=e360]:
+                  - generic [ref=e361]:
+                    - generic [ref=e362]:
+                      - paragraph [ref=e363]: LEARN
+                      - heading "AI 学习速度" [level=4] [ref=e364]
+                      - paragraph [ref=e365]: "AI 原始分: 71.06"
+                    - generic [ref=e366]:
+                      - generic [ref=e367]: 复核分
+                      - spinbutton "复核分" [ref=e368]: "71.06"
+                  - textbox "请填写该维度调整分数的原因。" [ref=e369]: 员工未提供任何关于问题复盘、经验反馈或AI用法调整的证据。例如，没有现场复盘记录或应急响应中AI学习的案例。学习速度维度缺乏支撑材料，表现未达期望。
+                - article [ref=e370]:
+                  - generic [ref=e371]:
+                    - generic [ref=e372]:
+                      - paragraph [ref=e373]: SHARE
+                      - heading "知识分享" [level=4] [ref=e374]
+                      - paragraph [ref=e375]: "AI 原始分: 76.44"
+                    - generic [ref=e376]:
+                      - generic [ref=e377]: 复核分
+                      - spinbutton "复核分" [ref=e378]: "76.44"
+                  - textbox "请填写该维度调整分数的原因。" [ref=e379]: 员工提交的《零一萌新入住神奇指南（AI版）》是一份系统化的入职指南，包含办公指引和制度介绍，这有助于新员工标准化处理入职问题。但材料未明确体现AI在知识沉淀中的作用，例如FAQ或SOP的AI辅助生成，因此仅达到基础水平，未完全满足岗位对AI知识分享的期待。
+                - article [ref=e380]:
+                  - generic [ref=e381]:
+                    - generic [ref=e382]:
+                      - paragraph [ref=e383]: IMPACT
+                      - heading "业务影响力" [level=4] [ref=e384]
+                      - paragraph [ref=e385]: "AI 原始分: 55"
+                    - generic [ref=e386]:
+                      - generic [ref=e387]: 复核分
+                      - spinbutton "复核分" [ref=e388]: "55"
+                  - textbox "请填写该维度调整分数的原因。" [ref=e389]: 证据材料如《零一数科-新员工入职培训》展示了公司业务数据（如GMV破100亿/年），但未关联员工个人使用AI对响应时效、履约质量或满意度等运营指标的具体改善。缺乏AI带来的明确业务影响证据，整体表现低于稳态达标线。
+          - generic [ref=e391]:
+            - generic [ref=e392]:
+              - paragraph [ref=e393]: 校准对照
+              - heading "AI 与人工评分差异" [level=2] [ref=e394]
+              - paragraph [ref=e395]: 查看分差和说明。
+            - generic [ref=e396]:
+              - generic [ref=e397]:
+                - generic [ref=e398]:
+                  - paragraph [ref=e399]: 校准对比
+                  - heading "AI 与人工评分对照" [level=3] [ref=e400]
+                  - paragraph [ref=e401]: 现在会固定保留 AI 原始分，不会再被人工复核分覆盖。
+                - generic [ref=e402]: 5 条记录
+              - table [ref=e404]:
+                - rowgroup [ref=e405]:
+                  - row "维度 AI 原始分 人工复核分 差值 当前状态 复核说明" [ref=e406]:
+                    - columnheader "维度" [ref=e407]
+                    - columnheader "AI 原始分" [ref=e408]
+                    - columnheader "人工复核分" [ref=e409]
+                    - columnheader "差值" [ref=e410]
+                    - columnheader "当前状态" [ref=e411]
+                    - columnheader "复核说明" [ref=e412]
+                - rowgroup [ref=e413]:
+                  - row "AI 工具掌握度 TOOL 50 50 0 已完成对比 员工提交了《零一萌新入住神奇指南（AI版）》和《零一数科-新员工入职培训》两份材料，但内容均为公司通用入职指南和业务介绍，未涉及AI在工单处理、知识库或流程自动化等运营主场景的应用。证据明显不足，未达到岗位期望。" [ref=e414]:
+                    - cell "AI 工具掌握度 TOOL" [ref=e415]:
+                      - generic [ref=e416]: AI 工具掌握度
+                      - generic [ref=e417]: TOOL
+                    - cell "50" [ref=e418]
+                    - cell "50" [ref=e419]
+                    - cell "0" [ref=e420]
+                    - cell "已完成对比" [ref=e421]:
+                      - generic [ref=e423]: 已完成对比
+                    - cell "员工提交了《零一萌新入住神奇指南（AI版）》和《零一数科-新员工入职培训》两份材料，但内容均为公司通用入职指南和业务介绍，未涉及AI在工单处理、知识库或流程自动化等运营主场景的应用。证据明显不足，未达到岗位期望。" [ref=e424]
+                  - row "AI 应用深度 DEPTH 50 50 0 已完成对比 证据材料未展示AI进入跨角色协作、服务闭环或交付管理链路的具体案例。例如，缺乏AI在工单派发、问题处理闭环或跨部门协同中的使用痕迹。因此，应用深度未达到运营岗位的基本要求。" [ref=e425]:
+                    - cell "AI 应用深度 DEPTH" [ref=e426]:
+                      - generic [ref=e427]: AI 应用深度
+                      - generic [ref=e428]: DEPTH
+                    - cell "50" [ref=e429]
+                    - cell "50" [ref=e430]
+                    - cell "0" [ref=e431]
+                    - cell "已完成对比" [ref=e432]:
+                      - generic [ref=e434]: 已完成对比
+                    - cell "证据材料未展示AI进入跨角色协作、服务闭环或交付管理链路的具体案例。例如，缺乏AI在工单派发、问题处理闭环或跨部门协同中的使用痕迹。因此，应用深度未达到运营岗位的基本要求。" [ref=e435]
+                  - row "AI 学习速度 LEARN 71.1 71.1 0 已完成对比 员工未提供任何关于问题复盘、经验反馈或AI用法调整的证据。例如，没有现场复盘记录或应急响应中AI学习的案例。学习速度维度缺乏支撑材料，表现未达期望。" [ref=e436]:
+                    - cell "AI 学习速度 LEARN" [ref=e437]:
+                      - generic [ref=e438]: AI 学习速度
+                      - generic [ref=e439]: LEARN
+                    - cell "71.1" [ref=e440]
+                    - cell "71.1" [ref=e441]
+                    - cell "0" [ref=e442]
+                    - cell "已完成对比" [ref=e443]:
+                      - generic [ref=e445]: 已完成对比
+                    - cell "员工未提供任何关于问题复盘、经验反馈或AI用法调整的证据。例如，没有现场复盘记录或应急响应中AI学习的案例。学习速度维度缺乏支撑材料，表现未达期望。" [ref=e446]
+                  - row "知识分享 SHARE 76.4 76.4 0 已完成对比 员工提交的《零一萌新入住神奇指南（AI版）》是一份系统化的入职指南，包含办公指引和制度介绍，这有助于新员工标准化处理入职问题。但材料未明确体现AI在知识沉淀中的作用，例如FAQ或SOP的AI辅助生成，因此仅达到基础水平，未完全满足岗位对AI知识分享的期待。" [ref=e447]:
+                    - cell "知识分享 SHARE" [ref=e448]:
+                      - generic [ref=e449]: 知识分享
+                      - generic [ref=e450]: SHARE
+                    - cell "76.4" [ref=e451]
+                    - cell "76.4" [ref=e452]
+                    - cell "0" [ref=e453]
+                    - cell "已完成对比" [ref=e454]:
+                      - generic [ref=e456]: 已完成对比
+                    - cell "员工提交的《零一萌新入住神奇指南（AI版）》是一份系统化的入职指南，包含办公指引和制度介绍，这有助于新员工标准化处理入职问题。但材料未明确体现AI在知识沉淀中的作用，例如FAQ或SOP的AI辅助生成，因此仅达到基础水平，未完全满足岗位对AI知识分享的期待。" [ref=e457]
+                  - row "业务影响力 IMPACT 55 55 0 已完成对比 证据材料如《零一数科-新员工入职培训》展示了公司业务数据（如GMV破100亿/年），但未关联员工个人使用AI对响应时效、履约质量或满意度等运营指标的具体改善。缺乏AI带来的明确业务影响证据，整体表现低于稳态达标线。" [ref=e458]:
+                    - cell "业务影响力 IMPACT" [ref=e459]:
+                      - generic [ref=e460]: 业务影响力
+                      - generic [ref=e461]: IMPACT
+                    - cell "55" [ref=e462]
+                    - cell "55" [ref=e463]
+                    - cell "0" [ref=e464]
+                    - cell "已完成对比" [ref=e465]:
+                      - generic [ref=e467]: 已完成对比
+                    - cell "证据材料如《零一数科-新员工入职培训》展示了公司业务数据（如GMV破100亿/年），但未关联员工个人使用AI对响应时效、履约质量或满意度等运营指标的具体改善。缺乏AI带来的明确业务影响证据，整体表现低于稳态达标线。" [ref=e468]

@@ -1,0 +1,238 @@
+- main [ref=e43]:
+  - generic [ref=e44]:
+    - complementary [ref=e45]:
+      - generic [ref=e47]:
+        - generic [ref=e49]: 智
+        - generic [ref=e50]:
+          - generic [ref=e51]: 智评调薪
+          - generic [ref=e52]: 员工工作区
+      - navigation [ref=e53]:
+        - link "角色首页" [ref=e54] [cursor=pointer]:
+          - /url: /my-review
+          - img [ref=e55]
+          - text: 角色首页
+        - link "个人评估中心" [ref=e58] [cursor=pointer]:
+          - /url: /my-review
+          - img [ref=e59]
+          - text: 个人评估中心
+        - link "共享申请" [ref=e62] [cursor=pointer]:
+          - /url: /sharing-requests
+          - img [ref=e63]
+          - text: 共享申请
+        - link "账号设置" [ref=e68] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e69]
+          - text: 账号设置
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]: T
+          - generic [ref=e75]:
+            - generic [ref=e76]: test2@test.com
+            - generic [ref=e77]: 员工
+        - generic [ref=e78]:
+          - link "首页" [ref=e79] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e80] [cursor=pointer]
+    - generic [ref=e81]:
+      - generic [ref=e83]:
+        - generic [ref=e84]:
+          - paragraph [ref=e85]: 员工工作区
+          - heading "个人评估中心" [level=1] [ref=e86]
+          - paragraph [ref=e87]: 维护个人材料并查看评估进展。
+        - generic [ref=e89]:
+          - generic [ref=e90]: 当前角色：员工
+          - link "账号设置" [ref=e91] [cursor=pointer]:
+            - /url: /settings
+      - generic [ref=e92]:
+        - generic [ref=e93]:
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - paragraph [ref=e96]: 本期调薪
+              - heading "本人调薪资格" [level=2] [ref=e97]
+            - generic [ref=e98]: 数据更新于 2026年4月5日 13:45
+          - generic [ref=e100]: ✗ 调薪资格不合格（1 项未通过）
+          - generic [ref=e101]:
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - paragraph [ref=e104]: 入职时长
+                - paragraph [ref=e105]: 入职仅 2 个月，需满 6 个月
+              - generic [ref=e106]: 未通过
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - paragraph [ref=e109]: 调薪间隔
+                - paragraph [ref=e110]: 无调薪记录
+              - generic [ref=e111]: 数据缺失
+            - generic [ref=e112]:
+              - generic [ref=e113]:
+                - paragraph [ref=e114]: 绩效等级
+                - paragraph [ref=e115]: 绩效数据未导入
+              - generic [ref=e116]: 数据缺失
+            - generic [ref=e117]:
+              - generic [ref=e118]:
+                - paragraph [ref=e119]: 非法定假期
+                - paragraph [ref=e120]: 非法定假期数据未导入
+              - generic [ref=e121]: 数据缺失
+        - generic [ref=e123]:
+          - generic [ref=e125]:
+            - generic [ref=e126]: "1"
+            - generic [ref=e127]: 已提交
+          - generic [ref=e130]:
+            - generic [ref=e131]: "2"
+            - generic [ref=e132]: 主管审核
+          - generic [ref=e135]:
+            - generic [ref=e136]: "3"
+            - generic [ref=e137]: HR 审核
+          - generic [ref=e140]:
+            - generic [ref=e141]: "4"
+            - generic [ref=e142]: 已完成
+        - generic [ref=e143]:
+          - article [ref=e144]:
+            - paragraph [ref=e145]: 所属部门
+            - paragraph [ref=e146]: 健康美学行业群
+            - paragraph [ref=e147]: 当前所属组织单元。
+          - article [ref=e148]:
+            - paragraph [ref=e149]: 岗位族
+            - paragraph [ref=e150]: 主播
+            - paragraph [ref=e151]: 当前岗位序列。
+          - article [ref=e152]:
+            - paragraph [ref=e153]: 当前周期状态
+            - paragraph [ref=e154]: submitted
+            - paragraph [ref=e155]: 当前选中周期的提交状态。
+          - article [ref=e156]:
+            - paragraph [ref=e157]: 已提取证据
+            - paragraph [ref=e158]: 1 条
+            - paragraph [ref=e159]: 系统已整理出的证据摘要数量。
+        - generic [ref=e160]:
+          - heading "评估审核中" [level=3] [ref=e161]
+          - paragraph [ref=e162]: 您的评估正在审核中，请耐心等待。评估完成后结果将在此处展示。
+        - generic [ref=e163]:
+          - article [ref=e164]:
+            - generic [ref=e165]:
+              - generic [ref=e166]:
+                - paragraph [ref=e167]: 当前周期
+                - heading "材料与提交概览" [level=2] [ref=e168]
+              - generic [ref=e169]:
+                - text: 切换评估周期
+                - combobox "切换评估周期" [ref=e170]:
+                  - option "2026 Q1 AI能力评估" [selected]
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - paragraph [ref=e173]: 当前周期
+                - paragraph [ref=e174]: 2026 Q1 AI能力评估
+              - generic [ref=e175]:
+                - paragraph [ref=e176]: 提交状态
+                - generic [ref=e178]: 已提交
+              - generic [ref=e179]:
+                - paragraph [ref=e180]: 最近提交时间
+                - paragraph [ref=e181]: 待提交
+              - generic [ref=e182]:
+                - paragraph [ref=e183]: 当前提交 ID
+                - paragraph [ref=e184]: c21e81df-61fc-4a5b-bc5e-ac9ca43f1814
+            - generic [ref=e185]:
+              - generic [ref=e186]:
+                - paragraph [ref=e187]: 员工自述
+                - paragraph [ref=e188]: 当前还没有填写员工自述。
+              - generic [ref=e189]:
+                - paragraph [ref=e190]: 主管评语
+                - paragraph [ref=e191]: 当前还没有主管评语。
+          - article [ref=e192]:
+            - generic [ref=e193]:
+              - paragraph [ref=e194]: 我的历史提交
+              - heading "周期提交记录" [level=2] [ref=e195]
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - heading "2026 Q1 AI能力评估" [level=3] [ref=e200]
+                - paragraph [ref=e201]: 提交时间：待提交
+              - generic [ref=e202]: 已提交
+        - generic [ref=e203]:
+          - generic [ref=e204]:
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]:
+                  - paragraph [ref=e209]: 材料上传
+                  - heading "上传员工材料" [level=3] [ref=e210]
+                  - paragraph [ref=e211]: 支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除，当前单文件上限为 200MB。
+                - generic [ref=e212] [cursor=pointer]: 选择文件
+              - button "选择文件" [ref=e213]
+              - generic [ref=e214]:
+                - textbox "粘贴 GitHub 链接，例如仓库、目录或文件地址" [ref=e215]
+                - button "导入 GitHub 链接" [disabled] [ref=e216]
+              - generic [ref=e217]:
+                - generic [ref=e218] [cursor=pointer]: PPT
+                - generic [ref=e219] [cursor=pointer]: PDF
+                - generic [ref=e220] [cursor=pointer]: DOCX
+                - generic [ref=e221] [cursor=pointer]: PNG
+                - generic [ref=e222] [cursor=pointer]: JPG
+                - generic [ref=e223] [cursor=pointer]: ZIP
+                - generic [ref=e224] [cursor=pointer]: Markdown
+                - generic [ref=e225] [cursor=pointer]: Excel
+                - generic [ref=e226] [cursor=pointer]: 代码
+                - generic [ref=e227] [cursor=pointer]: GitHub 仓库/目录/文件
+              - paragraph [ref=e228]: 如果仍然提示超限，请先压缩图片、精简导出页数，或把大型项目材料拆分成多个文件上传。
+            - generic [ref=e230]:
+              - generic [ref=e231]:
+                - generic [ref=e232]:
+                  - paragraph [ref=e233]: 材料列表
+                  - heading "上传文件" [level=3] [ref=e234]
+                - generic [ref=e235]: 1 个文件
+              - article [ref=e237]:
+                - generic [ref=e238]:
+                  - generic [ref=e239]:
+                    - heading "零一数科-新员工入职培训.pptx" [level=4] [ref=e240]
+                    - paragraph [ref=e241]: PPTX
+                  - generic [ref=e243]: 已解析
+                - generic [ref=e244]:
+                  - generic [ref=e245] [cursor=pointer]: 替换文件
+                  - button "替换文件" [ref=e246]
+                  - button "重新解析" [ref=e247] [cursor=pointer]
+                  - button "移除" [ref=e248] [cursor=pointer]
+          - article [ref=e249]:
+            - generic [ref=e250]:
+              - generic [ref=e251]:
+                - paragraph [ref=e252]: 证据摘要
+                - heading "AI 提取结果" [level=2] [ref=e253]
+              - generic [ref=e254]: 1 条
+            - article [ref=e256]:
+              - generic [ref=e257]:
+                - generic [ref=e258]:
+                  - generic [ref=e259]:
+                    - generic [ref=e260]:
+                      - generic [ref=e261]: file_parse
+                      - generic [ref=e262]: 2026年4月5日 13:53
+                    - heading "零一数科-新员工入职培训" [level=3] [ref=e263]
+                  - button "展开" [ref=e265] [cursor=pointer]
+                - generic [ref=e266]:
+                  - generic [ref=e268]: 置信度
+                  - generic [ref=e272]: 90%
+              - generic [ref=e273]:
+                - generic [ref=e274]:
+                  - generic [ref=e275]:
+                    - paragraph [ref=e276]: 核心结论
+                    - generic [ref=e277]: 1 条
+                  - generic [ref=e279]:
+                    - generic [ref=e280]: "1"
+                    - paragraph [ref=e281]: 零一数科是一家专注于微信生态的运营服务商，核心工作包括公众号代写、小程序代运营、企业微信代运营和视频号直播代运营，累计实现GMV超100亿/年、管理企微好友1.3亿+、直播间GMV峰值1亿/月。可确认结果包括获得腾讯...
+                - complementary [ref=e282]:
+                  - generic [ref=e283]:
+                    - paragraph [ref=e284]: 证据快照
+                    - generic [ref=e285]:
+                      - generic [ref=e286]:
+                        - generic [ref=e287]: slides
+                        - generic [ref=e288]: "35"
+                      - generic [ref=e289]:
+                        - generic [ref=e290]: 文件类型
+                        - generic [ref=e291]: .pptx
+                      - generic [ref=e292]:
+                        - generic [ref=e293]: extracted_image_count
+                        - generic [ref=e294]: "44"
+                      - generic [ref=e295]:
+                        - generic [ref=e296]: evidence_kind
+                        - generic [ref=e297]: general_artifact
+                  - generic [ref=e298]:
+                    - paragraph [ref=e299]: 标签
+                    - generic [ref=e300]:
+                      - generic [ref=e301]: slides:35
+                      - generic [ref=e302]: extension:.pptx
+                      - generic [ref=e303]: extracted_image_count:44
+                      - generic [ref=e304]: evidence_kind:general_ar...
+                  - button "展开查看更多内容" [ref=e305] [cursor=pointer]

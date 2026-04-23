@@ -1,0 +1,176 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - paragraph [ref=e109]: 管理员工作区
+          - heading "调薪审批中心" [level=1] [ref=e110]
+          - paragraph [ref=e111]: 统一处理调薪建议发起、审批流转、暂缓，以及审批路线修改。
+        - generic [ref=e112]:
+          - link "返回工作台" [ref=e113] [cursor=pointer]:
+            - /url: /workspace
+          - link "查看调薪模拟" [ref=e114] [cursor=pointer]:
+            - /url: /salary-simulator
+      - generic [ref=e115]:
+        - generic [ref=e116]:
+          - article [ref=e117]:
+            - paragraph [ref=e118]: 待发起审批
+            - paragraph [ref=e119]: "0"
+            - paragraph [ref=e120]: 已生成调薪建议，但还未完成最终审批的记录。
+          - article [ref=e121]:
+            - paragraph [ref=e122]: 待我处理
+            - paragraph [ref=e123]: "0"
+            - paragraph [ref=e124]: 当前轮到你处理的审批节点数量。
+          - article [ref=e125]:
+            - paragraph [ref=e126]: 审批处理中
+            - paragraph [ref=e127]: "0"
+            - paragraph [ref=e128]: 仍处于待处理状态的审批节点数量。
+          - article [ref=e129]:
+            - paragraph [ref=e130]: 暂缓中
+            - paragraph [ref=e131]: "0"
+            - paragraph [ref=e132]: 已经设置暂缓条件、等待后续重新发起的调薪建议。
+        - generic [ref=e134]:
+          - generic [ref=e135]:
+            - paragraph [ref=e136]: 筛选与范围
+            - heading "审批工作台" [level=2] [ref=e137]
+            - paragraph [ref=e138]: 左侧浏览待处理建议和审批节点，右侧在同一页面完成修改路线、通过、驳回或暂缓。
+          - generic [ref=e139]:
+            - generic [ref=e140]:
+              - checkbox "查看可见范围内全部审批记录" [checked] [ref=e141]
+              - text: 查看可见范围内全部审批记录
+            - combobox [ref=e142]:
+              - option "仅看待处理" [selected]
+              - option "仅看已通过"
+              - option "仅看已驳回"
+              - option "仅看已暂缓"
+              - option "查看全部"
+        - generic [ref=e143]:
+          - generic [ref=e144]:
+            - generic [ref=e145]:
+              - generic [ref=e146]:
+                - generic [ref=e147]:
+                  - paragraph [ref=e148]: 候选建议
+                  - heading "待处理的调薪建议" [level=2] [ref=e149]
+                - generic [ref=e150]: 0 条记录
+              - generic [ref=e152]: 当前没有待处理的调薪建议。
+            - generic [ref=e153]:
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - paragraph [ref=e156]: 审批任务
+                  - heading "审批流转明细" [level=2] [ref=e157]
+                - generic [ref=e158]: 0 条记录
+              - table [ref=e160]:
+                - rowgroup [ref=e161]:
+                  - row "员工 审批节点 评估周期 AI 等级 建议涨幅 审批人 节点状态 明细" [ref=e162]:
+                    - columnheader "员工" [ref=e163]
+                    - columnheader "审批节点" [ref=e164]
+                    - columnheader "评估周期" [ref=e165]
+                    - columnheader "AI 等级" [ref=e166]
+                    - columnheader "建议涨幅" [ref=e167]
+                    - columnheader "审批人" [ref=e168]
+                    - columnheader "节点状态" [ref=e169]
+                    - columnheader "明细" [ref=e170]
+                - rowgroup
+          - complementary [ref=e171]:
+            - generic [ref=e173]:
+              - paragraph [ref=e174]: 明细工作区
+              - heading "审批与路线设置" [level=2] [ref=e175]
+            - generic [ref=e176]: 从左侧选择一条调薪建议或审批记录后，这里会显示对应的详细处理面板。

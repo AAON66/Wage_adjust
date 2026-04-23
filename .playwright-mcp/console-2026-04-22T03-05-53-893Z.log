@@ -1,0 +1,5 @@
+[      69ms] [INFO] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold @ http://127.0.0.1:5174/node_modules/.vite/deps/chunk-NXESFFTV.js?v=3cd1631e:21608
+[      83ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8011/api/v1/auth/me:0
+[      85ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8011/api/v1/auth/refresh:0
+[      91ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8011/api/v1/auth/feishu/authorize:0
+[     191ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://127.0.0.1:5174/login:0

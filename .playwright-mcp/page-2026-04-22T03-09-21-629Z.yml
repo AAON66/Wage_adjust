@@ -1,0 +1,217 @@
+- main [ref=e373]:
+  - generic [ref=e374]:
+    - complementary [ref=e375]:
+      - generic [ref=e377]:
+        - generic [ref=e379]: 智
+        - generic [ref=e380]:
+          - generic [ref=e381]: 智评调薪
+          - generic [ref=e382]: 员工工作区
+      - navigation [ref=e383]:
+        - link "角色首页" [ref=e384] [cursor=pointer]:
+          - /url: /my-review
+          - img [ref=e385]
+          - text: 角色首页
+        - link "个人评估中心" [ref=e388] [cursor=pointer]:
+          - /url: /my-review
+          - img [ref=e389]
+          - text: 个人评估中心
+        - link "共享申请" [ref=e392] [cursor=pointer]:
+          - /url: /sharing-requests
+          - img [ref=e393]
+          - text: 共享申请
+        - link "账号设置" [ref=e398] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e399]
+          - text: 账号设置
+      - generic [ref=e402]:
+        - generic [ref=e403]:
+          - generic [ref=e404]: U
+          - generic [ref=e405]:
+            - generic [ref=e406]: user@test.com
+            - generic [ref=e407]: 员工
+        - generic [ref=e408]:
+          - link "首页" [ref=e409] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e410] [cursor=pointer]
+    - generic [ref=e411]:
+      - generic [ref=e413]:
+        - generic [ref=e414]:
+          - paragraph [ref=e415]: 员工工作区
+          - heading "个人评估中心" [level=1] [ref=e416]
+          - paragraph [ref=e417]: 维护个人材料并查看评估进展。
+        - generic [ref=e419]:
+          - generic [ref=e420]: 当前角色：员工
+          - link "账号设置" [ref=e421] [cursor=pointer]:
+            - /url: /settings
+      - generic [ref=e422]:
+        - generic [ref=e423]:
+          - generic [ref=e425]:
+            - paragraph [ref=e426]: 本期调薪
+            - heading "本人调薪资格" [level=2] [ref=e427]
+          - generic [ref=e428]:
+            - paragraph [ref=e429]: 资格信息暂时不可用，请稍后重试
+            - button "重试" [ref=e430] [cursor=pointer]
+        - generic [ref=e432]:
+          - generic [ref=e434]:
+            - generic [ref=e435]: "1"
+            - generic [ref=e436]: 已提交
+          - generic [ref=e439]:
+            - generic [ref=e440]: "2"
+            - generic [ref=e441]: 主管审核
+          - generic [ref=e444]:
+            - generic [ref=e445]: "3"
+            - generic [ref=e446]: HR 审核
+          - generic [ref=e449]:
+            - generic [ref=e450]: "4"
+            - generic [ref=e451]: 已完成
+        - generic [ref=e452]:
+          - article [ref=e453]:
+            - paragraph [ref=e454]: 所属部门
+            - paragraph [ref=e455]: 屈臣氏业务群
+            - paragraph [ref=e456]: 当前所属组织单元。
+          - article [ref=e457]:
+            - paragraph [ref=e458]: 岗位族
+            - paragraph [ref=e459]: 媒介运营
+            - paragraph [ref=e460]: 当前岗位序列。
+          - article [ref=e461]:
+            - paragraph [ref=e462]: 当前周期状态
+            - paragraph [ref=e463]: reviewing
+            - paragraph [ref=e464]: 当前选中周期的提交状态。
+          - article [ref=e465]:
+            - paragraph [ref=e466]: 已提取证据
+            - paragraph [ref=e467]: 1 条
+            - paragraph [ref=e468]: 系统已整理出的证据摘要数量。
+        - generic [ref=e469]:
+          - heading "评估审核中" [level=3] [ref=e470]
+          - paragraph [ref=e471]: 您的评估正在审核中，请耐心等待。评估完成后结果将在此处展示。
+        - generic [ref=e472]:
+          - article [ref=e473]:
+            - generic [ref=e474]:
+              - generic [ref=e475]:
+                - paragraph [ref=e476]: 当前周期
+                - heading "材料与提交概览" [level=2] [ref=e477]
+              - generic [ref=e478]:
+                - text: 切换评估周期
+                - combobox "切换评估周期" [ref=e479]:
+                  - option "2026 Q1 AI能力评估" [selected]
+            - generic [ref=e480]:
+              - generic [ref=e481]:
+                - paragraph [ref=e482]: 当前周期
+                - paragraph [ref=e483]: 2026 Q1 AI能力评估
+              - generic [ref=e484]:
+                - paragraph [ref=e485]: 提交状态
+                - generic [ref=e487]: 复核中
+              - generic [ref=e488]:
+                - paragraph [ref=e489]: 最近提交时间
+                - paragraph [ref=e490]: 待提交
+              - generic [ref=e491]:
+                - paragraph [ref=e492]: 当前提交 ID
+                - paragraph [ref=e493]: 025ed690-2044-47d4-94be-bd12d1aac9be
+            - generic [ref=e494]:
+              - generic [ref=e495]:
+                - paragraph [ref=e496]: 员工自述
+                - paragraph [ref=e497]: 当前还没有填写员工自述。
+              - generic [ref=e498]:
+                - paragraph [ref=e499]: 主管评语
+                - paragraph [ref=e500]: 当前还没有主管评语。
+          - article [ref=e501]:
+            - generic [ref=e502]:
+              - paragraph [ref=e503]: 我的历史提交
+              - heading "周期提交记录" [level=2] [ref=e504]
+            - generic [ref=e507]:
+              - generic [ref=e508]:
+                - heading "2026 Q1 AI能力评估" [level=3] [ref=e509]
+                - paragraph [ref=e510]: 提交时间：待提交
+              - generic [ref=e511]: 复核中
+        - generic [ref=e512]:
+          - generic [ref=e513]:
+            - generic [ref=e515]:
+              - generic [ref=e516]:
+                - generic [ref=e517]:
+                  - paragraph [ref=e518]: 材料上传
+                  - heading "上传员工材料" [level=3] [ref=e519]
+                  - paragraph [ref=e520]: 支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除，当前单文件上限为 200MB。
+                - generic [ref=e521] [cursor=pointer]: 选择文件
+              - button "选择文件" [ref=e522]
+              - generic [ref=e523]:
+                - textbox "粘贴 GitHub 链接，例如仓库、目录或文件地址" [ref=e524]
+                - button "导入 GitHub 链接" [disabled] [ref=e525]
+              - generic [ref=e526]:
+                - generic [ref=e527] [cursor=pointer]: PPT
+                - generic [ref=e528] [cursor=pointer]: PDF
+                - generic [ref=e529] [cursor=pointer]: DOCX
+                - generic [ref=e530] [cursor=pointer]: PNG
+                - generic [ref=e531] [cursor=pointer]: JPG
+                - generic [ref=e532] [cursor=pointer]: ZIP
+                - generic [ref=e533] [cursor=pointer]: Markdown
+                - generic [ref=e534] [cursor=pointer]: Excel
+                - generic [ref=e535] [cursor=pointer]: 代码
+                - generic [ref=e536] [cursor=pointer]: GitHub 仓库/目录/文件
+              - paragraph [ref=e537]: 如果仍然提示超限，请先压缩图片、精简导出页数，或把大型项目材料拆分成多个文件上传。
+            - generic [ref=e539]:
+              - generic [ref=e540]:
+                - generic [ref=e541]:
+                  - paragraph [ref=e542]: 材料列表
+                  - heading "上传文件" [level=3] [ref=e543]
+                - generic [ref=e544]: 1 个文件
+              - article [ref=e546]:
+                - generic [ref=e547]:
+                  - generic [ref=e548]:
+                    - heading "零一萌新入住神奇指南（AI版）.pdf" [level=4] [ref=e549]
+                    - paragraph [ref=e550]: PDF
+                  - generic [ref=e552]: 已解析
+                - generic [ref=e553]:
+                  - generic [ref=e554] [cursor=pointer]: 替换文件
+                  - button "替换文件" [ref=e555]
+                  - button "重新解析" [ref=e556] [cursor=pointer]
+                  - button "移除" [ref=e557] [cursor=pointer]
+          - article [ref=e558]:
+            - generic [ref=e559]:
+              - generic [ref=e560]:
+                - paragraph [ref=e561]: 证据摘要
+                - heading "AI 提取结果" [level=2] [ref=e562]
+              - generic [ref=e563]: 1 条
+            - article [ref=e565]:
+              - generic [ref=e566]:
+                - generic [ref=e567]:
+                  - generic [ref=e568]:
+                    - generic [ref=e569]:
+                      - generic [ref=e570]: file_parse
+                      - generic [ref=e571]: 2026年4月10日 08:38
+                    - heading "零一萌新入住神奇指南（AI版）" [level=3] [ref=e572]
+                  - button "展开" [ref=e574] [cursor=pointer]
+                - generic [ref=e575]:
+                  - generic [ref=e577]: 置信度
+                  - generic [ref=e581]: 80%
+              - generic [ref=e582]:
+                - generic [ref=e583]:
+                  - generic [ref=e584]:
+                    - paragraph [ref=e585]: 核心结论
+                    - generic [ref=e586]: 1 条
+                  - generic [ref=e588]:
+                    - generic [ref=e589]: "1"
+                    - paragraph [ref=e590]: 该材料为零一新员工入职指南，核心内容包括入职打卡、日常办公指引、制度规则介绍、学习任务清单及用餐安排，旨在帮助新员工快速融入公司。可确认结果为提供了系统化的入职流程和资源链接，如EHR系统、飞书问答等，以支持新员工顺...
+                - complementary [ref=e591]:
+                  - generic [ref=e592]:
+                    - paragraph [ref=e593]: 证据快照
+                    - generic [ref=e594]:
+                      - generic [ref=e595]:
+                        - generic [ref=e596]: 页数
+                        - generic [ref=e597]: "10"
+                      - generic [ref=e598]:
+                        - generic [ref=e599]: 文件类型
+                        - generic [ref=e600]: .pdf
+                      - generic [ref=e601]:
+                        - generic [ref=e602]: evidence_kind
+                        - generic [ref=e603]: general_artifact
+                      - generic [ref=e604]:
+                        - generic [ref=e605]: summary_template
+                        - generic [ref=e606]: 按通用材料摘要输出，概括核心工作内容与可确认的结果。
+                  - generic [ref=e607]:
+                    - paragraph [ref=e608]: 标签
+                    - generic [ref=e609]:
+                      - generic [ref=e610]: pages:10
+                      - generic [ref=e611]: extension:.pdf
+                      - generic [ref=e612]: evidence_kind:general_ar...
+                      - generic [ref=e613]: summary_template:按通用材料摘要...
+                  - button "展开查看更多内容" [ref=e614] [cursor=pointer]

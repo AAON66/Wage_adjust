@@ -1,0 +1,440 @@
+- main [ref=e5]:
+  - generic [ref=e6]:
+    - complementary [ref=e7]:
+      - generic [ref=e9]:
+        - generic [ref=e11]: 智
+        - generic [ref=e12]:
+          - generic [ref=e13]: 智评调薪
+          - generic [ref=e14]: 管理员工作区
+      - navigation [ref=e15]:
+        - link "角色首页" [ref=e16] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e17]
+          - text: 角色首页
+        - generic [ref=e20]:
+          - button "▼ 运营管理" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: ▼ 运营管理
+          - link "员工评估" [ref=e23] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e24]
+            - text: 员工评估
+          - link "创建周期" [ref=e27] [cursor=pointer]:
+            - /url: /cycles/create
+            - img [ref=e28]
+            - text: 创建周期
+          - link "调薪模拟" [ref=e32] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e33]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e35] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e36]
+            - text: 审批中心
+          - link "调薪资格" [ref=e39] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e40]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e42] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e43]
+            - text: 考勤管理
+          - link "共享申请" [ref=e46] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e47]
+            - text: 共享申请
+        - generic [ref=e52]:
+          - button "▼ 数据分析" [ref=e53] [cursor=pointer]:
+            - generic [ref=e54]: ▼ 数据分析
+          - link "组织看板" [ref=e55] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e56]
+            - text: 组织看板
+          - link "审计日志" [ref=e57] [cursor=pointer]:
+            - /url: /audit-log
+            - img [ref=e58]
+            - text: 审计日志
+        - generic [ref=e61]:
+          - button "▼ 系统管理" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: ▼ 系统管理
+          - link "平台账号" [ref=e64] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e65]
+            - text: 平台账号
+          - link "员工档案" [ref=e70] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e71]
+            - text: 员工档案
+          - link "导入中心" [ref=e73] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e74]
+            - text: 导入中心
+          - link "飞书配置" [ref=e77] [cursor=pointer]:
+            - /url: /feishu-config
+            - img [ref=e78]
+            - text: 飞书配置
+          - link "同步日志" [ref=e81] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e82]
+            - text: 同步日志
+          - link "API Key 管理" [ref=e85] [cursor=pointer]:
+            - /url: /api-key-management
+            - img [ref=e86]
+            - text: API Key 管理
+          - link "Webhook 管理" [ref=e88] [cursor=pointer]:
+            - /url: /webhook-management
+            - img [ref=e89]
+            - text: Webhook 管理
+        - link "账号设置" [ref=e92] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e93]
+          - text: 账号设置
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - generic [ref=e98]: A
+          - generic [ref=e99]:
+            - generic [ref=e100]: admin@aiplan.art
+            - generic [ref=e101]: 管理员
+        - generic [ref=e102]:
+          - link "首页" [ref=e103] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e104] [cursor=pointer]
+    - generic [ref=e105]:
+      - generic [ref=e107]:
+        - generic [ref=e108]:
+          - paragraph [ref=e109]: 管理员工作区
+          - heading "考勤管理" [level=1] [ref=e110]
+          - paragraph [ref=e111]: 查看员工考勤数据，手动或定时从飞书同步最新记录。
+        - generic [ref=e113]:
+          - button "增量同步" [ref=e114] [cursor=pointer]
+          - button "全量同步" [ref=e115] [cursor=pointer]
+          - link "飞书配置" [ref=e116] [cursor=pointer]:
+            - /url: /feishu-config
+      - generic [ref=e117]:
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - paragraph [ref=e121]: 同步状态
+            - generic [ref=e122]:
+              - generic [ref=e123]: 上次同步：2026-04-22 06:00
+              - generic [ref=e124]: 成功
+              - generic [ref=e125]: 同步 0 / 0 条记录
+          - button "刷新状态" [ref=e126] [cursor=pointer]
+        - generic [ref=e127]:
+          - textbox "按姓名/工号搜索" [ref=e128]
+          - textbox "部门筛选" [ref=e129]
+        - generic [ref=e130]:
+          - generic [ref=e131]:
+            - generic [ref=e132]:
+              - paragraph [ref=e133]: "00007"
+              - paragraph [ref=e134]: 2026-04
+            - generic [ref=e135]:
+              - paragraph [ref=e136]: 考勤概览
+              - generic [ref=e137]:
+                - generic "出勤率 98.0%" [ref=e138]:
+                  - paragraph [ref=e139]: 出勤率
+                  - paragraph [ref=e140]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e141]:
+                  - paragraph [ref=e142]: 缺勤天数
+                  - paragraph [ref=e143]: 0 天
+                - generic "加班时长 2.0 h" [ref=e144]:
+                  - paragraph [ref=e145]: 加班时长
+                  - paragraph [ref=e146]: 2.0 h
+                - generic "迟到次数 --" [ref=e147]:
+                  - paragraph [ref=e148]: 迟到次数
+                  - paragraph [ref=e149]: "--"
+                - generic "早退次数 0 次" [ref=e150]:
+                  - paragraph [ref=e151]: 早退次数
+                  - paragraph [ref=e152]: 0 次
+                - generic "请假天数 --" [ref=e153]:
+                  - paragraph [ref=e154]: 请假天数
+                  - paragraph [ref=e155]: "--"
+              - paragraph [ref=e156]: 数据截至：2026-04-16 15:22
+          - generic [ref=e157]:
+            - generic [ref=e158]:
+              - paragraph [ref=e159]: "00008"
+              - paragraph [ref=e160]: 2026-04
+            - generic [ref=e161]:
+              - paragraph [ref=e162]: 考勤概览
+              - generic [ref=e163]:
+                - generic "出勤率 98.0%" [ref=e164]:
+                  - paragraph [ref=e165]: 出勤率
+                  - paragraph [ref=e166]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e167]:
+                  - paragraph [ref=e168]: 缺勤天数
+                  - paragraph [ref=e169]: 0 天
+                - generic "加班时长 2.0 h" [ref=e170]:
+                  - paragraph [ref=e171]: 加班时长
+                  - paragraph [ref=e172]: 2.0 h
+                - generic "迟到次数 --" [ref=e173]:
+                  - paragraph [ref=e174]: 迟到次数
+                  - paragraph [ref=e175]: "--"
+                - generic "早退次数 0 次" [ref=e176]:
+                  - paragraph [ref=e177]: 早退次数
+                  - paragraph [ref=e178]: 0 次
+                - generic "请假天数 --" [ref=e179]:
+                  - paragraph [ref=e180]: 请假天数
+                  - paragraph [ref=e181]: "--"
+              - paragraph [ref=e182]: 数据截至：2026-04-16 15:22
+          - generic [ref=e183]:
+            - generic [ref=e184]:
+              - paragraph [ref=e185]: "00014"
+              - paragraph [ref=e186]: 2026-04
+            - generic [ref=e187]:
+              - paragraph [ref=e188]: 考勤概览
+              - generic [ref=e189]:
+                - generic "出勤率 98.0%" [ref=e190]:
+                  - paragraph [ref=e191]: 出勤率
+                  - paragraph [ref=e192]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e193]:
+                  - paragraph [ref=e194]: 缺勤天数
+                  - paragraph [ref=e195]: 0 天
+                - generic "加班时长 2.0 h" [ref=e196]:
+                  - paragraph [ref=e197]: 加班时长
+                  - paragraph [ref=e198]: 2.0 h
+                - generic "迟到次数 --" [ref=e199]:
+                  - paragraph [ref=e200]: 迟到次数
+                  - paragraph [ref=e201]: "--"
+                - generic "早退次数 0 次" [ref=e202]:
+                  - paragraph [ref=e203]: 早退次数
+                  - paragraph [ref=e204]: 0 次
+                - generic "请假天数 --" [ref=e205]:
+                  - paragraph [ref=e206]: 请假天数
+                  - paragraph [ref=e207]: "--"
+              - paragraph [ref=e208]: 数据截至：2026-04-16 15:22
+          - generic [ref=e209]:
+            - generic [ref=e210]:
+              - paragraph [ref=e211]: "00016"
+              - paragraph [ref=e212]: 2026-04
+            - generic [ref=e213]:
+              - paragraph [ref=e214]: 考勤概览
+              - generic [ref=e215]:
+                - generic "出勤率 98.0%" [ref=e216]:
+                  - paragraph [ref=e217]: 出勤率
+                  - paragraph [ref=e218]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e219]:
+                  - paragraph [ref=e220]: 缺勤天数
+                  - paragraph [ref=e221]: 0 天
+                - generic "加班时长 2.0 h" [ref=e222]:
+                  - paragraph [ref=e223]: 加班时长
+                  - paragraph [ref=e224]: 2.0 h
+                - generic "迟到次数 --" [ref=e225]:
+                  - paragraph [ref=e226]: 迟到次数
+                  - paragraph [ref=e227]: "--"
+                - generic "早退次数 0 次" [ref=e228]:
+                  - paragraph [ref=e229]: 早退次数
+                  - paragraph [ref=e230]: 0 次
+                - generic "请假天数 --" [ref=e231]:
+                  - paragraph [ref=e232]: 请假天数
+                  - paragraph [ref=e233]: "--"
+              - paragraph [ref=e234]: 数据截至：2026-04-16 15:22
+          - generic [ref=e235]:
+            - generic [ref=e236]:
+              - paragraph [ref=e237]: "00017"
+              - paragraph [ref=e238]: 2026-04
+            - generic [ref=e239]:
+              - paragraph [ref=e240]: 考勤概览
+              - generic [ref=e241]:
+                - generic "出勤率 98.0%" [ref=e242]:
+                  - paragraph [ref=e243]: 出勤率
+                  - paragraph [ref=e244]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e245]:
+                  - paragraph [ref=e246]: 缺勤天数
+                  - paragraph [ref=e247]: 0 天
+                - generic "加班时长 2.0 h" [ref=e248]:
+                  - paragraph [ref=e249]: 加班时长
+                  - paragraph [ref=e250]: 2.0 h
+                - generic "迟到次数 --" [ref=e251]:
+                  - paragraph [ref=e252]: 迟到次数
+                  - paragraph [ref=e253]: "--"
+                - generic "早退次数 0 次" [ref=e254]:
+                  - paragraph [ref=e255]: 早退次数
+                  - paragraph [ref=e256]: 0 次
+                - generic "请假天数 --" [ref=e257]:
+                  - paragraph [ref=e258]: 请假天数
+                  - paragraph [ref=e259]: "--"
+              - paragraph [ref=e260]: 数据截至：2026-04-16 15:22
+          - generic [ref=e261]:
+            - generic [ref=e262]:
+              - paragraph [ref=e263]: "00020"
+              - paragraph [ref=e264]: 2026-04
+            - generic [ref=e265]:
+              - paragraph [ref=e266]: 考勤概览
+              - generic [ref=e267]:
+                - generic "出勤率 98.0%" [ref=e268]:
+                  - paragraph [ref=e269]: 出勤率
+                  - paragraph [ref=e270]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e271]:
+                  - paragraph [ref=e272]: 缺勤天数
+                  - paragraph [ref=e273]: 0 天
+                - generic "加班时长 2.0 h" [ref=e274]:
+                  - paragraph [ref=e275]: 加班时长
+                  - paragraph [ref=e276]: 2.0 h
+                - generic "迟到次数 --" [ref=e277]:
+                  - paragraph [ref=e278]: 迟到次数
+                  - paragraph [ref=e279]: "--"
+                - generic "早退次数 0 次" [ref=e280]:
+                  - paragraph [ref=e281]: 早退次数
+                  - paragraph [ref=e282]: 0 次
+                - generic "请假天数 --" [ref=e283]:
+                  - paragraph [ref=e284]: 请假天数
+                  - paragraph [ref=e285]: "--"
+              - paragraph [ref=e286]: 数据截至：2026-04-16 15:22
+          - generic [ref=e287]:
+            - generic [ref=e288]:
+              - paragraph [ref=e289]: "00023"
+              - paragraph [ref=e290]: 2026-04
+            - generic [ref=e291]:
+              - paragraph [ref=e292]: 考勤概览
+              - generic [ref=e293]:
+                - generic "出勤率 98.0%" [ref=e294]:
+                  - paragraph [ref=e295]: 出勤率
+                  - paragraph [ref=e296]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e297]:
+                  - paragraph [ref=e298]: 缺勤天数
+                  - paragraph [ref=e299]: 0 天
+                - generic "加班时长 2.0 h" [ref=e300]:
+                  - paragraph [ref=e301]: 加班时长
+                  - paragraph [ref=e302]: 2.0 h
+                - generic "迟到次数 --" [ref=e303]:
+                  - paragraph [ref=e304]: 迟到次数
+                  - paragraph [ref=e305]: "--"
+                - generic "早退次数 0 次" [ref=e306]:
+                  - paragraph [ref=e307]: 早退次数
+                  - paragraph [ref=e308]: 0 次
+                - generic "请假天数 --" [ref=e309]:
+                  - paragraph [ref=e310]: 请假天数
+                  - paragraph [ref=e311]: "--"
+              - paragraph [ref=e312]: 数据截至：2026-04-16 15:22
+          - generic [ref=e313]:
+            - generic [ref=e314]:
+              - paragraph [ref=e315]: "00027"
+              - paragraph [ref=e316]: 2026-04
+            - generic [ref=e317]:
+              - paragraph [ref=e318]: 考勤概览
+              - generic [ref=e319]:
+                - generic "出勤率 98.0%" [ref=e320]:
+                  - paragraph [ref=e321]: 出勤率
+                  - paragraph [ref=e322]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e323]:
+                  - paragraph [ref=e324]: 缺勤天数
+                  - paragraph [ref=e325]: 0 天
+                - generic "加班时长 2.0 h" [ref=e326]:
+                  - paragraph [ref=e327]: 加班时长
+                  - paragraph [ref=e328]: 2.0 h
+                - generic "迟到次数 --" [ref=e329]:
+                  - paragraph [ref=e330]: 迟到次数
+                  - paragraph [ref=e331]: "--"
+                - generic "早退次数 0 次" [ref=e332]:
+                  - paragraph [ref=e333]: 早退次数
+                  - paragraph [ref=e334]: 0 次
+                - generic "请假天数 --" [ref=e335]:
+                  - paragraph [ref=e336]: 请假天数
+                  - paragraph [ref=e337]: "--"
+              - paragraph [ref=e338]: 数据截至：2026-04-16 15:22
+          - generic [ref=e339]:
+            - generic [ref=e340]:
+              - paragraph [ref=e341]: "00034"
+              - paragraph [ref=e342]: 2026-04
+            - generic [ref=e343]:
+              - paragraph [ref=e344]: 考勤概览
+              - generic [ref=e345]:
+                - generic "出勤率 98.0%" [ref=e346]:
+                  - paragraph [ref=e347]: 出勤率
+                  - paragraph [ref=e348]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e349]:
+                  - paragraph [ref=e350]: 缺勤天数
+                  - paragraph [ref=e351]: 0 天
+                - generic "加班时长 2.0 h" [ref=e352]:
+                  - paragraph [ref=e353]: 加班时长
+                  - paragraph [ref=e354]: 2.0 h
+                - generic "迟到次数 --" [ref=e355]:
+                  - paragraph [ref=e356]: 迟到次数
+                  - paragraph [ref=e357]: "--"
+                - generic "早退次数 0 次" [ref=e358]:
+                  - paragraph [ref=e359]: 早退次数
+                  - paragraph [ref=e360]: 0 次
+                - generic "请假天数 --" [ref=e361]:
+                  - paragraph [ref=e362]: 请假天数
+                  - paragraph [ref=e363]: "--"
+              - paragraph [ref=e364]: 数据截至：2026-04-16 15:22
+          - generic [ref=e365]:
+            - generic [ref=e366]:
+              - paragraph [ref=e367]: "00044"
+              - paragraph [ref=e368]: 2026-04
+            - generic [ref=e369]:
+              - paragraph [ref=e370]: 考勤概览
+              - generic [ref=e371]:
+                - generic "出勤率 98.0%" [ref=e372]:
+                  - paragraph [ref=e373]: 出勤率
+                  - paragraph [ref=e374]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e375]:
+                  - paragraph [ref=e376]: 缺勤天数
+                  - paragraph [ref=e377]: 0 天
+                - generic "加班时长 2.0 h" [ref=e378]:
+                  - paragraph [ref=e379]: 加班时长
+                  - paragraph [ref=e380]: 2.0 h
+                - generic "迟到次数 --" [ref=e381]:
+                  - paragraph [ref=e382]: 迟到次数
+                  - paragraph [ref=e383]: "--"
+                - generic "早退次数 0 次" [ref=e384]:
+                  - paragraph [ref=e385]: 早退次数
+                  - paragraph [ref=e386]: 0 次
+                - generic "请假天数 --" [ref=e387]:
+                  - paragraph [ref=e388]: 请假天数
+                  - paragraph [ref=e389]: "--"
+              - paragraph [ref=e390]: 数据截至：2026-04-16 15:22
+          - generic [ref=e391]:
+            - generic [ref=e392]:
+              - paragraph [ref=e393]: "00051"
+              - paragraph [ref=e394]: 2026-04
+            - generic [ref=e395]:
+              - paragraph [ref=e396]: 考勤概览
+              - generic [ref=e397]:
+                - generic "出勤率 98.0%" [ref=e398]:
+                  - paragraph [ref=e399]: 出勤率
+                  - paragraph [ref=e400]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e401]:
+                  - paragraph [ref=e402]: 缺勤天数
+                  - paragraph [ref=e403]: 0 天
+                - generic "加班时长 2.0 h" [ref=e404]:
+                  - paragraph [ref=e405]: 加班时长
+                  - paragraph [ref=e406]: 2.0 h
+                - generic "迟到次数 --" [ref=e407]:
+                  - paragraph [ref=e408]: 迟到次数
+                  - paragraph [ref=e409]: "--"
+                - generic "早退次数 0 次" [ref=e410]:
+                  - paragraph [ref=e411]: 早退次数
+                  - paragraph [ref=e412]: 0 次
+                - generic "请假天数 --" [ref=e413]:
+                  - paragraph [ref=e414]: 请假天数
+                  - paragraph [ref=e415]: "--"
+              - paragraph [ref=e416]: 数据截至：2026-04-16 15:22
+          - generic [ref=e417]:
+            - generic [ref=e418]:
+              - paragraph [ref=e419]: "00065"
+              - paragraph [ref=e420]: 2026-04
+            - generic [ref=e421]:
+              - paragraph [ref=e422]: 考勤概览
+              - generic [ref=e423]:
+                - generic "出勤率 98.0%" [ref=e424]:
+                  - paragraph [ref=e425]: 出勤率
+                  - paragraph [ref=e426]: 98.0%
+                - generic "缺勤天数 0 天" [ref=e427]:
+                  - paragraph [ref=e428]: 缺勤天数
+                  - paragraph [ref=e429]: 0 天
+                - generic "加班时长 2.0 h" [ref=e430]:
+                  - paragraph [ref=e431]: 加班时长
+                  - paragraph [ref=e432]: 2.0 h
+                - generic "迟到次数 --" [ref=e433]:
+                  - paragraph [ref=e434]: 迟到次数
+                  - paragraph [ref=e435]: "--"
+                - generic "早退次数 0 次" [ref=e436]:
+                  - paragraph [ref=e437]: 早退次数
+                  - paragraph [ref=e438]: 0 次
+                - generic "请假天数 --" [ref=e439]:
+                  - paragraph [ref=e440]: 请假天数
+                  - paragraph [ref=e441]: "--"
+              - paragraph [ref=e442]: 数据截至：2026-04-16 15:22
+        - generic [ref=e443]:
+          - button "上一页" [disabled] [ref=e444] [cursor=pointer]
+          - generic [ref=e445]: 第 1 / 35 页 (共 416 条)
+          - button "下一页" [ref=e446] [cursor=pointer]

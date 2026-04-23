@@ -148,14 +148,27 @@ class SalaryService:
             )
         return history_items
 
-    def _estimate_current_salary(self, job_level: str) -> Decimal:
+    def _estimate_current_salary(self, employee) -> Decimal:
+        """优先使用员工主档真实薪资（基本 + 绩效 + 项目津贴；实习生用实习生月薪），
+        档案未录时回退 job_level 硬估值。"""
+        real_parts = [
+            getattr(employee, 'base_salary', None),
+            getattr(employee, 'performance_salary', None),
+            getattr(employee, 'project_allowance', None),
+        ]
+        real_total = sum((p for p in real_parts if p is not None), Decimal('0'))
+        if real_total > 0:
+            return real_total.quantize(Decimal('0.01'))
+        intern = getattr(employee, 'intern_monthly_salary', None)
+        if intern is not None and intern > 0:
+            return Decimal(intern).quantize(Decimal('0.01'))
         salary_map = {
             'P4': Decimal('35000.00'),
             'P5': Decimal('45000.00'),
             'P6': Decimal('60000.00'),
             'P7': Decimal('80000.00'),
         }
-        return salary_map.get(job_level, Decimal('30000.00'))
+        return salary_map.get(getattr(employee, 'job_level', ''), Decimal('30000.00'))
 
     def _certification_bonus(self, employee_id: str) -> float:
         now = datetime.now(timezone.utc)
@@ -316,7 +329,7 @@ class SalaryService:
         existing = self.get_recommendation_by_evaluation(evaluation_id)
         submission = evaluation.submission
         employee = submission.employee
-        current_salary = self._estimate_current_salary(employee.job_level)
+        current_salary = self._estimate_current_salary(employee)
         certification_bonus = self._certification_bonus(employee.id)
         result = self.engine.calculate(
             ai_level=evaluation.ai_level,

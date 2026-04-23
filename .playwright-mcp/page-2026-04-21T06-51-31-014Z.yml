@@ -1,0 +1,136 @@
+- main [ref=e3]:
+  - generic [ref=e4]:
+    - complementary [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e9]: 智
+        - generic [ref=e10]:
+          - generic [ref=e11]: 智评调薪
+          - generic [ref=e12]: 员工工作区
+      - navigation [ref=e13]:
+        - link "角色首页" [ref=e14] [cursor=pointer]:
+          - /url: /my-review
+          - img [ref=e15]
+          - text: 角色首页
+        - link "个人评估中心" [ref=e18] [cursor=pointer]:
+          - /url: /my-review
+          - img [ref=e19]
+          - text: 个人评估中心
+        - link "共享申请" [ref=e22] [cursor=pointer]:
+          - /url: /sharing-requests
+          - img [ref=e23]
+          - text: 共享申请
+        - link "账号设置" [ref=e28] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e29]
+          - text: 账号设置
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - generic [ref=e34]: U
+          - generic [ref=e35]:
+            - generic [ref=e36]: user@test.com
+            - generic [ref=e37]: 员工
+        - generic [ref=e38]:
+          - link "首页" [ref=e39] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e40] [cursor=pointer]
+    - generic [ref=e41]:
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - paragraph [ref=e45]: 员工工作区
+          - heading "个人评估中心" [level=1] [ref=e46]
+          - paragraph [ref=e47]: 维护个人材料并查看评估进展。
+        - generic [ref=e49]:
+          - generic [ref=e50]: 当前角色：员工
+          - link "账号设置" [ref=e51] [cursor=pointer]:
+            - /url: /settings
+      - generic [ref=e52]:
+        - paragraph [ref=e53]: 正在加载个人评估中心...
+        - generic [ref=e54]:
+          - article [ref=e55]:
+            - paragraph [ref=e56]: 所属部门
+            - paragraph [ref=e57]: 屈臣氏业务群
+            - paragraph [ref=e58]: 当前所属组织单元。
+          - article [ref=e59]:
+            - paragraph [ref=e60]: 岗位族
+            - paragraph [ref=e61]: 媒介运营
+            - paragraph [ref=e62]: 当前岗位序列。
+          - article [ref=e63]:
+            - paragraph [ref=e64]: 当前周期状态
+            - paragraph [ref=e65]: 未开始
+            - paragraph [ref=e66]: 当前选中周期的提交状态。
+          - article [ref=e67]:
+            - paragraph [ref=e68]: 已提取证据
+            - paragraph [ref=e69]: 0 条
+            - paragraph [ref=e70]: 系统已整理出的证据摘要数量。
+        - generic [ref=e71]:
+          - article [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]:
+                - paragraph [ref=e75]: 当前周期
+                - heading "材料与提交概览" [level=2] [ref=e76]
+              - generic [ref=e77]:
+                - text: 切换评估周期
+                - combobox "切换评估周期" [ref=e78]:
+                  - option "2026 Q1 AI能力评估" [selected]
+            - generic [ref=e79]:
+              - generic [ref=e80]:
+                - paragraph [ref=e81]: 当前周期
+                - paragraph [ref=e82]: 2026 Q1 AI能力评估
+              - generic [ref=e83]:
+                - paragraph [ref=e84]: 提交状态
+                - generic [ref=e85]: 未生成
+              - generic [ref=e86]:
+                - paragraph [ref=e87]: 最近提交时间
+                - paragraph [ref=e88]: 待提交
+              - generic [ref=e89]:
+                - paragraph [ref=e90]: 当前提交 ID
+                - paragraph [ref=e91]: 尚未创建
+            - generic [ref=e92]:
+              - generic [ref=e93]:
+                - paragraph [ref=e94]: 员工自述
+                - paragraph [ref=e95]: 当前还没有填写员工自述。
+              - generic [ref=e96]:
+                - paragraph [ref=e97]: 主管评语
+                - paragraph [ref=e98]: 当前还没有主管评语。
+          - article [ref=e99]:
+            - generic [ref=e100]:
+              - paragraph [ref=e101]: 我的历史提交
+              - heading "周期提交记录" [level=2] [ref=e102]
+            - paragraph [ref=e104]: 当前还没有你的提交记录。
+        - generic [ref=e105]:
+          - generic [ref=e106]:
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - generic [ref=e110]:
+                  - paragraph [ref=e111]: 材料上传
+                  - heading "上传员工材料" [level=3] [ref=e112]
+                  - paragraph [ref=e113]: 支持本地文件上传，也可以直接导入 GitHub 仓库、分支目录或文件链接做解析。上传后文件可继续替换或移除，当前单文件上限为 200MB。
+                - generic [ref=e114] [cursor=pointer]: 选择文件
+              - button "选择文件" [ref=e115]
+              - generic [ref=e116]:
+                - textbox "粘贴 GitHub 链接，例如仓库、目录或文件地址" [ref=e117]
+                - button "导入 GitHub 链接" [disabled] [ref=e118]
+              - generic [ref=e119]:
+                - generic [ref=e120] [cursor=pointer]: PPT
+                - generic [ref=e121] [cursor=pointer]: PDF
+                - generic [ref=e122] [cursor=pointer]: DOCX
+                - generic [ref=e123] [cursor=pointer]: PNG
+                - generic [ref=e124] [cursor=pointer]: JPG
+                - generic [ref=e125] [cursor=pointer]: ZIP
+                - generic [ref=e126] [cursor=pointer]: Markdown
+                - generic [ref=e127] [cursor=pointer]: Excel
+                - generic [ref=e128] [cursor=pointer]: 代码
+                - generic [ref=e129] [cursor=pointer]: GitHub 仓库/目录/文件
+              - paragraph [ref=e130]: 如果仍然提示超限，请先压缩图片、精简导出页数，或把大型项目材料拆分成多个文件上传。
+            - generic [ref=e132]:
+              - generic [ref=e134]:
+                - paragraph [ref=e135]: 材料列表
+                - heading "上传文件" [level=3] [ref=e136]
+              - paragraph [ref=e137]: 当前还没有上传任何材料。
+          - article [ref=e138]:
+            - generic [ref=e139]:
+              - generic [ref=e140]:
+                - paragraph [ref=e141]: 证据摘要
+                - heading "AI 提取结果" [level=2] [ref=e142]
+              - generic [ref=e143]: 0 条
+            - paragraph [ref=e145]: 当前还没有证据摘要。上传文件后，系统会自动解析并整理关键证据。

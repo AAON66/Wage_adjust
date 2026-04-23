@@ -1,0 +1,164 @@
+- main [ref=e43]:
+  - generic [ref=e44]:
+    - complementary [ref=e45]:
+      - generic [ref=e47]:
+        - generic [ref=e49]: 智
+        - generic [ref=e50]:
+          - generic [ref=e51]: 智评调薪
+          - generic [ref=e52]: HRBP工作区
+      - navigation [ref=e53]:
+        - link "角色首页" [ref=e54] [cursor=pointer]:
+          - /url: /workspace
+          - img [ref=e55]
+          - text: 角色首页
+        - generic [ref=e58]:
+          - button "▼ 运营管理" [ref=e59] [cursor=pointer]:
+            - generic [ref=e60]: ▼ 运营管理
+          - link "员工评估" [ref=e61] [cursor=pointer]:
+            - /url: /employees
+            - img [ref=e62]
+            - text: 员工评估
+          - link "调薪模拟" [ref=e65] [cursor=pointer]:
+            - /url: /salary-simulator
+            - img [ref=e66]
+            - text: 调薪模拟
+          - link "审批中心" [ref=e68] [cursor=pointer]:
+            - /url: /approvals
+            - img [ref=e69]
+            - text: 审批中心
+          - link "调薪资格" [ref=e72] [cursor=pointer]:
+            - /url: /eligibility
+            - img [ref=e73]
+            - text: 调薪资格
+          - link "考勤管理" [ref=e75] [cursor=pointer]:
+            - /url: /attendance
+            - img [ref=e76]
+            - text: 考勤管理
+          - link "共享申请" [ref=e79] [cursor=pointer]:
+            - /url: /sharing-requests
+            - img [ref=e80]
+            - text: 共享申请
+          - link "绩效管理" [ref=e85] [cursor=pointer]:
+            - /url: /performance
+            - img [ref=e86]
+            - text: 绩效管理
+        - generic [ref=e87]:
+          - button "▼ 数据分析" [ref=e88] [cursor=pointer]:
+            - generic [ref=e89]: ▼ 数据分析
+          - link "组织看板" [ref=e90] [cursor=pointer]:
+            - /url: /dashboard
+            - img [ref=e91]
+            - text: 组织看板
+        - generic [ref=e92]:
+          - button "▼ 系统管理" [ref=e93] [cursor=pointer]:
+            - generic [ref=e94]: ▼ 系统管理
+          - link "平台账号" [ref=e95] [cursor=pointer]:
+            - /url: /user-admin
+            - img [ref=e96]
+            - text: 平台账号
+          - link "员工档案" [ref=e101] [cursor=pointer]:
+            - /url: /employee-admin
+            - img [ref=e102]
+            - text: 员工档案
+          - link "导入中心" [ref=e104] [cursor=pointer]:
+            - /url: /import-center
+            - img [ref=e105]
+            - text: 导入中心
+          - link "同步日志" [ref=e108] [cursor=pointer]:
+            - /url: /feishu/sync-logs
+            - img [ref=e109]
+            - text: 同步日志
+        - link "账号设置" [ref=e112] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e113]
+          - text: 账号设置
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - generic [ref=e118]: H
+          - generic [ref=e119]:
+            - generic [ref=e120]: hrbp@test.com
+            - generic [ref=e121]: HRBP
+        - generic [ref=e122]:
+          - link "首页" [ref=e123] [cursor=pointer]:
+            - /url: /
+          - button "退出" [ref=e124] [cursor=pointer]
+    - generic [ref=e125]:
+      - generic [ref=e127]:
+        - generic [ref=e128]:
+          - paragraph [ref=e129]: HRBP工作区
+          - heading "HRBP工作台" [level=1] [ref=e130]
+          - paragraph [ref=e131]: 查看当前角色可用模块。
+        - generic [ref=e133]: 当前身份：HRBP
+      - generic [ref=e134]:
+        - generic [ref=e135]: 您尚未绑定员工信息，部分功能受限。
+        - link "立即绑定" [ref=e136] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e137]:
+        - generic [ref=e138]:
+          - article [ref=e139]:
+            - paragraph [ref=e140]: 当前角色
+            - paragraph [ref=e141]: HRBP
+            - paragraph [ref=e142]: 你看到的是对应职责下的专属工作区。
+          - article [ref=e143]:
+            - paragraph [ref=e144]: 可访问模块
+            - paragraph [ref=e145]: "12"
+            - paragraph [ref=e146]: 只展示当前角色可实际使用的页面。
+          - article [ref=e147]:
+            - paragraph [ref=e148]: 工作重点
+            - paragraph [ref=e149]: 协同运营
+            - paragraph [ref=e150]: 重点关注复核质量、审批推进与组织状态。
+        - generic [ref=e151]:
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - paragraph [ref=e154]: 功能入口
+              - heading "角色可用功能" [level=2] [ref=e155]
+            - paragraph [ref=e156]: 按职责划分，不展示无关模块
+          - generic [ref=e157]:
+            - link "员工评估 查看评估进度与复核结果。" [ref=e158] [cursor=pointer]:
+              - /url: /employees
+              - heading "员工评估" [level=3] [ref=e159]
+              - paragraph [ref=e160]: 查看评估进度与复核结果。
+            - link "调薪模拟 查看预算占用与建议方案。" [ref=e161] [cursor=pointer]:
+              - /url: /salary-simulator
+              - heading "调薪模拟" [level=3] [ref=e162]
+              - paragraph [ref=e163]: 查看预算占用与建议方案。
+            - link "审批中心 处理待审批建议。" [ref=e164] [cursor=pointer]:
+              - /url: /approvals
+              - heading "审批中心" [level=3] [ref=e165]
+              - paragraph [ref=e166]: 处理待审批建议。
+            - link "调薪资格 查看资格状态、特殊申请与数据导入管理。" [ref=e167] [cursor=pointer]:
+              - /url: /eligibility
+              - heading "调薪资格" [level=3] [ref=e168]
+              - paragraph [ref=e169]: 查看资格状态、特殊申请与数据导入管理。
+            - link "考勤管理 查看考勤数据与同步状态。" [ref=e170] [cursor=pointer]:
+              - /url: /attendance
+              - heading "考勤管理" [level=3] [ref=e171]
+              - paragraph [ref=e172]: 查看考勤数据与同步状态。
+            - link "共享申请 查看和管理文件共享申请" [ref=e173] [cursor=pointer]:
+              - /url: /sharing-requests
+              - heading "共享申请" [level=3] [ref=e174]
+              - paragraph [ref=e175]: 查看和管理文件共享申请
+            - link "绩效管理 HR 端：导入绩效记录、查看档次分布、手动触发重算。" [ref=e176] [cursor=pointer]:
+              - /url: /performance
+              - heading "绩效管理" [level=3] [ref=e177]
+              - paragraph [ref=e178]: HR 端：导入绩效记录、查看档次分布、手动触发重算。
+            - link "组织看板 查看组织分布与人才表现。" [ref=e179] [cursor=pointer]:
+              - /url: /dashboard
+              - heading "组织看板" [level=3] [ref=e180]
+              - paragraph [ref=e181]: 查看组织分布与人才表现。
+            - link "平台账号 管理员工账号。" [ref=e182] [cursor=pointer]:
+              - /url: /user-admin
+              - heading "平台账号" [level=3] [ref=e183]
+              - paragraph [ref=e184]: 管理员工账号。
+            - link "员工档案 处理档案、绑定、导入和手册。" [ref=e185] [cursor=pointer]:
+              - /url: /employee-admin
+              - heading "员工档案" [level=3] [ref=e186]
+              - paragraph [ref=e187]: 处理档案、绑定、导入和手册。
+            - link "导入中心 模板下载、批量导入与结果追踪。" [ref=e188] [cursor=pointer]:
+              - /url: /import-center
+              - heading "导入中心" [level=3] [ref=e189]
+              - paragraph [ref=e190]: 模板下载、批量导入与结果追踪。
+            - link "同步日志 查看飞书同步结果与明细。" [ref=e191] [cursor=pointer]:
+              - /url: /feishu/sync-logs
+              - heading "同步日志" [level=3] [ref=e192]
+              - paragraph [ref=e193]: 查看飞书同步结果与明细。

@@ -66,6 +66,7 @@ Output: 1 个新 Pydantic schema（4 字段）+ 1 个新 Service 方法 + 7+ 个
 @backend/app/services/performance_service.py
 @backend/app/models/performance_tier_snapshot.py
 @backend/tests/test_services/test_performance_service.py
+@backend/tests/conftest.py
 @CLAUDE.md
 
 <interfaces>
@@ -104,6 +105,18 @@ def get_tier_summary(self, year: int) -> TierSummaryResponse | None:
     )
     ...
 ```
+
+From backend/tests/conftest.py（**关键 fixture 约定**，Task 3 必须遵守）:
+```python
+@pytest.fixture()
+def db_session() -> Generator[Session, None, None]:
+    """SQLite in-memory + StaticPool；每个测试独立 schema。"""
+
+@pytest.fixture()
+def employee_factory(db_session: Session):
+    """构造 Employee；返回 callable，可重复调用创建多人。"""
+```
+**fixture 名是 `db_session`（不是 `db`）**；现有 `test_performance_service.py` 中全部 test 函数签名均为 `def test_xxx(db_session, employee_factory)` 或 `def test_xxx(db_session)`。Task 3 必须与此一致。
 </interfaces>
 </context>
 
@@ -307,30 +320,45 @@ class MyTierResponse(BaseModel):
   <name>Task 3: Service 层 pytest 覆盖 ≥ 7 用例</name>
   <files>backend/tests/test_services/test_performance_service.py</files>
   <read_first>
-    - backend/tests/test_services/test_performance_service.py（现有 fixtures + `_make_records` helper + SQLite 会话构造模式）
+    - backend/tests/test_services/test_performance_service.py（现有 fixtures + `_make_records` helper + SQLite 会话构造模式；**全文件所有现有测试使用 `db_session` 作为 fixture 参数名** —— 见 line 74/84/118/125/133/156/167/176）
+    - backend/tests/conftest.py（line 52 `def db_session()` + line 71 `def employee_factory(db_session)`；这是整个 `backend/tests/` 的约定，**fixture 名就叫 `db_session`，不是 `db`**）
     - backend/app/services/performance_service.py（Task 2 新增 get_my_tier）
     - backend/app/models/performance_tier_snapshot.py（字段 + 唯一约束）
     - .planning/phases/35-employee-self-service-experience/35-CONTEXT.md（D-13 + specifics line 224）
   </read_first>
   <behavior>
     - 覆盖全部 4 业务分支 + fallback + str(UUID) lookup + invariants
+    - 所有测试函数参数名必须是 `db_session, employee_factory`（与项目 conftest 约定一致）
   </behavior>
   <action>
-在 `backend/tests/test_services/test_performance_service.py` 文件末尾追加一个新 section（加分隔注释 `# ==== Phase 35 ESELF-03: get_my_tier 用例 ====`）并写入以下 ≥ 7 个测试函数。复用文件中已有的 session / employee_factory / `_make_records` 等 fixture（完整 fixture 名称看文件顶部）。
+在 `backend/tests/test_services/test_performance_service.py` 文件末尾追加一个新 section（加分隔注释 `# ==== Phase 35 ESELF-03: get_my_tier 用例 ====`）并写入以下 ≥ 7 个测试函数。
 
-**若文件当前使用 pytest fixture 风格 + SQLAlchemy 会话，照搬现有风格（不引入新的 conftest.py）。** 具体用例：
+**Fixture 约定（关键）：**
+全文件所有已有测试函数的 fixture 参数名都是 `db_session`（见现有 `test_create_record_writes_department_snapshot(db_session, employee_factory)` @line 74 等）。**Task 3 的所有新测试函数也必须用 `db_session`，不得写 `db`。** DB 操作用 `db_session.add(...)` / `db_session.commit()` / `db_session.refresh(...)`；Service 构造用 `PerformanceService(db_session)`。
+
+**Imports 提升（不做内联 import）：**
+本 section 需要 `datetime` 和 `UUID`。**优先方案**：在文件顶部已有的 import 区（line 11-27 附近）追加：
+```python
+from datetime import date, datetime   # 若只有 date，追加 datetime；若已存在则跳过
+from uuid import UUID                  # 新增，若已有则跳过
+```
+并在文件顶部的 import 区或本 section 开头**一次性**（不是每个函数里重复）补一行：
+```python
+from backend.app.schemas.performance import MyTierResponse
+```
+section 内部**禁止**出现 `from datetime import datetime` / `from uuid import UUID` / `from backend.app.schemas.performance import MyTierResponse` 的重复 inline import（每个 test 内部不得再 import）。
+
+具体 section 内容：
 
 ```python
 # ==== Phase 35 ESELF-03: get_my_tier 用例 ====
-
-from uuid import uuid4, UUID
-from backend.app.schemas.performance import MyTierResponse
+# NOTE: datetime / UUID / MyTierResponse 已在文件顶部 import 区提升，section 内不再 inline import。
 
 
-def test_get_my_tier_returns_no_snapshot_when_db_empty(db, employee_factory):
+def test_get_my_tier_returns_no_snapshot_when_db_empty(db_session, employee_factory):
     """分支 A：全库无任何 PerformanceTierSnapshot → reason='no_snapshot'。"""
-    emp = employee_factory(employee_no='E001')
-    service = PerformanceService(db)
+    emp = employee_factory(employee_no='E35001')
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert isinstance(result, MyTierResponse)
     assert result.year is None
@@ -339,11 +367,10 @@ def test_get_my_tier_returns_no_snapshot_when_db_empty(db, employee_factory):
     assert result.data_updated_at is None
 
 
-def test_get_my_tier_returns_insufficient_sample_when_flag_true(db, employee_factory):
+def test_get_my_tier_returns_insufficient_sample_when_flag_true(db_session, employee_factory):
     """分支 B：当前年快照 insufficient_sample=True → reason='insufficient_sample'，tier=None。"""
-    from datetime import datetime
     current_year = datetime.now().year
-    emp = employee_factory(employee_no='E002')
+    emp = employee_factory(employee_no='E35002')
     snap = PerformanceTierSnapshot(
         year=current_year,
         tiers_json={},
@@ -353,8 +380,10 @@ def test_get_my_tier_returns_insufficient_sample_when_flag_true(db, employee_fac
         actual_distribution_json={},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit(); db.refresh(snap)
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    db_session.refresh(snap)
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert result.year == current_year
     assert result.tier is None
@@ -363,11 +392,10 @@ def test_get_my_tier_returns_insufficient_sample_when_flag_true(db, employee_fac
     assert result.data_updated_at == snap.updated_at
 
 
-def test_get_my_tier_returns_tier_when_employee_in_tiers_json(db, employee_factory):
+def test_get_my_tier_returns_tier_when_employee_in_tiers_json(db_session, employee_factory):
     """分支 C：当前年快照命中 + tiers_json[str(uuid)] == 2 → tier=2, reason=None。"""
-    from datetime import datetime
     current_year = datetime.now().year
-    emp = employee_factory(employee_no='E003')
+    emp = employee_factory(employee_no='E35003')
     snap = PerformanceTierSnapshot(
         year=current_year,
         tiers_json={str(emp.id): 2},
@@ -377,19 +405,19 @@ def test_get_my_tier_returns_tier_when_employee_in_tiers_json(db, employee_facto
         actual_distribution_json={'1': 0.2, '2': 0.7, '3': 0.1},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit()
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert result.year == current_year
     assert result.tier == 2
     assert result.reason is None
 
 
-def test_get_my_tier_accepts_uuid_object_and_stringifies_key(db, employee_factory):
+def test_get_my_tier_accepts_uuid_object_and_stringifies_key(db_session, employee_factory):
     """str(UUID) lookup：调用方传 UUID 对象时，内部 str(employee_id) 匹配 tiers_json str key。"""
-    from datetime import datetime
     current_year = datetime.now().year
-    emp = employee_factory(employee_no='E004')
+    emp = employee_factory(employee_no='E35004')
     emp_uuid = UUID(emp.id) if isinstance(emp.id, str) else emp.id
     snap = PerformanceTierSnapshot(
         year=current_year,
@@ -400,8 +428,9 @@ def test_get_my_tier_accepts_uuid_object_and_stringifies_key(db, employee_factor
         actual_distribution_json={'1': 0.25, '2': 0.65, '3': 0.10},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit()
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
     # 传 UUID 对象也应命中
     result_uuid = service.get_my_tier(emp_uuid)
     assert result_uuid.tier == 1
@@ -410,12 +439,11 @@ def test_get_my_tier_accepts_uuid_object_and_stringifies_key(db, employee_factor
     assert result_str.tier == 1
 
 
-def test_get_my_tier_returns_not_ranked_when_key_missing(db, employee_factory):
+def test_get_my_tier_returns_not_ranked_when_key_missing(db_session, employee_factory):
     """分支 D-1：key 不存在于 tiers_json → reason='not_ranked'。"""
-    from datetime import datetime
     current_year = datetime.now().year
-    emp = employee_factory(employee_no='E005')
-    other_emp = employee_factory(employee_no='E006')
+    emp = employee_factory(employee_no='E35005')
+    other_emp = employee_factory(employee_no='E35006')
     snap = PerformanceTierSnapshot(
         year=current_year,
         tiers_json={str(other_emp.id): 1},  # 仅 other，不含 emp
@@ -425,8 +453,9 @@ def test_get_my_tier_returns_not_ranked_when_key_missing(db, employee_factory):
         actual_distribution_json={'1': 0.2, '2': 0.7, '3': 0.1},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit()
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert result.year == current_year
     assert result.tier is None
@@ -434,11 +463,10 @@ def test_get_my_tier_returns_not_ranked_when_key_missing(db, employee_factory):
     assert result.data_updated_at is not None
 
 
-def test_get_my_tier_returns_not_ranked_when_value_is_none(db, employee_factory):
+def test_get_my_tier_returns_not_ranked_when_value_is_none(db_session, employee_factory):
     """分支 D-2：tiers_json[str(uuid)] is None → reason='not_ranked'。"""
-    from datetime import datetime
     current_year = datetime.now().year
-    emp = employee_factory(employee_no='E007')
+    emp = employee_factory(employee_no='E35007')
     snap = PerformanceTierSnapshot(
         year=current_year,
         tiers_json={str(emp.id): None},
@@ -448,19 +476,19 @@ def test_get_my_tier_returns_not_ranked_when_value_is_none(db, employee_factory)
         actual_distribution_json={},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit()
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert result.tier is None
     assert result.reason == 'not_ranked'
 
 
-def test_get_my_tier_falls_back_to_latest_year_when_current_missing(db, employee_factory):
+def test_get_my_tier_falls_back_to_latest_year_when_current_missing(db_session, employee_factory):
     """分支 E (fallback)：当前年无快照 → 使用 ORDER BY year DESC 最新年快照。"""
-    from datetime import datetime
     current_year = datetime.now().year
     older_year = current_year - 2  # 绝对不等于 current_year
-    emp = employee_factory(employee_no='E008')
+    emp = employee_factory(employee_no='E35008')
     snap = PerformanceTierSnapshot(
         year=older_year,
         tiers_json={str(emp.id): 3},
@@ -470,19 +498,19 @@ def test_get_my_tier_falls_back_to_latest_year_when_current_missing(db, employee
         actual_distribution_json={'1': 0.2, '2': 0.7, '3': 0.1},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit()
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert result.year == older_year  # ← fallback 到旧年
     assert result.tier == 3
     assert result.reason is None
 
 
-def test_get_my_tier_invariant_tier_implies_reason_none(db, employee_factory):
+def test_get_my_tier_invariant_tier_implies_reason_none(db_session, employee_factory):
     """不变式：tier in {1,2,3} → reason 必为 None（D-04 契约）。"""
-    from datetime import datetime
     current_year = datetime.now().year
-    emp = employee_factory(employee_no='E009')
+    emp = employee_factory(employee_no='E35009')
     snap = PerformanceTierSnapshot(
         year=current_year,
         tiers_json={str(emp.id): 2},
@@ -492,21 +520,22 @@ def test_get_my_tier_invariant_tier_implies_reason_none(db, employee_factory):
         actual_distribution_json={},
         skipped_invalid_grades=0,
     )
-    db.add(snap); db.commit()
-    service = PerformanceService(db)
+    db_session.add(snap)
+    db_session.commit()
+    service = PerformanceService(db_session)
     result = service.get_my_tier(str(emp.id))
     assert result.tier in {1, 2, 3}
     assert result.reason is None, f'tier={result.tier} 时 reason 必须为 None'
 ```
 
-**重要兼容性说明：** 如果现有文件中 `db` / `employee_factory` fixture 名称不同，先 grep `def db(` 和 `def employee_factory(` 来确认实际名字，再按照实际签名调整用例参数。不要把 fixture 参数名改写为随便新名字。
-
-若 `Task 1` 的 `MyTierResponse` import 放在文件靠上，可把 `from backend.app.schemas.performance import MyTierResponse` 放到 test 文件顶部既有 imports 同 block。
+**Fixture 名校验：** 文件顶部/现有测试签名里 fixture 名是 `db_session` + `employee_factory`（conftest.py line 52/71），本 section 所有测试函数必须照此签名。**不要把 `db_session` 改写成 `db` 或其他别名。** 若 executor 发现实际 fixture 名与此描述不符（极不可能），才允许按实际 fixture 名调整。
 
 **禁止：**
 - 不要 mock `self.db` —— 用真实 SQLite session（延续文件 Phase 34 pattern）
 - 不要写「若方法不存在就跳过」的 try/except —— Task 2 必然已交付该方法
 - 不要把 PerformanceTierSnapshot 写入同一 year 两次（违反 uq_performance_tier_snapshot_year）
+- **不要在每个测试函数内部 `from datetime import datetime` / `from uuid import UUID` / `from backend.app.schemas.performance import MyTierResponse`** —— 这些 import 必须在文件顶部 import 区完成一次（见上文 Imports 提升）
+- 不要把测试函数签名写成 `def test_xxx(db, employee_factory)` —— fixture 名是 `db_session`
   </action>
   <verify>
     <automated>cd /Users/mac/PycharmProjects/Wage_adjust && .venv/bin/python -m pytest backend/tests/test_services/test_performance_service.py -k get_my_tier -v --no-header 2>&1 | tail -30</automated>
@@ -519,8 +548,11 @@ def test_get_my_tier_invariant_tier_implies_reason_none(db, employee_factory):
     - `grep -n "reason == 'not_ranked'" backend/tests/test_services/test_performance_service.py` 命中
     - `grep -n "falls_back_to_latest_year" backend/tests/test_services/test_performance_service.py` 命中（fallback 用例）
     - `grep -n "accepts_uuid_object_and_stringifies_key" backend/tests/test_services/test_performance_service.py` 命中（str(UUID) 用例）
+    - `grep -cE "def test_get_my_tier.*\(db," backend/tests/test_services/test_performance_service.py` 输出 **0**（MAJOR #1：禁止 `db` 作为 fixture 名；必须用 `db_session`）
+    - `grep -cE "def test_get_my_tier.*\(db_session" backend/tests/test_services/test_performance_service.py` 输出 **≥ 7**（所有 get_my_tier 测试必须用 db_session）
+    - 在新 section 范围内 `grep -cE "^\s+from (datetime|uuid|backend\.app\.schemas\.performance) import" backend/tests/test_services/test_performance_service.py` 的**新增行数** = 0（import 全部在文件顶部 import 区，不内联；MINOR #4）
   </acceptance_criteria>
-  <done>≥ 7 个新 pytest 用例全部通过；覆盖 A/B/C/D/E 五分支 + str(UUID) lookup + invariants。</done>
+  <done>≥ 7 个新 pytest 用例全部通过；fixture 参数名统一为 `db_session`（MAJOR #1 解决）；`datetime`/`UUID`/`MyTierResponse` import 提升至文件顶部（MINOR #4 解决）；覆盖 A/B/C/D/E 五分支 + str(UUID) lookup + invariants。</done>
 </task>
 
 </tasks>
@@ -549,16 +581,19 @@ def test_get_my_tier_invariant_tier_implies_reason_none(db, employee_factory):
 - `python -c "from backend.app.schemas.performance import MyTierResponse; from backend.app.services.performance_service import PerformanceService; print('imports OK')"` 无报错
 - `grep` 静态断言全部通过（见各 task acceptance_criteria）
 - CLAUDE.md 约束：文件顶部 `from __future__ import annotations` 保留；`MyTierResponse` 使用 PEP 604 `int | None` 风格；Service 层零 raw Exception raise
+- 新 section 中 fixture 名正确 — `grep -cE "def test_get_my_tier.*\(db_session" = 7`；无误 `db` fixture — `grep -cE "def test_get_my_tier.*\(db," = 0`
 </verification>
 
 <success_criteria>
 1. `backend/app/schemas/performance.py` 含 `MyTierResponse` 类，4 字段与 D-04 完全一致
 2. `backend/app/services/performance_service.py` 含 `get_my_tier(employee_id)` 方法，5 步逻辑与 D-13 完全一致
-3. `backend/tests/test_services/test_performance_service.py` 含 ≥ 7 个新 `test_get_my_tier_*` 用例，全部通过
+3. `backend/tests/test_services/test_performance_service.py` 含 ≥ 7 个新 `test_get_my_tier_*` 用例，全部通过，**fixture 参数名统一为 `db_session`**
 4. 负向断言：schema 无 `display_label` / `percentile` / `rank` / `as_of` 字段
-5. 本 plan 不动 API 层、不动前端 —— `grep` 验证 `backend/app/api/v1/performance.py` 第 206-209 行 TODO 注释保留（由 Plan 02 删除）
+5. `datetime` / `UUID` / `MyTierResponse` import 在文件顶部完成一次（不内联在 test 函数里）
+6. 本 plan 不动 API 层、不动前端 —— `grep` 验证 `backend/app/api/v1/performance.py` 第 206-209 行 TODO 注释保留（由 Plan 02 删除）
 </success_criteria>
 
 <output>
 After completion, create `.planning/phases/35-employee-self-service-experience/35-01-SUMMARY.md`
+</output>
 </output>

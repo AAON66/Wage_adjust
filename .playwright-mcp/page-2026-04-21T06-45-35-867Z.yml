@@ -1,0 +1,47 @@
+- main [ref=e114]:
+  - generic [ref=e115]:
+    - generic [ref=e116]:
+      - paragraph [ref=e117]: 账号登录
+      - heading "欢迎使用智能调薪平台" [level=1] [ref=e118]
+      - paragraph [ref=e119]: 登录后进入对应工作区。
+      - generic [ref=e120]:
+        - generic [ref=e121]:
+          - paragraph [ref=e122]: 员工
+          - paragraph [ref=e123]: 查看个人材料与评估进展
+        - generic [ref=e124]:
+          - paragraph [ref=e125]: 主管
+          - paragraph [ref=e126]: 查看团队评估与审批
+        - generic [ref=e127]:
+          - paragraph [ref=e128]: HRBP
+          - paragraph [ref=e129]: 处理复核、预算与审批
+        - generic [ref=e130]:
+          - paragraph [ref=e131]: 管理员
+          - paragraph [ref=e132]: 处理周期、导入与全局配置
+    - generic [ref=e133]:
+      - paragraph [ref=e134]: 访问入口
+      - heading "登录平台" [level=2] [ref=e135]
+      - paragraph [ref=e136]: 请使用公司内部已开通账号登录。
+      - generic [ref=e138]:
+        - generic [ref=e139]:
+          - text: 邮箱
+          - textbox "邮箱" [ref=e140]:
+            - /placeholder: 请输入邮箱
+            - text: cli_a9409c14ce789bb7
+        - generic [ref=e141]:
+          - text: 密码
+          - textbox "密码" [ref=e142]:
+            - /placeholder: 请输入密码
+            - text: FGxskr9LBZYYCWTfk5U8EbUrFjAqth8W
+        - button "登录系统" [ref=e143] [cursor=pointer]
+      - generic [ref=e144]:
+        - paragraph [ref=e145]: 飞书账号登录
+        - heading "使用飞书账号授权登录" [level=3] [ref=e146]
+        - paragraph [ref=e147]: 点击下方按钮跳转到飞书授权页，已登录飞书时可直接完成授权。
+        - generic [ref=e148]:
+          - button "使用飞书账号登录 →" [ref=e149] [cursor=pointer]
+          - paragraph [ref=e150]: 已登录飞书时一键授权，未登录时将进入飞书登录页
+      - generic [ref=e151]: 账号由管理员开通。首次登录需先改密。
+      - paragraph [ref=e152]:
+        - text: 返回平台首页
+        - link "查看系统说明" [ref=e153] [cursor=pointer]:
+          - /url: /
