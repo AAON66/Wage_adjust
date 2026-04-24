@@ -129,6 +129,7 @@ class PerformanceService:
         year: int,
         grade: str,
         source: str = 'manual',
+        comment: str | None = None,
     ) -> PerformanceRecord:
         """新增/UPSERT 一条绩效记录；显式写 department_snapshot（D-08）。
 
@@ -154,6 +155,7 @@ class PerformanceService:
         if existing is not None:
             existing.grade = normalized
             existing.source = source
+            existing.comment = comment
             # D-08：刷新部门快照（None 时也写 None，不抛异常）
             existing.department_snapshot = employee.department
             self.db.add(existing)
@@ -167,6 +169,7 @@ class PerformanceService:
             year=year,
             grade=normalized,
             source=source,
+            comment=comment,
             # D-08：录入时部门快照（None 时也写 None）
             department_snapshot=employee.department,
         )

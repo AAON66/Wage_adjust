@@ -24,6 +24,7 @@ class PerformanceRecordRead(BaseModel):
     grade: str
     source: str
     department_snapshot: str | None = None
+    comment: str | None = None
     created_at: datetime
 
 
@@ -44,6 +45,7 @@ class PerformanceRecordCreateRequest(BaseModel):
     year: int = Field(..., ge=2000, le=2100)
     grade: str = Field(..., min_length=1, max_length=2)  # A/B/C/D/E
     source: str = Field(default='manual', pattern='^(manual|excel|feishu)$')
+    comment: str | None = Field(default=None, max_length=2000)
 
 
 class TierSummaryResponse(BaseModel):
@@ -81,6 +83,12 @@ class AvailableYearsResponse(BaseModel):
     """
 
     years: list[int]
+
+
+class PerformanceHistoryResponse(BaseModel):
+    """Phase 36 D-05：按员工返回历史绩效记录列表。"""
+
+    items: list[PerformanceRecordRead]
 
 
 class MyTierResponse(BaseModel):
