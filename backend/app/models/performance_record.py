@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.core.database import Base
@@ -27,4 +27,9 @@ class PerformanceRecord(UUIDPrimaryKeyMixin, CreatedAtMixin, UpdatedAtMixin, Bas
     department_snapshot: Mapped[str | None] = mapped_column(
         String(100), nullable=True,
         comment='Phase 34 D-07：录入时员工所属部门快照；存量行 NULL 不回填',
+    )
+    comment: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        comment='Phase 36 D-02：绩效评语；manual/excel 来源可写入，feishu 来源恒 None',
     )
