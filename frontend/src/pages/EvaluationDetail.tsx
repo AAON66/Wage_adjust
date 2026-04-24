@@ -2216,16 +2216,6 @@ export function EvaluationDetailPage() {
           </div>
         ) : null}
       </section>
-      {canViewPerformanceHistory ? (
-        <>
-          <hr className="divider" style={{ margin: '20px 0' }} />
-          <PerformanceHistoryPanel
-            employeeName={employee?.name}
-            records={performanceHistory}
-            isLoading={isPerformanceHistoryLoading}
-          />
-        </>
-      ) : null}
       </>
     );
   })();
@@ -2362,6 +2352,17 @@ export function EvaluationDetailPage() {
           </section>
 
           {activeModuleContent}
+
+          {canViewPerformanceHistory ? (
+            <>
+              <hr className="divider" style={{ margin: '20px 0' }} />
+              <PerformanceHistoryPanel
+                employeeName={employee?.name}
+                records={performanceHistory}
+                isLoading={isPerformanceHistoryLoading}
+              />
+            </>
+          ) : null}
         </>
       ) : null}
     </AppShell>
