@@ -52,6 +52,14 @@
 ## 自动验证记录
 
 - `npx tsc --noEmit`：通过
+- `./.venv/bin/pytest backend/tests/test_api/test_performance_history_api.py backend/tests/test_services/test_performance_service.py -q`：`47 passed`
+- 真实库 token 权限矩阵复跑（目标员工：`钟卉` / `TOC创新业务`）：
+  - admin → `200`，返回 `items[0].comment` / `department_snapshot`
+  - 同部门 manager（`leader@test.com`）→ `200`
+  - 跨部门 manager（`hr@test.com`）→ `403`
+  - employee（`test2@test.com`）→ `403`
+  - admin + 不存在 employee_id → `404`
+- 数据库 schema 校验：`PRAGMA table_info(performance_records)` 已出现 `comment TEXT` 列
 - 当前任务代码提交：`dd0414a` `feat(36-04): mount performance history in evaluation detail`
 
 ## Screenshots
@@ -60,7 +68,9 @@
 
 ## Findings / Gaps
 
-- 暂无自动化阻塞
+- 自动化过程中发现真实库最初未执行 `36_01_add_comment_perf` 迁移，导致 `/performance/records/by-employee/{employee_id}` 对真实数据返回 `500`（`sqlite3.OperationalError: no such column: performance_records.comment`）
+- 已执行 `./.venv/bin/alembic upgrade head` 修复本地 schema 后复测，admin / 同部门 manager 场景恢复为 `200`
+- 当前主库不存在“存在但零历史绩效”的员工（`employees_without_performance_records = 0`），因此 UAT 场景 6 仍需人工或专门构造数据验证空态
 - 人工验证尚未执行，因此本文件当前不能视为最终验收结果
 
 ## Sign-off
