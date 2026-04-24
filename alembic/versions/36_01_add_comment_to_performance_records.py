@@ -6,16 +6,14 @@ Create Date: 2026-04-24
 """
 from __future__ import annotations
 
-from typing import Sequence, Union
-
 import sqlalchemy as sa
 from alembic import op
 
 
-revision: str = '36_01_add_comment_perf'
-down_revision: Union[str, None] = 'p34_02_tier_snapshot'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+revision = '36_01_add_comment_perf'
+down_revision = 'p34_02_tier_snapshot'
+branch_labels = None
+depends_on = None
 
 
 def upgrade() -> None:
