@@ -1,13 +1,16 @@
 ﻿from __future__ import annotations
 
+import io
 from pathlib import Path
 from uuid import uuid4
 
+from openpyxl import Workbook
 from backend.app.core.config import Settings
 from backend.app.core.database import create_db_engine, create_session_factory, init_database
 from backend.app.models import load_model_modules
 from backend.app.models.department import Department
 from backend.app.models.employee import Employee
+from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.user import User
 from backend.app.services.import_service import ImportService
 
@@ -29,10 +32,42 @@ class UploadStub:
         self.file = __import__('io').BytesIO(content)
 
 
+def build_xlsx_bytes(headers: list[str], rows: list[list[object]]) -> bytes:
+    workbook = Workbook()
+    worksheet = workbook.active
+    worksheet.append(headers)
+    for row in rows:
+        worksheet.append(row)
+    buffer = io.BytesIO()
+    workbook.save(buffer)
+    return buffer.getvalue()
+
+
 def seed_departments(db, *names: str) -> None:
     for name in names:
         db.add(Department(name=name, description=f'{name} scope', status='active'))
     db.commit()
+
+
+def seed_employee(
+    db,
+    *,
+    employee_no: str,
+    name: str = '绩效员工',
+    department: str = 'Engineering',
+) -> Employee:
+    employee = Employee(
+        employee_no=employee_no,
+        name=name,
+        department=department,
+        job_family='Platform',
+        job_level='P5',
+        status='active',
+    )
+    db.add(employee)
+    db.commit()
+    db.refresh(employee)
+    return employee
 
 
 def test_import_service_imports_employees_and_certifications() -> None:
@@ -283,5 +318,219 @@ def test_import_service_auto_binds_existing_user_by_id_card() -> None:
         assert employee is not None
         assert user is not None
         assert user.employee_id == employee.id
+    finally:
+        db.close()
+
+
+def test_import_performance_grades_with_comment_header_persists_comment() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        seed_employee(db, employee_no='EMP-C001')
+        service = ImportService(db)
+
+        upload = UploadStub(
+            'performance_grades.xlsx',
+            build_xlsx_bytes(
+                ['员工工号', '年度', '绩效等级', '评语'],
+                [['EMP-C001', 2025, 'A', '年度表现突出']],
+            ),
+        )
+        job = service.run_import(import_type='performance_grades', upload=upload)
+
+        assert job.status == 'completed'
+        record = db.scalar(
+            __import__('sqlalchemy').select(PerformanceRecord).where(
+                PerformanceRecord.employee_no == 'EMP-C001',
+                PerformanceRecord.year == 2025,
+            )
+        )
+        assert record is not None
+        assert record.comment == '年度表现突出'
+    finally:
+        db.close()
+
+
+def test_import_performance_grades_without_comment_column_defaults_to_none() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        seed_employee(db, employee_no='EMP-C002')
+        service = ImportService(db)
+
+        upload = UploadStub(
+            'performance_grades.xlsx',
+            build_xlsx_bytes(
+                ['员工工号', '年度', '绩效等级'],
+                [['EMP-C002', 2025, 'B']],
+            ),
+        )
+        job = service.run_import(import_type='performance_grades', upload=upload)
+
+        assert job.status == 'completed'
+        record = db.scalar(
+            __import__('sqlalchemy').select(PerformanceRecord).where(
+                PerformanceRecord.employee_no == 'EMP-C002',
+                PerformanceRecord.year == 2025,
+            )
+        )
+        assert record is not None
+        assert record.comment is None
+    finally:
+        db.close()
+
+
+def test_import_performance_grades_with_english_comment_alias() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        seed_employee(db, employee_no='EMP-C003')
+        service = ImportService(db)
+
+        upload = UploadStub(
+            'performance_grades.xlsx',
+            build_xlsx_bytes(
+                ['员工工号', '年度', '绩效等级', 'comment'],
+                [['EMP-C003', 2025, 'C', 'Needs stronger execution']],
+            ),
+        )
+        job = service.run_import(import_type='performance_grades', upload=upload)
+
+        assert job.status == 'completed'
+        record = db.scalar(
+            __import__('sqlalchemy').select(PerformanceRecord).where(
+                PerformanceRecord.employee_no == 'EMP-C003',
+                PerformanceRecord.year == 2025,
+            )
+        )
+        assert record is not None
+        assert record.comment == 'Needs stronger execution'
+    finally:
+        db.close()
+
+
+def test_import_performance_grades_with_note_alias() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        seed_employee(db, employee_no='EMP-C004')
+        service = ImportService(db)
+
+        upload = UploadStub(
+            'performance_grades.xlsx',
+            build_xlsx_bytes(
+                ['员工工号', '年度', '绩效等级', '备注'],
+                [['EMP-C004', 2025, 'A', '备注字段写入评语']],
+            ),
+        )
+        job = service.run_import(import_type='performance_grades', upload=upload)
+
+        assert job.status == 'completed'
+        record = db.scalar(
+            __import__('sqlalchemy').select(PerformanceRecord).where(
+                PerformanceRecord.employee_no == 'EMP-C004',
+                PerformanceRecord.year == 2025,
+            )
+        )
+        assert record is not None
+        assert record.comment == '备注字段写入评语'
+    finally:
+        db.close()
+
+
+def test_import_performance_grades_merge_without_comment_column_keeps_existing() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        employee = seed_employee(db, employee_no='EMP-C005')
+        db.add(
+            PerformanceRecord(
+                employee_id=employee.id,
+                employee_no=employee.employee_no,
+                year=2025,
+                grade='A',
+                source='manual',
+                department_snapshot=employee.department,
+                comment='保留原评语',
+            )
+        )
+        db.commit()
+        service = ImportService(db)
+
+        upload = UploadStub(
+            'performance_grades.xlsx',
+            build_xlsx_bytes(
+                ['员工工号', '年度', '绩效等级'],
+                [['EMP-C005', 2025, 'B']],
+            ),
+        )
+        job = service.run_import(
+            import_type='performance_grades',
+            upload=upload,
+            overwrite_mode='merge',
+        )
+
+        assert job.status == 'completed'
+        record = db.scalar(
+            __import__('sqlalchemy').select(PerformanceRecord).where(
+                PerformanceRecord.employee_no == 'EMP-C005',
+                PerformanceRecord.year == 2025,
+            )
+        )
+        assert record is not None
+        assert record.grade == 'B'
+        assert record.comment == '保留原评语'
+    finally:
+        db.close()
+
+
+def test_import_performance_grades_merge_with_comment_column_updates_existing() -> None:
+    session_factory = build_context()
+    db = session_factory()
+    try:
+        seed_departments(db, 'Engineering')
+        employee = seed_employee(db, employee_no='EMP-C006')
+        db.add(
+            PerformanceRecord(
+                employee_id=employee.id,
+                employee_no=employee.employee_no,
+                year=2025,
+                grade='A',
+                source='manual',
+                department_snapshot=employee.department,
+                comment=None,
+            )
+        )
+        db.commit()
+        service = ImportService(db)
+
+        upload = UploadStub(
+            'performance_grades.xlsx',
+            build_xlsx_bytes(
+                ['员工工号', '年度', '绩效等级', '评语'],
+                [['EMP-C006', 2025, 'B', '评语A']],
+            ),
+        )
+        job = service.run_import(
+            import_type='performance_grades',
+            upload=upload,
+            overwrite_mode='merge',
+        )
+
+        assert job.status == 'completed'
+        record = db.scalar(
+            __import__('sqlalchemy').select(PerformanceRecord).where(
+                PerformanceRecord.employee_no == 'EMP-C006',
+                PerformanceRecord.year == 2025,
+            )
+        )
+        assert record is not None
+        assert record.grade == 'B'
+        assert record.comment == '评语A'
     finally:
         db.close()
