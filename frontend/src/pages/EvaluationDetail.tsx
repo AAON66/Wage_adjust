@@ -13,6 +13,7 @@ import { CalibrationCompareTable, type CalibrationCompareRow } from '../componen
 import { DimensionScoreEditor, type DimensionScoreDraft } from '../components/review/DimensionScoreEditor';
 import { ReviewPanel } from '../components/review/ReviewPanel';
 import { AttendanceKpiCard } from '../components/attendance/AttendanceKpiCard';
+import { PerformanceHistoryPanel } from '../components/performance/PerformanceHistoryPanel';
 import { SalaryDetailPanel } from '../components/salary/SalaryDetailPanel';
 import { SalaryHistoryPanel } from '../components/salary/SalaryHistoryPanel';
 import { SalarySummaryPanel } from '../components/salary/SalarySummaryPanel';
@@ -36,6 +37,7 @@ import {
 import { checkDuplicate } from '../services/sharingService';
 import { computeFileSHA256, SubtleCryptoUnavailableError } from '../utils/fileHash';
 import { fetchEmployee } from '../services/employeeService';
+import { fetchPerformanceHistoryByEmployee } from '../services/performanceService';
 import { fetchSalaryHistoryByEmployee, fetchSalaryRecommendationByEvaluation, recommendSalary, updateSalaryRecommendation } from '../services/salaryService';
 import { ensureSubmission } from '../services/submissionService';
 import type {
@@ -43,6 +45,7 @@ import type {
   EmployeeRecord,
   EvaluationRecord,
   EvidenceRecord,
+  PerformanceRecordItem,
   SalaryHistoryRecord,
   SalaryRecommendationRecord,
   SubmissionRecord,
@@ -505,6 +508,7 @@ export function EvaluationDetailPage() {
   const [evaluation, setEvaluation] = useState<EvaluationRecord | null>(null);
   const [salaryRecommendation, setSalaryRecommendation] = useState<SalaryRecommendationRecord | null>(null);
   const [salaryHistory, setSalaryHistory] = useState<SalaryHistoryRecord[]>([]);
+  const [performanceHistory, setPerformanceHistory] = useState<PerformanceRecordItem[]>([]);
   const [dimensions, setDimensions] = useState<DimensionScoreDraft[]>(() => createInitialDimensions());
   const [reviewLevel, setReviewLevel] = useState('Level 3');
   const [reviewComment, setReviewComment] = useState('请填写主管评分依据；如进入 HR 审核，请填写同意或打回原因。');
@@ -528,6 +532,7 @@ export function EvaluationDetailPage() {
   const [evaluationTaskId, setEvaluationTaskId] = useState<string | null>(null);
   const [isGeneratingSalary, setIsGeneratingSalary] = useState(false);
   const [isSalaryHistoryLoading, setIsSalaryHistoryLoading] = useState(false);
+  const [isPerformanceHistoryLoading, setIsPerformanceHistoryLoading] = useState(false);
   const [isSalaryEditorOpen, setIsSalaryEditorOpen] = useState(true);
   const [isDetailExpanded, setIsDetailExpanded] = useState(false);
   const [manualAdjustmentPercent, setManualAdjustmentPercent] = useState('');
@@ -541,6 +546,7 @@ export function EvaluationDetailPage() {
   const canSubmitApproval = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
   const canHrReview = user?.role === 'admin' || user?.role === 'hrbp';
   const canViewSalaryHistory = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
+  const canViewPerformanceHistory = user?.role === 'admin' || user?.role === 'hrbp' || user?.role === 'manager';
 
   async function refreshSalaryHistory(targetEmployeeId: string) {
     if (!canViewSalaryHistory) {
@@ -564,8 +570,33 @@ export function EvaluationDetailPage() {
     }
   }
 
+  async function refreshPerformanceHistory(targetEmployeeId: string) {
+    if (!canViewPerformanceHistory) {
+      setPerformanceHistory([]);
+      setIsPerformanceHistoryLoading(false);
+      return;
+    }
+
+    setIsPerformanceHistoryLoading(true);
+    try {
+      const historyResponse = await fetchPerformanceHistoryByEmployee(targetEmployeeId);
+      setPerformanceHistory(historyResponse.items);
+    } catch (error) {
+      if (
+        axios.isAxiosError(error) &&
+        (error.response?.status === 403 || error.response?.status === 404)
+      ) {
+        setPerformanceHistory([]);
+        return;
+      }
+      throw error;
+    } finally {
+      setIsPerformanceHistoryLoading(false);
+    }
+  }
+
   async function refreshSubmissionData(targetSubmissionId: string) {
-    const [filesResponse, evidenceResponse, evaluationResult, salaryHistoryResult] = await Promise.all([
+    const [filesResponse, evidenceResponse, evaluationResult, salaryHistoryResult, performanceHistoryResult] = await Promise.all([
       fetchSubmissionFiles(targetSubmissionId),
       fetchSubmissionEvidence(targetSubmissionId),
       fetchEvaluationBySubmission(targetSubmissionId)
@@ -573,6 +604,11 @@ export function EvaluationDetailPage() {
         .catch(() => ({ ok: false as const })),
       employeeId && canViewSalaryHistory
         ? fetchSalaryHistoryByEmployee(employeeId)
+            .then((response) => ({ ok: true as const, response }))
+            .catch((error: unknown) => ({ ok: false as const, error }))
+        : Promise.resolve({ ok: true as const, response: null }),
+      employeeId && canViewPerformanceHistory
+        ? fetchPerformanceHistoryByEmployee(employeeId)
             .then((response) => ({ ok: true as const, response }))
             .catch((error: unknown) => ({ ok: false as const, error }))
         : Promise.resolve({ ok: true as const, response: null }),
@@ -587,6 +623,18 @@ export function EvaluationDetailPage() {
       setSalaryHistory([]);
     } else {
       setSalaryHistory([]);
+    }
+
+    if (performanceHistoryResult.ok) {
+      setPerformanceHistory(performanceHistoryResult.response?.items ?? []);
+    } else if (
+      axios.isAxiosError(performanceHistoryResult.error) &&
+      (performanceHistoryResult.error.response?.status === 403 ||
+        performanceHistoryResult.error.response?.status === 404)
+    ) {
+      setPerformanceHistory([]);
+    } else {
+      setPerformanceHistory([]);
     }
 
     if (evaluationResult.ok) {
@@ -735,6 +783,13 @@ export function EvaluationDetailPage() {
     }
     setSalaryHistory([]);
   }, [canViewSalaryHistory, salaryHistory.length]);
+
+  useEffect(() => {
+    if (canViewPerformanceHistory || !performanceHistory.length) {
+      return;
+    }
+    setPerformanceHistory([]);
+  }, [canViewPerformanceHistory, performanceHistory.length]);
 
   const currentCycle = useMemo(() => cycles.find((cycle) => cycle.id === selectedCycleId) ?? null, [cycles, selectedCycleId]);
   const currentStatus = useMemo(() => inferStatus(submission, files, evaluation, salaryRecommendation), [submission, files, evaluation, salaryRecommendation]);
@@ -2161,6 +2216,16 @@ export function EvaluationDetailPage() {
           </div>
         ) : null}
       </section>
+      {canViewPerformanceHistory ? (
+        <>
+          <hr className="divider" style={{ margin: '20px 0' }} />
+          <PerformanceHistoryPanel
+            employeeName={employee?.name}
+            records={performanceHistory}
+            isLoading={isPerformanceHistoryLoading}
+          />
+        </>
+      ) : null}
       </>
     );
   })();
