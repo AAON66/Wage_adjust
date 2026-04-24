@@ -277,6 +277,191 @@ def test_list_records_department_filter(db_session, employee_factory):
 
 
 # ---------------------------------------------------------------------------
+# list_records_by_employee
+# ---------------------------------------------------------------------------
+
+def test_list_records_by_employee_orders_by_year_desc(db_session, employee_factory):
+    emp = employee_factory(
+        employee_no='E20001',
+        name='张三',
+        department='Engineering',
+    )
+    db_session.add_all([
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2024,
+            grade='C',
+            source='manual',
+            department_snapshot='Engineering',
+        ),
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2026,
+            grade='A',
+            source='manual',
+            department_snapshot='Engineering',
+        ),
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2025,
+            grade='B',
+            source='manual',
+            department_snapshot='Engineering',
+        ),
+    ])
+    db_session.commit()
+
+    service = PerformanceService(db_session)
+
+    items = service.list_records_by_employee(emp.id)
+
+    assert [item.year for item in items] == [2026, 2025, 2024]
+    assert all(item.employee_id == emp.id for item in items)
+
+
+def test_list_records_by_employee_returns_empty_list_when_no_records(
+    db_session, employee_factory,
+):
+    emp = employee_factory(employee_no='E20002', name='李四')
+    service = PerformanceService(db_session)
+
+    items = service.list_records_by_employee(emp.id)
+
+    assert items == []
+
+
+def test_list_records_by_employee_handles_null_department_snapshot_and_comment(
+    db_session, employee_factory,
+):
+    emp = employee_factory(employee_no='E20003', name='王五', department='Ops')
+    db_session.add_all([
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2026,
+            grade='A',
+            source='manual',
+            department_snapshot=None,
+            comment='年度表现突出',
+        ),
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2025,
+            grade='B',
+            source='manual',
+            department_snapshot='Ops',
+            comment=None,
+        ),
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2024,
+            grade='C',
+            source='manual',
+            department_snapshot='Ops',
+            comment='稳定达标',
+        ),
+    ])
+    db_session.commit()
+
+    service = PerformanceService(db_session)
+
+    items = service.list_records_by_employee(emp.id)
+    by_year = {item.year: item for item in items}
+
+    assert by_year[2026].department_snapshot is None
+    assert by_year[2026].comment == '年度表现突出'
+    assert by_year[2025].department_snapshot == 'Ops'
+    assert by_year[2025].comment is None
+
+
+def test_list_records_by_employee_isolates_between_employees(
+    db_session, employee_factory,
+):
+    emp_a = employee_factory(employee_no='E20004', name='员工A', department='Dept-A')
+    emp_b = employee_factory(employee_no='E20005', name='员工B', department='Dept-B')
+    db_session.add_all([
+        PerformanceRecord(
+            employee_id=emp_a.id,
+            employee_no=emp_a.employee_no,
+            year=2026,
+            grade='A',
+            source='manual',
+            department_snapshot='Dept-A',
+        ),
+        PerformanceRecord(
+            employee_id=emp_a.id,
+            employee_no=emp_a.employee_no,
+            year=2025,
+            grade='B',
+            source='manual',
+            department_snapshot='Dept-A',
+        ),
+        PerformanceRecord(
+            employee_id=emp_b.id,
+            employee_no=emp_b.employee_no,
+            year=2026,
+            grade='C',
+            source='manual',
+            department_snapshot='Dept-B',
+        ),
+    ])
+    db_session.commit()
+
+    service = PerformanceService(db_session)
+
+    items = service.list_records_by_employee(emp_a.id)
+
+    assert len(items) == 2
+    assert {item.employee_id for item in items} == {emp_a.id}
+    assert {item.employee_no for item in items} == {emp_a.employee_no}
+
+
+def test_list_records_by_employee_returns_empty_list_for_nonexistent_employee_id(
+    db_session,
+):
+    service = PerformanceService(db_session)
+
+    items = service.list_records_by_employee('6df2307a-2637-4f07-a90e-7f4724451e42')
+
+    assert items == []
+
+
+def test_list_records_by_employee_populates_employee_name_via_join(
+    db_session, employee_factory,
+):
+    emp = employee_factory(
+        employee_no='E20006',
+        name='赵六',
+        department='Finance',
+    )
+    db_session.add(
+        PerformanceRecord(
+            employee_id=emp.id,
+            employee_no=emp.employee_no,
+            year=2026,
+            grade='A',
+            source='manual',
+            department_snapshot='Finance',
+            comment='达成关键目标',
+        )
+    )
+    db_session.commit()
+
+    service = PerformanceService(db_session)
+
+    items = service.list_records_by_employee(emp.id)
+
+    assert len(items) == 1
+    assert items[0].employee_name == '赵六'
+    assert items[0].comment == '达成关键目标'
+
+
+# ---------------------------------------------------------------------------
 # get_tier_summary
 # ---------------------------------------------------------------------------
 
