@@ -26,12 +26,14 @@ from backend.app.models.user import User
 from backend.app.schemas.performance import (
     AvailableYearsResponse,
     MyTierResponse,
+    PerformanceHistoryResponse,
     PerformanceRecordCreateRequest,
     PerformanceRecordRead,
     PerformanceRecordsListResponse,
     RecomputeTriggerResponse,
     TierSummaryResponse,
 )
+from backend.app.services.access_scope_service import AccessScopeService
 from backend.app.services.exceptions import (
     TierRecomputeBusyError,
     TierRecomputeFailedError,
@@ -84,6 +86,42 @@ def list_performance_records(
         page_size=page_size,
         total_pages=total_pages,
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /performance/records/by-employee/{employee_id} — Phase 36 D-04 / D-05 / D-06
+# ---------------------------------------------------------------------------
+
+@router.get(
+    '/records/by-employee/{employee_id}',
+    response_model=PerformanceHistoryResponse,
+)
+def list_performance_records_by_employee(
+    employee_id: str,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_app_settings),
+    current_user: User = Depends(require_roles('admin', 'hrbp', 'manager')),
+) -> PerformanceHistoryResponse:
+    """按员工返回历史绩效记录，角色与部门范围受限。"""
+    try:
+        employee = AccessScopeService(db).ensure_employee_access(
+            current_user,
+            employee_id,
+        )
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='无权查看该员工的历史绩效',
+        ) from exc
+    if employee is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='员工不存在',
+        )
+
+    service = _make_service(db, settings)
+    items = service.list_records_by_employee(employee_id)
+    return PerformanceHistoryResponse(items=items)
 
 
 # ---------------------------------------------------------------------------
