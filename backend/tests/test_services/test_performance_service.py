@@ -14,13 +14,19 @@ from unittest.mock import MagicMock
 from uuid import UUID
 
 import pytest
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 
 from backend.app.engines import PerformanceTierConfig, PerformanceTierEngine
 from backend.app.models.performance_record import PerformanceRecord
 from backend.app.models.performance_tier_snapshot import PerformanceTierSnapshot
-from backend.app.schemas.performance import MyTierResponse
+from backend.app.schemas.performance import (
+    MyTierResponse,
+    PerformanceHistoryResponse,
+    PerformanceRecordCreateRequest,
+    PerformanceRecordRead,
+)
 from backend.app.services.exceptions import (
     TierRecomputeBusyError,
     TierRecomputeFailedError,
@@ -149,6 +155,82 @@ def test_create_record_upserts_existing(db_session, employee_factory):
         )
     ).scalars().all()
     assert len(rows) == 1
+
+
+def test_create_record_persists_comment(db_session, employee_factory):
+    emp = employee_factory(employee_no='E00104', department='Engineering')
+    service = PerformanceService(db_session)
+
+    record = service.create_record(
+        employee_id=emp.id,
+        year=2025,
+        grade='A',
+        source='manual',
+        comment='Q4 超额完成',
+    )
+
+    assert record.comment == 'Q4 超额完成'
+    serialized = PerformanceRecordRead.model_validate(record)
+    assert serialized.comment == 'Q4 超额完成'
+
+
+def test_create_record_defaults_comment_to_none(db_session, employee_factory):
+    emp = employee_factory(employee_no='E00105', department='Engineering')
+    service = PerformanceService(db_session)
+
+    record = service.create_record(
+        employee_id=emp.id,
+        year=2025,
+        grade='B',
+        source='manual',
+    )
+
+    assert record.comment is None
+    response = PerformanceHistoryResponse(
+        items=[PerformanceRecordRead.model_validate(record)],
+    )
+    assert response.items[0].comment is None
+
+
+def test_create_record_upsert_refreshes_comment_and_department_snapshot(
+    db_session, employee_factory,
+):
+    emp = employee_factory(employee_no='E00106', department='Sales')
+    service = PerformanceService(db_session)
+
+    first = service.create_record(
+        employee_id=emp.id,
+        year=2025,
+        grade='A',
+        source='manual',
+    )
+    emp.department = 'Operations'
+    db_session.add(emp)
+    db_session.commit()
+
+    second = service.create_record(
+        employee_id=emp.id,
+        year=2025,
+        grade='B',
+        source='manual',
+        comment='改评',
+    )
+
+    assert second.id == first.id
+    assert second.grade == 'B'
+    assert second.comment == '改评'
+    assert second.department_snapshot == 'Operations'
+
+
+def test_performance_record_create_request_rejects_comment_over_2000_chars():
+    with pytest.raises(ValidationError):
+        PerformanceRecordCreateRequest(
+            employee_id='employee-id',
+            year=2025,
+            grade='A',
+            source='manual',
+            comment='评' * 3000,
+        )
 
 
 # ---------------------------------------------------------------------------
