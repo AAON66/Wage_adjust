@@ -119,6 +119,30 @@ class PerformanceService:
         return items, total
 
     # ------------------------------------------------------------------
+    # list_records_by_employee (Phase 36 D-01 / D-05)
+    # ------------------------------------------------------------------
+
+    def list_records_by_employee(
+        self,
+        employee_id: str,
+    ) -> list[PerformanceRecordRead]:
+        """按 employee_id 返回全部历史绩效记录，按 year DESC 排序。"""
+        stmt = (
+            select(PerformanceRecord, Employee.name)
+            .join(Employee, Employee.id == PerformanceRecord.employee_id)
+            .where(PerformanceRecord.employee_id == employee_id)
+            .order_by(PerformanceRecord.year.desc())
+        )
+        rows = self.db.execute(stmt).all()
+
+        items: list[PerformanceRecordRead] = []
+        for record, employee_name in rows:
+            data = PerformanceRecordRead.model_validate(record)
+            data.employee_name = employee_name or ''
+            items.append(data)
+        return items
+
+    # ------------------------------------------------------------------
     # create_record (D-08)
     # ------------------------------------------------------------------
 
