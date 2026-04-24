@@ -87,6 +87,9 @@ class ImportService:
             '员工工号': 'employee_no',
             '年度': 'year',
             '绩效等级': 'grade',
+            '评语': 'comment',
+            'comment': 'comment',
+            '备注': 'comment',
         },
         'salary_adjustments': {
             '员工工号': 'employee_no',
@@ -882,6 +885,17 @@ class ImportService:
                     if grade not in ('A', 'B', 'C', 'D', 'E'):
                         raise ValueError(f'绩效等级 "{grade}" 不合法，请填写 A/B/C/D/E')
 
+                    comment_raw = row.get('comment')
+                    comment_value: str | None
+                    if (
+                        pd.isna(comment_raw)
+                        or comment_raw is None
+                        or str(comment_raw).strip() == ''
+                    ):
+                        comment_value = None
+                    else:
+                        comment_value = str(comment_raw).strip()
+
                     # Idempotent upsert on (employee_id, year)
                     existing = self.db.scalar(
                         select(PerformanceRecord).where(
@@ -893,6 +907,8 @@ class ImportService:
                         old_grade = existing.grade
                         existing.grade = grade
                         existing.source = 'excel'
+                        if comment_value is not None:
+                            existing.comment = comment_value
                         # Phase 34 B-1 + D-08：刷新部门快照（None 时也写 None）
                         existing.department_snapshot = employee.department
                         self.db.add(existing)
@@ -904,6 +920,7 @@ class ImportService:
                             year=year,
                             grade=grade,
                             source='excel',
+                            comment=comment_value,
                             # Phase 34 B-1 + D-08：录入时部门快照（None 时也写 None）
                             department_snapshot=employee.department,
                         )
