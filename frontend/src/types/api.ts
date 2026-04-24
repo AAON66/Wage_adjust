@@ -1168,6 +1168,8 @@ export interface PerformanceRecordItem {
   source: string;
   /** D-07：可空。null 时 UI 显示「—」 */
   department_snapshot: string | null;
+  /** Phase 36 D-02：绩效评语，可空。null 时 UI 显示「—」 */
+  comment: string | null;
   /** ISO datetime */
   created_at: string;
 }
@@ -1179,6 +1181,11 @@ export interface PerformanceRecordsListResponse {
   page: number;
   page_size: number;
   total_pages: number;
+}
+
+/** Phase 36 D-04 / D-05：GET /api/v1/performance/records/by-employee/{employee_id} 响应 */
+export interface PerformanceHistoryResponse {
+  items: PerformanceRecordItem[];
 }
 
 /** POST /api/v1/performance/records 请求体 */
