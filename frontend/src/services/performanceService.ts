@@ -5,6 +5,7 @@ import type {
   AvailableYearsResponse,
   MyTierResponse,
   NoSnapshotErrorDetail,
+  PerformanceHistoryResponse,
   PerformanceRecordCreatePayload,
   PerformanceRecordItem,
   PerformanceRecordsListResponse,
@@ -171,5 +172,19 @@ export async function getAvailableYears(): Promise<number[]> {
  */
 export async function fetchMyTier(): Promise<MyTierResponse> {
   const { data } = await api.get<MyTierResponse>('/performance/me/tier');
+  return data;
+}
+
+/**
+ * Phase 36 D-04 / D-05：按员工拉取历史绩效（year DESC，不分页）。
+ * 权限：admin/hrbp/manager；employee 403；manager 跨部门 403；不存在员工 404。
+ * 错误由 axios interceptor 处理 401；其它错误抛 AxiosError 给调用方 catch。
+ */
+export async function fetchPerformanceHistoryByEmployee(
+  employeeId: string,
+): Promise<PerformanceHistoryResponse> {
+  const { data } = await api.get<PerformanceHistoryResponse>(
+    `/performance/records/by-employee/${encodeURIComponent(employeeId)}`,
+  );
   return data;
 }
